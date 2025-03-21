@@ -1,0 +1,2056 @@
+<!DOCTYPE html>
+{% load static %}
+
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'css/stylequiz.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+
+</head>
+<body>
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+    <div id="content">	
+         <div class="quiz-title">
+            <h1>
+Sciences-Humaines 2017
+</h1>
+         </div>
+         <form id="quiz-form">
+    <input type="hidden" id='exam_name' name="exam_name" value="SH2017P">
+    {% csrf_token %}
+            <div class="question-container" id="question-1">
+               <div class="question">
+                  <p> 1.) Un patient se présente à votre consultation pour des douleurs du dos évoluant depuis cinq mois. Elles sont survenues d'une manière aiguë. À
+                     votre avis, ce sont des douleurs : </p>
+                  <ul>
+                     <li>
+                        <input id="q1a" name="q1" type="checkbox" value="A" /> A- Aigues </li>
+                     <li>
+                        <input id="q1b" name="q1" type="checkbox" value="B" /> B- Chroniques </li>
+                     <li>
+                        <input id="q1c" name="q1" type="checkbox" value="C" /> C- Psycho-sociales </li>
+                     <li>
+                        <input id="q1d" name="q1" type="checkbox" value="D" /> D- Névralgiques </li>
+                     <li>
+                        <input id="q1e" name="q1" type="checkbox" value="E" /> E- Rachidiennes </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-1')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q1')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="1"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_1" onclick="toggleCommentSection('SH2017P_1', event)"> 💬 <span class="badge" data-comment-id="SH2017P_1">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-2">
+               <div class="question">
+                  <p> 2.) Depuis la survenue de ces douleurs, il a cessé toute activité. Il reste à l'écoute de ces douleurs et de leurs irradiations pour prendre le
+                     médicament le plus rapidement possible afin de se soulager. À votre avis, la (les) stratégie(s) qu'utilise ce patient pour gérer son problème
+                     sont centrées sur : </p>
+                  <ul>
+                     <li>
+                        <input id="q2a" name="q2" type="checkbox" value="A" /> A- La gestion familiale </li>
+                     <li>
+                        <input id="q2b" name="q2" type="checkbox" value="B" /> B- Le problème </li>
+                     <li>
+                        <input id="q2c" name="q2" type="checkbox" value="C" /> C- L'aménagement de l'espace </li>
+                     <li>
+                        <input id="q2d" name="q2" type="checkbox" value="D" /> D- L'émotion </li>
+                     <li>
+                        <input id="q2e" name="q2" type="checkbox" value="E" /> E- La recherche du soutien social </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-2')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q2')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="2"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_2" onclick="toggleCommentSection('SH2017P_2', event)"> 💬 <span class="badge" data-comment-id="SH2017P_2">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-3">
+               <div class="question">
+                  <p> 3.) Les rôles du médecin sont de : </p>
+                  <ul>
+                     <li>
+                        <input id="q3a" name="q3" type="checkbox" value="A" /> A- Soigner toujours </li>
+                     <li>
+                        <input id="q3b" name="q3" type="checkbox" value="B" /> B- Guérir toujours </li>
+                     <li>
+                        <input id="q3c" name="q3" type="checkbox" value="C" /> C- Consoler toujours </li>
+                     <li>
+                        <input id="q3d" name="q3" type="checkbox" value="D" /> D- Prévenir la survenue des maladies </li>
+                     <li>
+                        <input id="q3e" name="q3" type="checkbox" value="E" /> E- Promouvoir la maladie </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-3')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q3')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="3"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_3" onclick="toggleCommentSection('SH2017P_3', event)"> 💬 <span class="badge" data-comment-id="SH2017P_3">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-4">
+               <div class="question">
+                  <p> 4.) Le(s) pays suivant(s) ont autorisé l'euthanasie : </p>
+                  <ul>
+                     <li>
+                        <input id="q4a" name="q4" type="checkbox" value="A" /> A- La Belgique </li>
+                     <li>
+                        <input id="q4b" name="q4" type="checkbox" value="B" /> B- Le Maroc </li>
+                     <li>
+                        <input id="q4c" name="q4" type="checkbox" value="C" /> C- La Chine </li>
+                     <li>
+                        <input id="q4d" name="q4" type="checkbox" value="D" /> D- L'Australie </li>
+                     <li>
+                        <input id="q4e" name="q4" type="checkbox" value="E" /> E- Les États-Unis d'Amérique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-4')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q4')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="4"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_4" onclick="toggleCommentSection('SH2017P_4', event)"> 💬 <span class="badge" data-comment-id="SH2017P_4">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-5">
+               <div class="question">
+                  <p> 5.) Un laboratoire pharmaceutique vous contacte, via sa CRO, pour conduire un essai clinique sur un médicament qui est déjà sur le marché. Dans
+                     la recherche biomédicale sur l'humain, cette étape : </p>
+                  <ul>
+                     <li>
+                        <input id="q5a" name="q5" type="checkbox" value="A" /> A- Constitue la troisième phase </li>
+                     <li>
+                        <input id="q5b" name="q5" type="checkbox" value="B" /> B- A pour but de tester les effets thérapeutiques du produit </li>
+                     <li>
+                        <input id="q5c" name="q5" type="checkbox" value="C" /> C- A pour but d'explorer sa place chez les malades et les médecins </li>
+                     <li>
+                        <input id="q5d" name="q5" type="checkbox" value="D" /> D- A pour but d'explorer la survenue d'effets secondaires supplémentaires </li>
+                     <li>
+                        <input id="q5e" name="q5" type="checkbox" value="E" /> E- A pour but de retirer le produit du marché local </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-5')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q5')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="5"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_5" onclick="toggleCommentSection('SH2017P_5', event)"> 💬 <span class="badge" data-comment-id="SH2017P_5">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-6">
+               <div class="question">
+                  <p> 6.) Vous avez mené un travail de recherche avec votre équipe hospitalo-universitaire. Vous vous apprêtez à soumettre l'article à une revue de renom.
+                     Pour qu'il soit accepté pour publication, vous devriez démontrer que : </p>
+                  <ul>
+                     <li>
+                        <input id="q6a" name="q6" type="checkbox" value="A" /> A- Le travail a reçu l'aval du comité d'éthique avant d'être mené </li>
+                     <li>
+                        <input id="q6b" name="q6" type="checkbox" value="B" /> B- Ses risques sont supérieurs à ses bénéfices pour les patients </li>
+                     <li>
+                        <input id="q6c" name="q6" type="checkbox" value="C" /> C- Il a une valeur ajoutée sociale </li>
+                     <li>
+                        <input id="q6d" name="q6" type="checkbox" value="D" /> D- Le consentement éclairé des patients n'a pas été requis </li>
+                     <li>
+                        <input id="q6e" name="q6" type="checkbox" value="E" /> E- La confidentialité des données des patients a été assurée </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-6')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q6')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="6"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_6" onclick="toggleCommentSection('SH2017P_6', event)"> 💬 <span class="badge" data-comment-id="SH2017P_6">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-7">
+               <div class="question">
+                  <p> 7.) À travers les époques, la maladie a été considérée comme : </p>
+                  <ul>
+                     <li>
+                        <input id="q7a" name="q7" type="checkbox" value="A" /> A- Une malédiction dans le premier millénaire </li>
+                     <li>
+                        <input id="q7b" name="q7" type="checkbox" value="B" /> B- Une expression du rapport de l'individu à la société </li>
+                     <li>
+                        <input id="q7c" name="q7" type="checkbox" value="C" /> C- Un châtiment dans l'horizon de la morale </li>
+                     <li>
+                        <input id="q7d" name="q7" type="checkbox" value="D" /> D- Un désir de mort </li>
+                     <li>
+                        <input id="q7e" name="q7" type="checkbox" value="E" /> E- Une épreuve </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-7')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q7')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="7"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_7" onclick="toggleCommentSection('SH2017P_7', event)"> 💬 <span class="badge" data-comment-id="SH2017P_7">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-8">
+               <div class="question">
+                  <p> 8.) Une personne qui présente un deuil normal, passe par les étapes suivantes : </p>
+                  <ul>
+                     <li>
+                        <input id="q8a" name="q8" type="checkbox" value="A" /> A- Une phase de détresse </li>
+                     <li>
+                        <input id="q8b" name="q8" type="checkbox" value="B" /> B- Une phase d'engagement </li>
+                     <li>
+                        <input id="q8c" name="q8" type="checkbox" value="C" /> C- Une phase de dépression </li>
+                     <li>
+                        <input id="q8d" name="q8" type="checkbox" value="D" /> D- Une phase de réaménagement </li>
+                     <li>
+                        <input id="q8e" name="q8" type="checkbox" value="E" /> E- Une phase d'adaptation </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-8')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q8')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="8"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_8" onclick="toggleCommentSection('SH2017P_8', event)"> 💬 <span class="badge" data-comment-id="SH2017P_8">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-9">
+               <div class="question">
+                  <p> 9.) L'annonce, en pratique clinique, d'une maladie grave est un processus qui passe par plusieurs temps, que le médecin devrait adopter : </p>
+                  <ul>
+                     <li>
+                        <input id="q9a" name="q9" type="checkbox" value="A" /> A- Cerner l'état d'esprit et la disposition du patient </li>
+                     <li>
+                        <input id="q9b" name="q9" type="checkbox" value="B" /> B- Annoncer le diagnostic </li>
+                     <li>
+                        <input id="q9c" name="q9" type="checkbox" value="C" /> C- Minimiser l'état du patient </li>
+                     <li>
+                        <input id="q9d" name="q9" type="checkbox" value="D" /> D- Être dans l'empathie et la compréhension de la souffrance </li>
+                     <li>
+                        <input id="q9e" name="q9" type="checkbox" value="E" /> E- Faire des propositions thérapeutiques et de prise en charge </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-9')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q9')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="9"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_9" onclick="toggleCommentSection('SH2017P_9', event)"> 💬 <span class="badge" data-comment-id="SH2017P_9">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-10">
+               <div class="question">
+                  <p> 10.) Les spécificités des maladies chroniques sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q10a" name="q10" type="checkbox" value="A" /> A- Risque de survenue de réactions brutales au moment de l'annonce </li>
+                     <li>
+                        <input id="q10b" name="q10" type="checkbox" value="B" /> B- Problème de survenue de mort imminente </li>
+                     <li>
+                        <input id="q10c" name="q10" type="checkbox" value="C" /> C- Problème de compliance </li>
+                     <li>
+                        <input id="q10d" name="q10" type="checkbox" value="D" /> D- Risque d'aggravation progressive </li>
+                     <li>
+                        <input id="q10e" name="q10" type="checkbox" value="E" /> E- Risque de retrait </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-10')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q10')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="10"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_10" onclick="toggleCommentSection('SH2017P_10', event)"> 💬 <span class="badge" data-comment-id="SH2017P_10">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-11">
+               <div class="question">
+                  <p> 11.) Le jeune A, 16 ans, vient consulter pour une acné qui le fait souffrir et le gêne énormément. Cette maladie de la peau : </p>
+                  <ul>
+                     <li>
+                        <input id="q11a" name="q11" type="checkbox" value="A" /> A- Est une maladie psychosomatique </li>
+                     <li>
+                        <input id="q11b" name="q11" type="checkbox" value="B" /> B- Risque de s'accompagner de trouble d'estime de soi </li>
+                     <li>
+                        <input id="q11c" name="q11" type="checkbox" value="C" /> C- Risque d'entraîner des perturbations relationnelles </li>
+                     <li>
+                        <input id="q11d" name="q11" type="checkbox" value="D" /> D- Risque de se compliquer de dépression </li>
+                     <li>
+                        <input id="q11e" name="q11" type="checkbox" value="E" /> E- Donne des problèmes de compliance </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-11')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q11')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="11"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_11" onclick="toggleCommentSection('SH2017P_11', event)"> 💬 <span class="badge" data-comment-id="SH2017P_11">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-12">
+               <div class="question">
+                  <p> 12.) Selon la position où on se place, les maladies peuvent être conçues comme : </p>
+                  <ul>
+                     <li>
+                        <input id="q12a" name="q12" type="checkbox" value="A" /> A- Un événement concret affectant sa vie, par les malades </li>
+                     <li>
+                        <input id="q12b" name="q12" type="checkbox" value="B" /> B- Des objets complexes, par les médecins </li>
+                     <li>
+                        <input id="q12c" name="q12" type="checkbox" value="C" /> C- Des facteurs de risque, par la société </li>
+                     <li>
+                        <input id="q12d" name="q12" type="checkbox" value="D" /> D- Des groupements morbides, par les politiques de santé </li>
+                     <li>
+                        <input id="q12e" name="q12" type="checkbox" value="E" /> E- Des coûts par les gestionnaires </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-12')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q12')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="12"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_12" onclick="toggleCommentSection('SH2017P_12', event)"> 💬 <span class="badge" data-comment-id="SH2017P_12">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-13">
+               <div class="question">
+                  <p> 13.) La conception Bernardienne de la maladie : </p>
+                  <ul>
+                     <li>
+                        <input id="q13a" name="q13" type="checkbox" value="A" /> A- Considère la maladie comme une variation quantitative par rapport à la norme physiologique </li>
+                     <li>
+                        <input id="q13b" name="q13" type="checkbox" value="B" /> B- S'inscrit sur un continuum entre normal et pathologique </li>
+                     <li>
+                        <input id="q13c" name="q13" type="checkbox" value="C" /> C- Inclut les maladies infectieuses dans sa définition </li>
+                     <li>
+                        <input id="q13d" name="q13" type="checkbox" value="D" /> D- Permet la perpétuation de l'espèce </li>
+                     <li>
+                        <input id="q13e" name="q13" type="checkbox" value="E" /> E- Pose la problématique de l'abaissement des seuils </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-13')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q13')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="13"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_13" onclick="toggleCommentSection('SH2017P_13', event)"> 💬 <span class="badge" data-comment-id="SH2017P_13">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-14">
+               <div class="question">
+                  <p> 14.) La décision médicale consiste en : </p>
+                  <ul>
+                     <li>
+                        <input id="q14a" name="q14" type="checkbox" value="A" /> A- Un double engagement du médecin et du malade </li>
+                     <li>
+                        <input id="q14b" name="q14" type="checkbox" value="B" /> B- Une décision du médecin que le malade accepte de facto </li>
+                     <li>
+                        <input id="q14c" name="q14" type="checkbox" value="C" /> C- Une décision prise sur des éléments sémiologiques et cliniques seuls </li>
+                     <li>
+                        <input id="q14d" name="q14" type="checkbox" value="D" /> D- Une décision d'abord du malade qui accepte de se faire soigner et de faire confiance </li>
+                     <li>
+                        <input id="q14e" name="q14" type="checkbox" value="E" /> E- L'aboutissement d'un dialogue pour concilier l'autonomie du patient et l'autonomie du médecin </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-14')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q14')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="14"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_14" onclick="toggleCommentSection('SH2017P_14', event)"> 💬 <span class="badge" data-comment-id="SH2017P_14">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-15">
+               <div class="question">
+                  <p> 15.) Les émotions de base sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q15a" name="q15" type="checkbox" value="A" /> A- La tristesse </li>
+                     <li>
+                        <input id="q15b" name="q15" type="checkbox" value="B" /> B- La jalousie </li>
+                     <li>
+                        <input id="q15c" name="q15" type="checkbox" value="C" /> C- La colère </li>
+                     <li>
+                        <input id="q15d" name="q15" type="checkbox" value="D" /> D- La joie </li>
+                     <li>
+                        <input id="q15e" name="q15" type="checkbox" value="E" /> E- L'irritabilité </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-15')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q15')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="15"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_15" onclick="toggleCommentSection('SH2017P_15', event)"> 💬 <span class="badge" data-comment-id="SH2017P_15">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-16">
+               <div class="question">
+                  <p> 16.) Le vécu psychologique d'une maladie dépend des facteurs suivants : </p>
+                  <ul>
+                     <li>
+                        <input id="q16a" name="q16" type="checkbox" value="A" /> A- La personnalité du patient </li>
+                     <li>
+                        <input id="q16b" name="q16" type="checkbox" value="B" /> B- Le stade de la maladie </li>
+                     <li>
+                        <input id="q16c" name="q16" type="checkbox" value="C" /> C- Le statut de la conjointe </li>
+                     <li>
+                        <input id="q16d" name="q16" type="checkbox" value="D" /> D- L'entourage extérieur </li>
+                     <li>
+                        <input id="q16e" name="q16" type="checkbox" value="E" /> E- La dynamique familiale </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-16')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q16')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="16"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_16" onclick="toggleCommentSection('SH2017P_16', event)"> 💬 <span class="badge" data-comment-id="SH2017P_16">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-17">
+               <div class="question">
+                  <p> 17.) La syphilis est une maladie : </p>
+                  <ul>
+                     <li>
+                        <input id="q17a" name="q17" type="checkbox" value="A" /> A- Chronique </li>
+                     <li>
+                        <input id="q17b" name="q17" type="checkbox" value="B" /> B- Sexuellement transmissible </li>
+                     <li>
+                        <input id="q17c" name="q17" type="checkbox" value="C" /> C- Psychosomatique </li>
+                     <li>
+                        <input id="q17d" name="q17" type="checkbox" value="D" /> D- Honteuse </li>
+                     <li>
+                        <input id="q17e" name="q17" type="checkbox" value="E" /> E- Pose un problème de compliance </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-17')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q17')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="17"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_17" onclick="toggleCommentSection('SH2017P_17', event)"> 💬 <span class="badge" data-comment-id="SH2017P_17">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-18">
+               <div class="question">
+                  <p> 18.) Dans la religion musulmane, la douleur : </p>
+                  <ul>
+                     <li>
+                        <input id="q18a" name="q18" type="checkbox" value="A" /> A- Est considérée comme sanction pour une faute commise </li>
+                     <li>
+                        <input id="q18b" name="q18" type="checkbox" value="B" /> B- Est prédestinée, inscrite en l'homme avant sa naissance </li>
+                     <li>
+                        <input id="q18c" name="q18" type="checkbox" value="C" /> C- Devrait être soulagée </li>
+                     <li>
+                        <input id="q18d" name="q18" type="checkbox" value="D" /> D- Est une épreuve à passer </li>
+                     <li>
+                        <input id="q18e" name="q18" type="checkbox" value="E" /> E- Est une participation sur un mode mineur aux souffrances exemplaires du Christ </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-18')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q18')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="18"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_18" onclick="toggleCommentSection('SH2017P_18', event)"> 💬 <span class="badge" data-comment-id="SH2017P_18">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-19">
+               <div class="question">
+                  <p> 19.) La capacité d'écoute des soignants : </p>
+                  <ul>
+                     <li>
+                        <input id="q19a" name="q19" type="checkbox" value="A" /> A- Interpelle dans le même registre que celui du diagnostic et du traitement </li>
+                     <li>
+                        <input id="q19b" name="q19" type="checkbox" value="B" /> B- Est nécessaire à l'établissement de la relation médecin-malade </li>
+                     <li>
+                        <input id="q19c" name="q19" type="checkbox" value="C" /> C- Risque de tendre vers la négligence ou la violence, si elle est dépassée </li>
+                     <li>
+                        <input id="q19d" name="q19" type="checkbox" value="D" /> D- Est variable en fonction du lieu du soin </li>
+                     <li>
+                        <input id="q19e" name="q19" type="checkbox" value="E" /> E- Ne devrait pas changer en fonction de l'urgence du soin </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-19')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q19')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="19"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_19" onclick="toggleCommentSection('SH2017P_19', event)"> 💬 <span class="badge" data-comment-id="SH2017P_19">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-20">
+               <div class="question">
+                  <p> 20.) Les caractéristiques qui distinguent la médecine des autres métiers sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q20a" name="q20" type="checkbox" value="A" /> A- Les fondements biologiques </li>
+                     <li>
+                        <input id="q20b" name="q20" type="checkbox" value="B" /> B- Les valeurs que le médecin doit connaître, ressentir et appliquer </li>
+                     <li>
+                        <input id="q20c" name="q20" type="checkbox" value="C" /> C- L'empirisme qui est toujours de mise </li>
+                     <li>
+                        <input id="q20d" name="q20" type="checkbox" value="D" /> D- La réalité clinique qui est invariable </li>
+                     <li>
+                        <input id="q20e" name="q20" type="checkbox" value="E" /> E- La rupture avec la réalité </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-20')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q20')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="20"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_20" onclick="toggleCommentSection('SH2017P_20', event)"> 💬 <span class="badge" data-comment-id="SH2017P_20">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-21">
+               <div class="question">
+                  <p> 21.) Les écoles de pensées philosophiques sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q21a" name="q21" type="checkbox" value="A" /> A- Le courant spiritualiste </li>
+                     <li>
+                        <input id="q21b" name="q21" type="checkbox" value="B" /> B- Le courant matérialiste </li>
+                     <li>
+                        <input id="q21c" name="q21" type="checkbox" value="C" /> C- Le courant expérimental </li>
+                     <li>
+                        <input id="q21d" name="q21" type="checkbox" value="D" /> D- Le courant dialectique </li>
+                     <li>
+                        <input id="q21e" name="q21" type="checkbox" value="E" /> E- Le courant empirique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-21')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q21')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="21"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_21" onclick="toggleCommentSection('SH2017P_21', event)"> 💬 <span class="badge" data-comment-id="SH2017P_21">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-22">
+               <div class="question">
+                  <p> 22.) Le corps et l'esprit : </p>
+                  <ul>
+                     <li>
+                        <input id="q22a" name="q22" type="checkbox" value="A" /> A- Sont séparés selon le monisme </li>
+                     <li>
+                        <input id="q22b" name="q22" type="checkbox" value="B" /> B- Sont unis selon le dualisme </li>
+                     <li>
+                        <input id="q22c" name="q22" type="checkbox" value="C" /> C- Sont séparés selon Descartes </li>
+                     <li>
+                        <input id="q22d" name="q22" type="checkbox" value="D" /> D- Sont séparés selon Platon </li>
+                     <li>
+                        <input id="q22e" name="q22" type="checkbox" value="E" /> E- Sont unis selon Aristote </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-22')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q22')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="22"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_22" onclick="toggleCommentSection('SH2017P_22', event)"> 💬 <span class="badge" data-comment-id="SH2017P_22">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-23">
+               <div class="question">
+                  <p> 23.) Innéisme est : </p>
+                  <ul>
+                     <li>
+                        <input id="q23a" name="q23" type="checkbox" value="A" /> A- Stipule que certaines fonctions sont innées </li>
+                     <li>
+                        <input id="q23b" name="q23" type="checkbox" value="B" /> B- Est soutenu par Platon </li>
+                     <li>
+                        <input id="q23c" name="q23" type="checkbox" value="C" /> C- Est soutenu par Descartes </li>
+                     <li>
+                        <input id="q23d" name="q23" type="checkbox" value="D" /> D- Suppose que l'esprit est vide à la naissance </li>
+                     <li>
+                        <input id="q23e" name="q23" type="checkbox" value="E" /> E- Stipule que la seule source de connaissance est l'expérimentation </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-23')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q23')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="23"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_23" onclick="toggleCommentSection('SH2017P_23', event)"> 💬 <span class="badge" data-comment-id="SH2017P_23">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-24">
+               <div class="question">
+                  <p> 24.) Le courant spiritualiste : </p>
+                  <ul>
+                     <li>
+                        <input id="q24a" name="q24" type="checkbox" value="A" /> A- Est né d'un magma de magie et d'irrationnel </li>
+                     <li>
+                        <input id="q24b" name="q24" type="checkbox" value="B" /> B- Exprime une nature très profonde de l'être humain </li>
+                     <li>
+                        <input id="q24c" name="q24" type="checkbox" value="C" /> C- Explique santé et maladie comme des dons divins </li>
+                     <li>
+                        <input id="q24d" name="q24" type="checkbox" value="D" /> D- L'âme humaine est la cause directe des phénomènes vivants </li>
+                     <li>
+                        <input id="q24e" name="q24" type="checkbox" value="E" /> E- Est en contradiction totale avec les autres courants </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-24')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q24')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="24"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_24" onclick="toggleCommentSection('SH2017P_24', event)"> 💬 <span class="badge" data-comment-id="SH2017P_24">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-25">
+               <div class="question">
+                  <p> 25.) Le courant matérialiste : </p>
+                  <ul>
+                     <li>
+                        <input id="q25a" name="q25" type="checkbox" value="A" /> A- Est né pour faire face au courant spiritualiste </li>
+                     <li>
+                        <input id="q25b" name="q25" type="checkbox" value="B" /> B- Est largement représenté dans la pensée grecque </li>
+                     <li>
+                        <input id="q25c" name="q25" type="checkbox" value="C" /> C- Est peu représenté au Moyen Âge </li>
+                     <li>
+                        <input id="q25d" name="q25" type="checkbox" value="D" /> D- La glande pinéale constitue l'organe de transition entre spiritualisme et matérialisme </li>
+                     <li>
+                        <input id="q25e" name="q25" type="checkbox" value="E" /> E- Magendie et Claude Bernard sont parmi ses piliers </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-25')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q25')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="25"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_25" onclick="toggleCommentSection('SH2017P_25', event)"> 💬 <span class="badge" data-comment-id="SH2017P_25">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-26">
+               <div class="question">
+                  <p> 26.) Le courant empiriste : </p>
+                  <ul>
+                     <li>
+                        <input id="q26a" name="q26" type="checkbox" value="A" /> A- Est né avec Hippocrate </li>
+                     <li>
+                        <input id="q26b" name="q26" type="checkbox" value="B" /> B- Il insiste sur le climat et le régime </li>
+                     <li>
+                        <input id="q26c" name="q26" type="checkbox" value="C" /> C- La santé y serait un équilibre entre les différentes humeurs de l'organisme </li>
+                     <li>
+                        <input id="q26d" name="q26" type="checkbox" value="D" /> D- La maladie est le déséquilibre entre humeurs </li>
+                     <li>
+                        <input id="q26e" name="q26" type="checkbox" value="E" /> E- Le thérapeute devra seconder la nature et non la contraindre </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-26')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q26')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="26"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_26" onclick="toggleCommentSection('SH2017P_26', event)"> 💬 <span class="badge" data-comment-id="SH2017P_26">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-27">
+               <div class="question">
+                  <p> 27.) La normalité : </p>
+                  <ul>
+                     <li>
+                        <input id="q27a" name="q27" type="checkbox" value="A" /> A- A une seule définition </li>
+                     <li>
+                        <input id="q27b" name="q27" type="checkbox" value="B" /> B- Peut-être l'absence de maladies </li>
+                     <li>
+                        <input id="q27c" name="q27" type="checkbox" value="C" /> C- Est touchée quand il y a une rupture d'équilibre d'un sujet avec son environnement biologique et psychique </li>
+                     <li>
+                        <input id="q27d" name="q27" type="checkbox" value="D" /> D- Est située dans la moyenne de la courbe de Gauss </li>
+                     <li>
+                        <input id="q27e" name="q27" type="checkbox" value="E" /> E- Varie en fonction des milieux </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-27')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q27')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="27"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_27" onclick="toggleCommentSection('SH2017P_27', event)"> 💬 <span class="badge" data-comment-id="SH2017P_27">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-28">
+               <div class="question">
+                  <p> 28.) Les étapes historiques sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q28a" name="q28" type="checkbox" value="A" /> A- Étape préhistorique </li>
+                     <li>
+                        <input id="q28b" name="q28" type="checkbox" value="B" /> B- Étape archaïque </li>
+                     <li>
+                        <input id="q28c" name="q28" type="checkbox" value="C" /> C- Étape Grecque Hippocratique </li>
+                     <li>
+                        <input id="q28d" name="q28" type="checkbox" value="D" /> D- L'Antiquité </li>
+                     <li>
+                        <input id="q28e" name="q28" type="checkbox" value="E" /> E- Le Moyen Âge </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-28')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q28')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="28"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_28" onclick="toggleCommentSection('SH2017P_28', event)"> 💬 <span class="badge" data-comment-id="SH2017P_28">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-29">
+               <div class="question">
+                  <p> 29.) La médecine primitive a réussi grâce aux facteurs suivants : </p>
+                  <ul>
+                     <li>
+                        <input id="q29a" name="q29" type="checkbox" value="A" /> A- Son pouvoir suggestif </li>
+                     <li>
+                        <input id="q29b" name="q29" type="checkbox" value="B" /> B- Ses règles de similitudes </li>
+                     <li>
+                        <input id="q29c" name="q29" type="checkbox" value="C" /> C- Ses règles de proximité </li>
+                     <li>
+                        <input id="q29d" name="q29" type="checkbox" value="D" /> D- Les besoins religieux </li>
+                     <li>
+                        <input id="q29e" name="q29" type="checkbox" value="E" /> E- La maîtrise de la pharmacologie </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-29')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q29')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="29"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_29" onclick="toggleCommentSection('SH2017P_29', event)"> 💬 <span class="badge" data-comment-id="SH2017P_29">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-30">
+               <div class="question">
+                  <p> 30.) La médecine Grecque Hippocratique : </p>
+                  <ul>
+                     <li>
+                        <input id="q30a" name="q30" type="checkbox" value="A" /> A- Découvre la théorie des humeurs </li>
+                     <li>
+                        <input id="q30b" name="q30" type="checkbox" value="B" /> B- Décrit le sanguin comme impulsif </li>
+                     <li>
+                        <input id="q30c" name="q30" type="checkbox" value="C" /> C- Explique la maladie comme déséquilibre entre les humeurs du corps </li>
+                     <li>
+                        <input id="q30d" name="q30" type="checkbox" value="D" /> D- Maîtrise l'anatomie </li>
+                     <li>
+                        <input id="q30e" name="q30" type="checkbox" value="E" /> E- Exige la non-nuisance si le remède est inefficace </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-30')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q30')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="30"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_30" onclick="toggleCommentSection('SH2017P_30', event)"> 💬 <span class="badge" data-comment-id="SH2017P_30">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-31">
+               <div class="question">
+                  <p> 31.) Les tempéraments selon Hippocrate : </p>
+                  <ul>
+                     <li>
+                        <input id="q31a" name="q31" type="checkbox" value="A" /> A- Le sanguin est impulsif et agressif </li>
+                     <li>
+                        <input id="q31b" name="q31" type="checkbox" value="B" /> B- Le flegmatique est imperturbable </li>
+                     <li>
+                        <input id="q31c" name="q31" type="checkbox" value="C" /> C- Le colérique est calme </li>
+                     <li>
+                        <input id="q31d" name="q31" type="checkbox" value="D" /> D- Le mélancolique est joyeux </li>
+                     <li>
+                        <input id="q31e" name="q31" type="checkbox" value="E" /> E- Le mélancolique a un excès de bile jaune </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-31')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q31')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="31"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_31" onclick="toggleCommentSection('SH2017P_31', event)"> 💬 <span class="badge" data-comment-id="SH2017P_31">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-32">
+               <div class="question">
+                  <p> 32.) Le Moyen Âge Arabe : </p>
+                  <ul>
+                     <li>
+                        <input id="q32a" name="q32" type="checkbox" value="A" /> A- Correspond à l'essor de l'islam </li>
+                     <li>
+                        <input id="q32b" name="q32" type="checkbox" value="B" /> B- Coïncide avec l'âge d'or de Byzance </li>
+                     <li>
+                        <input id="q32c" name="q32" type="checkbox" value="C" /> C- Est la période où les musulmans ont hérité le patrimoine gréco-romain </li>
+                     <li>
+                        <input id="q32d" name="q32" type="checkbox" value="D" /> D- Est un tournant mondial entre Antiquité et Moyen Âge </li>
+                     <li>
+                        <input id="q32e" name="q32" type="checkbox" value="E" /> E- S'étend de l'an 1500 à 500 avant Jésus-Christ </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-32')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q32')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="32"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_32" onclick="toggleCommentSection('SH2017P_32', event)"> 💬 <span class="badge" data-comment-id="SH2017P_32">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-33">
+               <div class="question">
+                  <p> 33.) Parmi les médecins arabes du Moyen Âge, on trouve : </p>
+                  <ul>
+                     <li>
+                        <input id="q33a" name="q33" type="checkbox" value="A" /> A- Socrate </li>
+                     <li>
+                        <input id="q33b" name="q33" type="checkbox" value="B" /> B- Avicenne </li>
+                     <li>
+                        <input id="q33c" name="q33" type="checkbox" value="C" /> C- Averroès </li>
+                     <li>
+                        <input id="q33d" name="q33" type="checkbox" value="D" /> D- Ibn An Nafis </li>
+                     <li>
+                        <input id="q33e" name="q33" type="checkbox" value="E" /> E- Platon </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-33')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q33')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="33"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_33" onclick="toggleCommentSection('SH2017P_33', event)"> 💬 <span class="badge" data-comment-id="SH2017P_33">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-34">
+               <div class="question">
+                  <p> 34.) Le Moyen Âge européen : </p>
+                  <ul>
+                     <li>
+                        <input id="q34a" name="q34" type="checkbox" value="A" /> A- Débute avec la chute de l'empire romain occidental </li>
+                     <li>
+                        <input id="q34b" name="q34" type="checkbox" value="B" /> B- L'Église contrôlait tous les domaines y compris la médecine </li>
+                     <li>
+                        <input id="q34c" name="q34" type="checkbox" value="C" /> C- Le croire est privilégié sur le savoir </li>
+                     <li>
+                        <input id="q34d" name="q34" type="checkbox" value="D" /> D- Est caractérisé par le christianisme </li>
+                     <li>
+                        <input id="q34e" name="q34" type="checkbox" value="E" /> E- Est théocentrique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-34')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q34')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="34"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_34" onclick="toggleCommentSection('SH2017P_34', event)"> 💬 <span class="badge" data-comment-id="SH2017P_34">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-35">
+               <div class="question">
+                  <p> 35.) La théorie de l'attachement a été élaborée par : </p>
+                  <ul>
+                     <li>
+                        <input id="q35a" name="q35" type="checkbox" value="A" /> A- Ainsworth </li>
+                     <li>
+                        <input id="q35b" name="q35" type="checkbox" value="B" /> B- Main </li>
+                     <li>
+                        <input id="q35c" name="q35" type="checkbox" value="C" /> C- Bowlby </li>
+                     <li>
+                        <input id="q35d" name="q35" type="checkbox" value="D" /> D- Freud </li>
+                     <li>
+                        <input id="q35e" name="q35" type="checkbox" value="E" /> E- Klein </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-35')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q35')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="35"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_35" onclick="toggleCommentSection('SH2017P_35', event)"> 💬 <span class="badge" data-comment-id="SH2017P_35">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-36">
+               <div class="question">
+                  <p> 36.) Quelles sont les quatre variables de mesure du type et degré d'attachement : </p>
+                  <ul>
+                     <li>
+                        <input id="q36a" name="q36" type="checkbox" value="A" /> A- Besoin de proximité physique comme base de sécurité </li>
+                     <li>
+                        <input id="q36b" name="q36" type="checkbox" value="B" /> B- La capacité d'exploration et d'autonomie </li>
+                     <li>
+                        <input id="q36c" name="q36" type="checkbox" value="C" /> C- L'existence d'un port d'attache en cas de stress </li>
+                     <li>
+                        <input id="q36d" name="q36" type="checkbox" value="D" /> D- Incohérence des réponses maternelles alternant entre la disponibilité et le rejet </li>
+                     <li>
+                        <input id="q36e" name="q36" type="checkbox" value="E" /> E- La présence d'une réaction de protestation en cas de rupture </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-36')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q36')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="36"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_36" onclick="toggleCommentSection('SH2017P_36', event)"> 💬 <span class="badge" data-comment-id="SH2017P_36">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-37">
+               <div class="question">
+                  <p> 37.) Les quatre types d'attachement chez l'adulte sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q37a" name="q37" type="checkbox" value="A" /> A- Secure </li>
+                     <li>
+                        <input id="q37b" name="q37" type="checkbox" value="B" /> B- Détaché </li>
+                     <li>
+                        <input id="q37c" name="q37" type="checkbox" value="C" /> C- Préoccupé </li>
+                     <li>
+                        <input id="q37d" name="q37" type="checkbox" value="D" /> D- Désorganisé </li>
+                     <li>
+                        <input id="q37e" name="q37" type="checkbox" value="E" /> E- Ambivalent </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-37')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q37')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="37"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_37" onclick="toggleCommentSection('SH2017P_37', event)"> 💬 <span class="badge" data-comment-id="SH2017P_37">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-38">
+               <div class="question">
+                  <p> 38.) Le caractère : </p>
+                  <ul>
+                     <li>
+                        <input id="q38a" name="q38" type="checkbox" value="A" /> A- Est héritable, stable et indépendant </li>
+                     <li>
+                        <input id="q38b" name="q38" type="checkbox" value="B" /> B- Ensemble de dispositions et d'attitudes qui commande la manière d'être et de réagir de l'individu dans ses rapports avec le monde extérieur
+                        et avec lui-même </li>
+                     <li>
+                        <input id="q38c" name="q38" type="checkbox" value="C" /> C- Agencement particulier de traits de personnalité </li>
+                     <li>
+                        <input id="q38d" name="q38" type="checkbox" value="D" /> D- Traits de caractère : dispositions à entrer en contact avec le milieu dans un style particulier, se manifeste dans une grande variété
+                        de contextes sociaux et professionnels </li>
+                     <li>
+                        <input id="q38e" name="q38" type="checkbox" value="E" /> E- L'ensemble des traits caractérise un individu, et donne un aperçu de sa personnalité </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-38')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q38')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="38"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_38" onclick="toggleCommentSection('SH2017P_38', event)"> 💬 <span class="badge" data-comment-id="SH2017P_38">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-39">
+               <div class="question">
+                  <p> 39.) Un trouble de la personnalité : </p>
+                  <ul>
+                     <li>
+                        <input id="q39a" name="q39" type="checkbox" value="A" /> A- Mode durable de conduite qui dévie notablement de ce qui est attendu dans la culture de l'individu </li>
+                     <li>
+                        <input id="q39b" name="q39" type="checkbox" value="B" /> B- Envahissant et rigide </li>
+                     <li>
+                        <input id="q39c" name="q39" type="checkbox" value="C" /> C- Instable dans le temps </li>
+                     <li>
+                        <input id="q39d" name="q39" type="checkbox" value="D" /> D- Source d'une souffrance ou d'une altération du fonctionnement </li>
+                     <li>
+                        <input id="q39e" name="q39" type="checkbox" value="E" /> E- A priori, n'est pas à l'origine de symptômes </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-39')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q39')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="39"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_39" onclick="toggleCommentSection('SH2017P_39', event)"> 💬 <span class="badge" data-comment-id="SH2017P_39">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-40">
+               <div class="question">
+                  <p> 40.) La psychanalyse est : </p>
+                  <ul>
+                     <li>
+                        <input id="q40a" name="q40" type="checkbox" value="A" /> A- Une méthode d'investigation qui cherche à mettre les significations inconscientes des gestes, des paroles, des actions... </li>
+                     <li>
+                        <input id="q40b" name="q40" type="checkbox" value="B" /> B- Une méthode psychothérapeutique fondée sur cette investigation </li>
+                     <li>
+                        <input id="q40c" name="q40" type="checkbox" value="C" /> C- Une théorie de la personnalité </li>
+                     <li>
+                        <input id="q40d" name="q40" type="checkbox" value="D" /> D- Théorie psychologique axée sur l'étude du comportement objectivement observable </li>
+                     <li>
+                        <input id="q40e" name="q40" type="checkbox" value="E" /> E- Ensemble des convictions (perceptions) que les individus ont au sujet de leur propre nature, de leurs qualités et de leur comportement
+                        </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-40')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q40')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="40"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_40" onclick="toggleCommentSection('SH2017P_40', event)"> 💬 <span class="badge" data-comment-id="SH2017P_40">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-41">
+               <div class="question">
+                  <p> 41.) Dans l'approche humaniste : </p>
+                  <ul>
+                     <li>
+                        <input id="q41a" name="q41" type="checkbox" value="A" /> A- La nature humaine est fondamentalement positive, créatrice et tend naturellement à se réaliser </li>
+                     <li>
+                        <input id="q41b" name="q41" type="checkbox" value="B" /> B- La personnalité se forge à partir de la manière dont chacun perçoit et interprète le monde </li>
+                     <li>
+                        <input id="q41c" name="q41" type="checkbox" value="C" /> C- Pour comprendre autrui, il faut savoir comment il perçoit le monde </li>
+                     <li>
+                        <input id="q41d" name="q41" type="checkbox" value="D" /> D- L'étude est centrée sur le comportement objectivement observable </li>
+                     <li>
+                        <input id="q41e" name="q41" type="checkbox" value="E" /> E- Chez une personne bien équilibrée, il y a un accord entre le concept de soi et l'expérience </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-41')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q41')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="41"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_41" onclick="toggleCommentSection('SH2017P_41', event)"> 💬 <span class="badge" data-comment-id="SH2017P_41">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-42">
+               <div class="question">
+                  <p> 42.) Le médecin se doit d'être : </p>
+                  <ul>
+                     <li>
+                        <input id="q42a" name="q42" type="checkbox" value="A" /> A- Apaisant </li>
+                     <li>
+                        <input id="q42b" name="q42" type="checkbox" value="B" /> B- Rassurant </li>
+                     <li>
+                        <input id="q42c" name="q42" type="checkbox" value="C" /> C- Réorganisant </li>
+                     <li>
+                        <input id="q42d" name="q42" type="checkbox" value="D" /> D- Psychothérapeute </li>
+                     <li>
+                        <input id="q42e" name="q42" type="checkbox" value="E" /> E- Adapté </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-42')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q42')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="42"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_42" onclick="toggleCommentSection('SH2017P_42', event)"> 💬 <span class="badge" data-comment-id="SH2017P_42">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-43">
+               <div class="question">
+                  <p> 43.) Donald Winnicott a introduit les notions suivantes : </p>
+                  <ul>
+                     <li>
+                        <input id="q43a" name="q43" type="checkbox" value="A" /> A- Préoccupation maternelle primaire </li>
+                     <li>
+                        <input id="q43b" name="q43" type="checkbox" value="B" /> B- Objet transitionnel </li>
+                     <li>
+                        <input id="q43c" name="q43" type="checkbox" value="C" /> C- Position dépressive </li>
+                     <li>
+                        <input id="q43d" name="q43" type="checkbox" value="D" /> D- Accordage affectif </li>
+                     <li>
+                        <input id="q43e" name="q43" type="checkbox" value="E" /> E- Stade psychosexuel </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-43')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q43')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="43"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_43" onclick="toggleCommentSection('SH2017P_43', event)"> 💬 <span class="badge" data-comment-id="SH2017P_43">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-44">
+               <div class="question">
+                  <p> 44.) Dans quel ordre les stades psychosexuels se succèdent-ils ? </p>
+                  <ul>
+                     <li>
+                        <input id="q44a" name="q44" type="checkbox" value="A" /> A- Stade oral génital anal phallique </li>
+                     <li>
+                        <input id="q44b" name="q44" type="checkbox" value="B" /> B- Stade génital oral anal phallique </li>
+                     <li>
+                        <input id="q44c" name="q44" type="checkbox" value="C" /> C- Stade oral anal phallique génital </li>
+                     <li>
+                        <input id="q44d" name="q44" type="checkbox" value="D" /> D- Stade oral anal phallique </li>
+                     <li>
+                        <input id="q44e" name="q44" type="checkbox" value="E" /> E- Stade phallique anal oral </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-44')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q44')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="44"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_44" onclick="toggleCommentSection('SH2017P_44', event)"> 💬 <span class="badge" data-comment-id="SH2017P_44">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-45">
+               <div class="question">
+                  <p> 45.) L'échelle de Brazelton : </p>
+                  <ul>
+                     <li>
+                        <input id="q45a" name="q45" type="checkbox" value="A" /> A- Cette échelle néonatale permet d'évaluer les compétences des mères et des bébés. Elle est utilisable entre le 28ème jour et la première
+                        année </li>
+                     <li>
+                        <input id="q45b" name="q45" type="checkbox" value="B" /> B- Elle évalue l'irritabilité du bébé </li>
+                     <li>
+                        <input id="q45c" name="q45" type="checkbox" value="C" /> C- Elle évalue la capacité à se calmer et à être calmé du bébé </li>
+                     <li>
+                        <input id="q45d" name="q45" type="checkbox" value="D" /> D- Elle évalue l'activité motrice et les capacités sensorielles et le comportement social du bébé </li>
+                     <li>
+                        <input id="q45e" name="q45" type="checkbox" value="E" /> E- Elle a un intérêt préventif surtout si le bébé est fragile à la naissance ou la mère peu sûre de ses compétences </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-45')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q45')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="45"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_45" onclick="toggleCommentSection('SH2017P_45', event)"> 💬 <span class="badge" data-comment-id="SH2017P_45">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-46">
+               <div class="question">
+                  <p> 46.) Le béhaviorisme : </p>
+                  <ul>
+                     <li>
+                        <input id="q46a" name="q46" type="checkbox" value="A" /> A- Théorie psychologique axée sur l'étude du comportement objectivement observable </li>
+                     <li>
+                        <input id="q46b" name="q46" type="checkbox" value="B" /> B- Tout comportement peut être réduit à une réaction à un stimulus </li>
+                     <li>
+                        <input id="q46c" name="q46" type="checkbox" value="C" /> C- Tout comportement est déterminé par l'apprentissage </li>
+                     <li>
+                        <input id="q46d" name="q46" type="checkbox" value="D" /> D- Les fondateurs sont : Watson et Skinner </li>
+                     <li>
+                        <input id="q46e" name="q46" type="checkbox" value="E" /> E- Il prend en compte la place de l'inconscient </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-46')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q46')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="46"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_46" onclick="toggleCommentSection('SH2017P_46', event)"> 💬 <span class="badge" data-comment-id="SH2017P_46">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-47">
+               <div class="question">
+                  <p> 47.) Définir le déterminisme réciproque pour Bandura : </p>
+                  <ul>
+                     <li>
+                        <input id="q47a" name="q47" type="checkbox" value="A" /> A- La personnalité résulte de l'interaction entre la pensée, l'affect et l'environnement </li>
+                     <li>
+                        <input id="q47b" name="q47" type="checkbox" value="B" /> B- La personnalité résulte de l'interaction entre la pensée, le comportement et la cognition </li>
+                     <li>
+                        <input id="q47c" name="q47" type="checkbox" value="C" /> C- La personnalité résulte de l'interaction entre la pensée, le comportement et l'environnement </li>
+                     <li>
+                        <input id="q47d" name="q47" type="checkbox" value="D" /> D- La personnalité résulte de l'interaction entre les émotions, le comportement et l'environnement </li>
+                     <li>
+                        <input id="q47e" name="q47" type="checkbox" value="E" /> E- La personnalité résulte de l'interaction entre la pensée et le comportement </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-47')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q47')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="47"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_47" onclick="toggleCommentSection('SH2017P_47', event)"> 💬 <span class="badge" data-comment-id="SH2017P_47">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-48">
+               <div class="question">
+                  <p> 48.) Quels sont les trois niveaux de conscience selon S. Freud ? </p>
+                  <ul>
+                     <li>
+                        <input id="q48a" name="q48" type="checkbox" value="A" /> A- Moi, ça et surmoi </li>
+                     <li>
+                        <input id="q48b" name="q48" type="checkbox" value="B" /> B- Idéal du moi et la conscience morale </li>
+                     <li>
+                        <input id="q48c" name="q48" type="checkbox" value="C" /> C- Inconscient </li>
+                     <li>
+                        <input id="q48d" name="q48" type="checkbox" value="D" /> D- Préconscient </li>
+                     <li>
+                        <input id="q48e" name="q48" type="checkbox" value="E" /> E- Conscient </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-48')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q48')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="48"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_48" onclick="toggleCommentSection('SH2017P_48', event)"> 💬 <span class="badge" data-comment-id="SH2017P_48">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-49">
+               <div class="question">
+                  <p> 49.) Quels sont les deux aspects du Surmoi : </p>
+                  <ul>
+                     <li>
+                        <input id="q49a" name="q49" type="checkbox" value="A" /> A- La conscience morale </li>
+                     <li>
+                        <input id="q49b" name="q49" type="checkbox" value="B" /> B- Le moi </li>
+                     <li>
+                        <input id="q49c" name="q49" type="checkbox" value="C" /> C- L'idéal du moi </li>
+                     <li>
+                        <input id="q49d" name="q49" type="checkbox" value="D" /> D- Le ça </li>
+                     <li>
+                        <input id="q49e" name="q49" type="checkbox" value="E" /> E- L'inconscient </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-49')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q49')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="49"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_49" onclick="toggleCommentSection('SH2017P_49', event)"> 💬 <span class="badge" data-comment-id="SH2017P_49">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-50">
+               <div class="question">
+                  <p> 50.) L'âge de la période de latence est : </p>
+                  <ul>
+                     <li>
+                        <input id="q50a" name="q50" type="checkbox" value="A" /> A- 0-3 ans </li>
+                     <li>
+                        <input id="q50b" name="q50" type="checkbox" value="B" /> B- 3-6 ans </li>
+                     <li>
+                        <input id="q50c" name="q50" type="checkbox" value="C" /> C- 6-12 ans </li>
+                     <li>
+                        <input id="q50d" name="q50" type="checkbox" value="D" /> D- 12-18 ans </li>
+                     <li>
+                        <input id="q50e" name="q50" type="checkbox" value="E" /> E- 6-25 ans </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-50')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q50')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="50"> ❤ </button>
+                  <button class="comment-button" data-question-id="SH2017P_50" onclick="toggleCommentSection('SH2017P_50', event)"> 💬 <span class="badge" data-comment-id="SH2017P_50">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="button-container">
+               <button class="submit-quiz-button" onclick="submitQuiz()" type="button"> Soumettre tout le Quiz </button>
+               <button class="favorite-button" id="voir-favoris-btn" onclick="voirFavoris()"> Voir Favoris </button>
+               <!-- Nouveau bouton -->
+            </div>
+            <div class="blur-background" id="blur-background"> </div>
+            <div class="result-popup" id="result-popup">
+               <h3>
+Résultat du Quiz
+</h3>
+               <div id="result"> </div>
+               <button class="close-button" id="close-result" onclick="closeResult(event)"> Fermer </button>
+               <button class="detail-button" id="voir-detail-btn" onclick="afficherDetails(event)" style="display: none;"> Voir Détail </button>
+               <button class="reset-quiz-button" onclick="resetAll()" type="button"> Réessayer tout le Quiz </button>
+            </div>
+            <div class="details-section" id="details-section" style="display: none;">
+               <h3>
+Tableau des questions
+</h3>
+               <div class="question-links" id="question-links"> </div>
+            </div>
+            <div id="timer-container"> <span id="timer">
+60:00
+</span> </div>
+<div class="comments-section" id="comments-section">
+    <h3>Commentaires</h3>
+    <textarea id="new-comment" placeholder="Écrire un commentaire..."></textarea>
+    <button type="button" onclick="addComment(event)">Ajouter</button>
+    <div id="comment-alert" class="alert" style="display: none;"></div>
+    <div id="comments-list"></div>
+</div>
+
+    <div id="comments-list"></div>
+</div>
+
+<!-- Boutons flottants -->
+<div id="floating-buttons" class="floating-buttons" style="position: fixed; bottom: 50px; right: 50px; z-index: 1000;">
+    <!-- Bouton pour afficher le cours -->
+    <button id="show-course-btn" class="floating-btn" type="button" 
+            onclick="window.open('https://drive.google.com/drive/folders/1Xd_FaJbPk4FJv3G5-96L7G0UlQnUZuSf', '_blank');">📚</button>
+    <!-- Bouton pour afficher le contact -->
+<button id="open-contact-modal" class="floating-btn" type="button">
+    ✉️
+</button>
+
+</div>
+
+
+
+
+
+<div class="message-container" id="message-container" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#f9f9f9; padding:40px; box-shadow:0 4px 12px rgba(0,0,0,0.15); border-radius:12px; z-index:1001; width:600px; max-width:90%; font-family:Arial, sans-serif;">
+    <div style="text-align:center; margin-bottom:30px;">
+        <h2 style="margin:0; font-size:24px; font-weight:bold; color:#333;">Posez vos observations <span>📝</span></h2>
+        <p style="margin:10px 0 0; font-size:16px; color:#666;">Nous sommes à votre écoute</p>
+    </div>
+    <div class="mb-3" style="margin-bottom:30px;">
+        <p style="font-size:16px; color:#333; margin:0;">En tant Que :</p>
+        <div style="margin-top:10px;">
+            <input type="radio" id="username" name="mode" value="username" style="margin-right:8px;">
+            <label for="username" style="font-size:16px; color:#333; cursor:pointer;">{{ user_full_name}}</label>
+            <br>
+            <input type="radio" id="anonymous" name="mode" value="anonymous" checked style="margin-right:8px; margin-top:10px;">
+            <label for="anonymous" style="font-size:16px; color:#333; cursor:pointer;">Anonyme</label>
+        </div>
+    </div>
+    <div class="mb-3">
+        <label for="message" class="form-label" style="font-size:18px; font-weight:bold; color:#333; margin-bottom:10px; display:block;">Votre message :</label>
+        <textarea class="form-control" id="message" rows="6" placeholder="Precisez l'examen si c'est en rapport avec une question..." style="width:100%; font-size:16px; padding:15px; border:1px solid #ccc; border-radius:8px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.1); background:#fff;"></textarea>
+    </div>
+<span class="close-btn" id="close-btn" style="cursor:pointer; position:absolute; top:15px; right:15px; font-size:51px; color:#ff0000; font-weight:bold;">&times;</span>
+<!-- Bouton Envoyer stylé -->
+<div style="text-align:center; margin-top:30px;">
+    <button type="button" class="btn btn-primary" id="send-message" style="background-color:#007bff; color:white; border:none; padding:12px 30px; border-radius:8px; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 4px 8px rgba(0, 0, 0, 0.2); transition:all 0.3s ease;">
+        Envoyer
+    </button>
+</div>
+</div>
+
+
+
+
+<div id="blur-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;"></div>
+
+
+
+<script src="{% static 'java/contact.js' %}"></script>
+            </div>
+            <script>
+            // Réponses correctes pour les questions
+            const correctAnswers = {};
+            // Contenu du fichier JavaScript
+            // Variable globale pour stocker l'intervalle du timer
+            let timerInterval;
+            const userAnswers = {}; // Object pour stocker les réponses de l'utilisateur
+            // Fonction pour démarrer le timer
+            function startTimer(duration, display) {
+               let timer = duration,
+                  minutes, seconds;
+               timerInterval = setInterval(() => {
+                  minutes = parseInt(timer / 60, 10);
+                  seconds = parseInt(timer % 60, 10);
+                  minutes = minutes < 10 ? "0" + minutes : minutes;
+                  seconds = seconds < 10 ? "0" + seconds : seconds;
+                  display.textContent = minutes + ":" + seconds;
+                  // Vérifie si le temps est écoulé
+                  if (--timer < 0) {
+                     clearInterval(timerInterval);
+                     showEndMessage();
+                  }
+               }, 1000);
+            }
+            // Fonction pour afficher le message de fin de test
+            function showEndMessage() {
+               const blurBackground = document.createElement('div');
+               blurBackground.id = 'test-end-blur';
+               blurBackground.style.position = 'fixed';
+               blurBackground.style.top = '0';
+               blurBackground.style.left = '0';
+               blurBackground.style.width = '100%';
+               blurBackground.style.height = '100%';
+               blurBackground.style.background = 'rgba(0, 0, 0, 0.5)';
+               blurBackground.style.zIndex = '100';
+               blurBackground.style.display = 'flex';
+               blurBackground.style.alignItems = 'center';
+               blurBackground.style.justifyContent = 'center';
+               const endMessage = document.createElement('div');
+               endMessage.id = 'test-end-message';
+               endMessage.style.padding = '40px';
+               endMessage.style.background = '#ffffff';
+               endMessage.style.borderRadius = '8px';
+               endMessage.style.textAlign = 'center';
+               endMessage.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+               endMessage.innerHTML = '<h2>Test terminé</h2><p>Le temps imparti est écoulé.</p><button onclick="location.reload()">Recommencer</button>';
+               blurBackground.appendChild(endMessage);
+               document.body.appendChild(blurBackground);
+               // Optionnel : masquer le conteneur de timer
+               const timerContainer = document.getElementById('timer-container');
+               timerContainer.classList.add('hide');
+            }
+
+            // Fonction pour soumettre le quiz et afficher le résultat
+            
+// Fonction pour soumettre le quiz et afficher le résultat
+async function submitQuiz() {
+    console.log("Début de la soumission du quiz.");
+
+    const form = document.getElementById('quiz-form');
+    if (!form) {
+        console.error("Erreur : Formulaire introuvable.");
+        alert("Formulaire introuvable. Veuillez réessayer.");
+        return;
+    }
+
+    let score = 0;
+
+    // Évaluer les réponses utilisateur
+    for (const question of Object.keys(correctAnswers)) {
+        correctQuestion(question); // Fonction pour corriger chaque question
+        const userAnswer = userAnswers[question]?.isCorrect;
+        if (userAnswer) {
+            score++;
+        }
+    }
+
+    console.log("Score brut calculé (frontend) :", score);
+    console.log("Réponses utilisateur envoyées :", userAnswers);
+
+    // Lancer les confettis et afficher le message de félicitations si le score est parfait (50 sur 50)
+    lancerConfettisEtMessage(score);
+
+    // Mise à jour du résultat dans la boîte de dialogue
+    const resultDiv = document.getElementById('result'); // Assure-toi que tu as un div avec l'id 'result' dans ton HTML
+
+    if (score === 50) {
+        // Liste des messages de félicitations
+        const messages = [
+            "Félicitations ! Vous êtes en bonne voie pour devenir un médecin brillant !",
+            "Impressionnant ! Vous maîtrisez cette matière comme un vrai professionnel de santé.",
+            "Excellent travail ! Votre dévouement à l'étude porte ses fruits.",
+            "Bravo ! Vous êtes sur la bonne voie pour une brillante carrière médicale.",
+            "Quel talent ! La précision dans vos réponses est remarquable.",
+            "Incroyable ! Votre compréhension de l'anatomie est sans faille.",
+            "Félicitations ! Vous avez prouvé que vous avez ce qu'il faut pour réussir dans le domaine médical.",
+            "C'est parfait ! Vos connaissances sont solides comme un roc.",
+            "Bravo ! Vous êtes un exemple de rigueur et de détermination.",
+            "Vous êtes un prodige ! Ce score parfait montre à quel point vous êtes doué(e).",
+            "Félicitations ! Vous serez un atout incroyable pour la médecine.",
+            "Vous avez tout juste ! Vos compétences en anatomie sont impressionnantes.",
+            "Parfait ! Vous êtes prêt(e) à affronter tous les défis médicaux.",
+            "Vous avez réussi haut la main ! La médecine est définitivement votre domaine.",
+            "Votre score est exemplaire ! Vous avez toutes les qualités d'un futur médecin.",
+            "Extraordinaire ! Vous faites preuve d'une maîtrise remarquable.",
+            "Un vrai sans-faute ! Continuez comme ça, vous allez faire des miracles dans la médecine.",
+            "Bravo ! Vous avez prouvé que vous avez l'étoffe d'un grand médecin.",
+            "Score parfait ! Votre engagement est tout simplement admirable.",
+            "Incroyable ! Vous êtes destiné(e) à un avenir brillant dans la médecine."
+        ];
+        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+        resultDiv.innerHTML = `<p>${randomMessage}</p>`;
+    } else {
+        resultDiv.innerHTML = `Vous avez obtenu ${score} bonnes réponses sur ${Object.keys(correctAnswers).length}.`;
+    }
+
+    // Afficher la boîte de résultat avec animation
+    const resultPopup = document.getElementById('result-popup');
+    const blurBackground = document.getElementById('blur-background');
+
+    blurBackground.style.display = 'block';
+    resultPopup.style.display = 'block';
+
+    setTimeout(() => {
+        blurBackground.classList.add('show'); // Ajoute l'animation de fondu sur le fond flouté
+        resultPopup.classList.add('show'); // Ajoute l'animation de zoom sur la boîte de résultat
+    }, 100); // Légère pause pour plus de fluidité
+
+    document.getElementById('voir-detail-btn').style.display = 'inline-block';
+
+    // Envoi des données au backend
+    try {
+        console.log("Préparation de l'enregistrement au backend...");
+
+        const response = await fetch("/soumettre-quiz/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}" // Inclure le token CSRF
+            },
+            body: JSON.stringify({
+                exam_name: "Anatomie2020", // Remplacez par le nom réel de l'examen
+                score: score,
+                userAnswers: userAnswers
+            })
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+            console.log("Score enregistré avec succès :", result);
+        } else {
+            console.error("Erreur du serveur :", result.message);
+            alert(`Erreur : ${result.message}`);
+        }
+    } catch (error) {
+        console.error("Erreur lors de l'envoi des données :", error);
+        alert("Une erreur s'est produite lors de la soumission. Veuillez réessayer.");
+    }
+}
+
+            function resetAll() {
+               const form = document.getElementById('quiz-form');
+               // Réinitialiser toutes les questions
+               for (const question of Object.keys(correctAnswers)) {
+                  const questionDiv = document.querySelector(`input[name="${question}"]`).closest('.question-container');
+                  form.elements[question].forEach(input => {
+                     input.checked = false; // Décocher toutes les cases
+                  });
+                  // Supprimer les styles correct/incorrect sans toucher au style des bonnes réponses
+                  questionDiv.classList.remove('correct', 'incorrect');
+                  questionDiv.querySelectorAll('li').forEach(li => {
+                     li.style.color = ''; // Réinitialiser la couleur du texte
+                     li.style.fontWeight = ''; // Supprimer les styles ajoutés
+                     li.style.textShadow = ''; // Réinitialiser l'ombre du texte
+                     li.style.backgroundColor = ''; // Remettre le fond par défaut
+                     li.style.border = ''; // Réinitialiser la bordure
+                  });
+               }
+               // Réinitialiser l'affichage du timer
+               const timerDuration = 60 * 60; // Remettre à 60 minutes (ou 10 secondes pour le test)
+               const display = document.querySelector('#timer');
+               startTimer(timerDuration, display); // Redémarrer le timer
+               // Masquer la boîte de résultat
+               const resultPopup = document.getElementById('result-popup');
+               const blurBackground = document.getElementById('blur-background');
+               resultPopup.classList.remove('show');
+               blurBackground.classList.remove('show');
+               setTimeout(() => {
+                  resultPopup.style.display = 'none';
+                  blurBackground.style.display = 'none';
+               }, 500);
+               // Remonter en haut de la page
+               window.scrollTo({
+                  top: 0,
+                  behavior: 'smooth'
+               });
+               document.getElementById('voir-detail-btn').style.display = 'none'; // Masquer le bouton "Voir Détail"
+            }
+            // Fonction pour fermer la popup et garder les couleurs des bonnes/mauvaises réponses
+            function closeResult(event) {
+               event.preventDefault(); // Empêche le comportement par défaut du bouton
+               const resultPopup = document.getElementById('result-popup');
+               const blurBackground = document.getElementById('blur-background');
+               // Masquer la boîte de résultat
+               resultPopup.classList.remove('show');
+               blurBackground.classList.remove('show');
+               setTimeout(() => {
+                  resultPopup.style.display = 'none';
+                  blurBackground.style.display = 'none';
+               }, 500);
+               // Décocher toutes les cases sans changer la couleur des bonnes/mauvaises réponses
+               const form = document.getElementById('quiz-form');
+               for (const question of Object.keys(correctAnswers)) {
+                  form.elements[question].forEach(input => {
+                     input.checked = false; // Décocher toutes les cases
+                  });
+               }
+            }
+            // Fonction pour afficher les détails et rediriger vers Syntanatomie2023
+            function afficherDetails(event) {
+               event.preventDefault(); // Empêche le comportement par défaut du bouton
+               saveUserAnswers(); // Enregistrer les réponses avant de quitter la page
+               window.location.href = '{% url 'dynamic_view' 'S2' 'Sciences-Humaines' 'syntanat2020' %}'; // Redirection vers Syntanatomie2023
+            }
+            // Fonction pour défiler jusqu'à la question
+            function scrollToQuestion(questionNumber) {
+               const questionDiv = document.querySelector(`.question-container:nth-of-type(${questionNumber})`);
+               if (questionDiv) {
+                  questionDiv.scrollIntoView({
+                     behavior: 'smooth'
+                  });
+               }
+            }
+
+            function saveUserAnswers() {
+               // Change la clé pour la version 2020
+               localStorage.setItem('userAnswersAnatomie2020', JSON.stringify(userAnswers));
+            }
+            // Fonction pour afficher les confettis et ajouter le message de félicitations dans la popup de résultats
+            function lancerConfettisEtMessage(score) {
+    if (score === 50) {
+                  // Lancer les confettis
+                  confetti({
+                     particleCount: 200,
+                     spread: 70,
+                     origin: {
+                        y: 0.6
+                     },
+                     colors: ['#bb0000', '#ffffff'], // Couleurs de confettis
+                  });
+                  // Ajouter un message de félicitations à la boîte de résultat
+                  const resultDiv = document.getElementById('result');
+                  const felicitationMessage = `<p>Félicitations! Vous avez obtenu ${score} bonnes réponses. Vous serez un grand médecin !</p>`;
+                  // Ajouter le message à la fin du résultat
+                  resultDiv.innerHTML += felicitationMessage;
+               }
+            }
+            // Partie favori pour Anatomie2020
+            // Tableau pour stocker les questions favorites, récupéré depuis le localStorage (Anatomie2017P)
+            let favoriteQuestionsSH2017P = JSON.parse(localStorage.getItem('favoriteQuestionsSH2017P')) || [];
+            console.log('Favorite questions loaded from localStorage:', favoriteQuestionsSH2017P);
+
+            function toggleFavorite(event, questionNumber) {
+               event.preventDefault(); // Empêche le rafraîchissement de la page
+               const button = document.querySelector(`.favorite-button[data-question="${questionNumber}"]`);
+               const questionContent = document.querySelector(`#question-${questionNumber}`).innerHTML; // Récupère le contenu HTML de la question
+               // Vérifie si la question est déjà dans les favoris
+               const isFavorited = favoriteQuestionsSH2017P.includes(questionNumber);
+               if (isFavorited) {
+                  // Si elle est déjà favorisée, on la retire des favoris
+                  favoriteQuestionsSH2017P = favoriteQuestionsSH2017P.filter(q => q !== questionNumber);
+                  button.classList.remove('favorited'); // Retire la classe favori
+                  localStorage.removeItem(`favoriteContent2017P-${questionNumber}`); // Supprime le contenu de la question
+               } else {
+                  // Si elle n'est pas favorisée, on l'ajoute
+                  favoriteQuestionsSH2017P.push(questionNumber);
+                  button.classList.add('favorited'); // Ajoute la classe favori
+                  localStorage.setItem(`favoriteContent2017P-${questionNumber}`, questionContent); // Stocke le contenu de la question dans le localStorage
+               }
+               // Sauvegarde uniquement les favoris
+               saveFavoriteState2017P(); // <== Remplacez par saveFavoriteState2017P
+               // Mise à jour du bouton "Voir Favori" sans rafraîchir la page
+               showFavoriteButton();
+            }
+
+            function saveFavoriteState2017P() {
+               localStorage.setItem('favoriteQuestionsSH2017P', JSON.stringify(favoriteQuestionsSH2017P)); // Sauvegarde les questions favorites
+            }
+
+            function initializeFavoriteButtons() {
+               const allFavoriteButtons = document.querySelectorAll('.favorite-button');
+               allFavoriteButtons.forEach(button => {
+                  const questionNumber = parseInt(button.getAttribute('data-question'), 10);
+                  // Vérifie si cette question est dans les favoris et applique la classe
+                  if (favoriteQuestionsSH2017P.includes(questionNumber)) {
+                     button.classList.add('favorited'); // Ajoute l'état favori
+                  } else {
+                     button.classList.remove('favorited'); // Retire l'état favori
+                  }
+                  // Ajoute un événement de clic pour chaque bouton et empêche le rafraîchissement
+                  button.addEventListener('click', (event) => toggleFavorite(event, questionNumber));
+               });
+            }
+
+            function showFavoriteButton() {
+               const voirFavorisBtn = document.getElementById('voir-favoris-btn');
+               if (favoriteQuestionsSH2017P.length > 0) {
+                  voirFavorisBtn.style.display = 'inline-block'; // Affiche le bouton si des questions sont favorisées
+               } else {
+                  voirFavorisBtn.style.display = 'none'; // Cache le bouton si aucun favori
+               }
+            }
+            // Appelle cette fonction après avoir ajouté ou retiré des favoris
+            window.onload = function() {
+               console.log('Page loaded, initializing favorite buttons for 2017P.');
+               initializeFavoriteButtons(); // Charger les boutons de favoris
+               showFavoriteButton(); // Afficher le bouton "Voir Favori" si des favoris existent
+               const timerDuration = 60 * 60; // 60 minutes
+               const display = document.querySelector('#timer');
+               startTimer(timerDuration, display);
+               // Récupère toutes les listes (li) qui contiennent des propositions
+               const propositions = document.querySelectorAll('li');
+               propositions.forEach(function(proposition) {
+                  // Trouve la checkbox dans chaque liste
+                  const checkbox = proposition.querySelector('input[type="checkbox"]');
+                  if (checkbox) {
+                     // Créer un label
+                     const label = document.createElement('label');
+                     // Donner un id à la checkbox si elle n'en a pas
+                     if (!checkbox.id) {
+                        checkbox.id = checkbox.name + '-' + checkbox.value; // Ex: q1-A
+                     }
+                     // Déplacer le texte de la proposition dans le label
+                     label.htmlFor = checkbox.id; // Le 'for' du label correspond à l'id de la checkbox
+                     label.appendChild(checkbox); // Déplacer la checkbox dans le label
+                     label.appendChild(document.createTextNode(proposition.textContent.trim())); // Ajouter le texte de la proposition
+                     // Remplacer le contenu original par le nouveau label
+                     proposition.innerHTML = ''; // Vider le contenu de l'élément <li>
+                     proposition.appendChild(label); // Ajouter le label modifié
+                  }
+               });
+            };
+            try {
+               localStorage.setItem('testKey', 'testValue');
+               const testValue = localStorage.getItem('testKey');
+               if (testValue !== 'testValue') {
+                  console.error('localStorage is not functioning as expected.');
+               }
+            } catch (error) {
+               console.error('localStorage error:', error);
+            }
+
+            function voirFavoris() {
+               console.log('Redirection vers la page des favoris');
+               window.location.href = "{% url 'render_favorite' 'S2' 'Favori21' %}";
+            }
+            // Fonction pour afficher les confettis et ajouter le message de félicitations dans la popup de résultats
+            function lancerConfettisEtMessage(score) {
+    if (score === 50) {
+                  // Lancer les confettis
+                  confetti({
+                     particleCount: 200,
+                     spread: 70,
+                     origin: {
+                        y: 0.6
+                     },
+                     colors: ['#bb0000', '#ffffff'], // Couleurs de confettis
+                  });
+                  // Ajouter un message de félicitations à la boîte de résultat
+                  const resultDiv = document.getElementById('result');
+                  const felicitationMessage = `<p>Félicitations! Vous avez obtenu ${score} bonnes réponses. Vous serez un grand médecin !</p>`;
+                  // Ajouter le message à la fin du résultat
+                  resultDiv.innerHTML += felicitationMessage;
+               }
+            }
+
+            </script>
+            <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js">
+
+
+            </script>
+         </form>
+      </div>
+      
+   </body>
+
+</html>      <script>
+// Fonction pour réinitialiser une seule question
+function resetQuestion(questionName) {
+    console.log(`[DEBUG] Réinitialisation de la question : ${questionName}`);
+
+    const form = document.getElementById('quiz-form');
+    const questionDiv = document.querySelector(`input[name="${questionName}"]`).closest('.question-container');
+
+    if (!form || !questionDiv) {
+        console.error(`[ERROR] Formulaire ou conteneur de la question introuvable pour : ${questionName}`);
+        return;
+    }
+
+    // Décocher toutes les cases de cette question
+    const inputs = Array.from(form.elements[questionName]);
+    inputs.forEach(input => {
+        input.checked = false;
+        console.log(`[DEBUG] Case décochée : ${input.value}`);
+    });
+
+    // Supprimer les styles correct/incorrect et remettre les couleurs par défaut
+    questionDiv.classList.remove('correct', 'incorrect');
+    questionDiv.querySelectorAll('li').forEach(li => {
+        li.style.color = ''; // Réinitialiser la couleur
+        li.style.fontWeight = ''; // Réinitialiser le texte en gras
+        li.style.textShadow = ''; // Réinitialiser l'ombre du texte
+        li.style.backgroundColor = ''; // Réinitialiser le fond
+        li.style.border = ''; // Réinitialiser la bordure
+    });
+
+    // Supprimer les conteneurs ou les éléments liés aux pourcentages
+    const percentageContainers = questionDiv.querySelectorAll('.percentage-container');
+    percentageContainers.forEach(container => {
+        console.log(`[DEBUG] Suppression du conteneur de pourcentage :`, container);
+        container.remove();
+    });
+
+    // Supprimer les informations enregistrées sur la réponse de cette question
+    if (userAnswers && userAnswers[questionName]) {
+        delete userAnswers[questionName];
+        console.log(`[DEBUG] Réponse supprimée pour la question : ${questionName}`);
+    }
+
+    console.log(`[DEBUG] Question réinitialisée avec succès : ${questionName}`);
+}
+
+
+function correctAndSubmitQuestion(questionId) {
+    console.log("Début de la fonction correctAndSubmitQuestion.");
+    console.log("ID de la question reçue :", questionId);
+
+    // Transform the ID to match the backend's expected format
+    const transformedId = questionId.replace('question-', 'SH2017P_');
+    console.log("ID transformé pour le backend :", transformedId);
+
+    // Get the question number from the questionId
+    const questionNumber = questionId.split('-')[1];
+    console.log("Numéro de la question extrait :", questionNumber);
+
+    // Get selected choices (checkbox values) dynamically for the specific question
+    const selectedChoices = [];
+    const checkboxes = document.querySelectorAll(`input[name="q${questionNumber}"]:checked`);
+    console.log(`Nombre de checkboxes sélectionnées pour la question ${questionNumber}:`, checkboxes.length);
+
+    checkboxes.forEach((checkbox) => {
+        // Append the transformed choice ID in the format "question_id_l"
+        const choiceId = `${transformedId}_${checkbox.value.toLowerCase()}`;
+        selectedChoices.push(choiceId);
+        console.log(`Transformed choice ID ajouté : ${choiceId}`);
+    });
+
+    console.log("Choix sélectionnés après transformation :", selectedChoices);
+
+    if (selectedChoices.length === 0) {
+        console.log("Aucune réponse sélectionnée. Alerte affichée.");
+        alert("Veuillez sélectionner au moins une réponse.");
+        return;
+    }
+
+    // Step 1: Submit the user's response
+    const formData = new URLSearchParams();
+    formData.append("question_id", transformedId);
+    selectedChoices.forEach((choice) => formData.append("choices[]", choice));
+    console.log("Données envoyées au backend :", [...formData.entries()]);
+
+    fetch("/submit_response/", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": getCsrfToken(),
+        },
+        body: formData,
+    })
+        .then((response) => {
+            if (!response.ok) {
+                console.error("Erreur lors de l'enregistrement des réponses.");
+                throw new Error("Erreur lors de l'enregistrement des réponses.");
+            }
+            console.log("Réponse soumise avec succès.");
+            return response.json();
+        })
+        .then((data) => {
+            console.log("Données reçues après soumission :", data);
+
+            // Step 2: Fetch updated percentages for this question
+            console.log(`Requête pour calculer les pourcentages pour l'ID ${transformedId}.`);
+            return fetch(`/calculate_percentages/${transformedId}/`);
+        })
+        .then((response) => {
+            if (!response.ok) {
+                console.error("Erreur lors du calcul des pourcentages.");
+                throw new Error("Erreur lors du calcul des pourcentages.");
+            }
+            console.log("Calcul des pourcentages réussi.");
+            return response.json();
+        })
+        .then((data) => {
+            console.log("Pourcentages reçus :", data);
+
+            // Display percentages for each choice
+            const questionContainer = document.getElementById(questionId);
+            Object.entries(data.percentages).forEach(([choiceId, percentage]) => {
+                console.log(`Traitement du choix ${choiceId} avec pourcentage ${percentage}%.`);
+                const choiceElement = questionContainer.querySelector(`input[value="${choiceId.split('_').pop().toUpperCase()}"]`);
+                if (choiceElement) {
+                    // Ajouter un conteneur pour le pourcentage si nécessaire
+                    let percentageContainer = choiceElement.parentElement.querySelector(".percentage-container");
+
+                    if (!percentageContainer) {
+                        console.log(`Conteneur de pourcentage manquant pour ${choiceId}. Création en cours.`);
+                        percentageContainer = document.createElement("span");
+                        percentageContainer.classList.add("percentage-container");
+
+                        // Ajout du conteneur dans la parentElement
+                        choiceElement.parentElement.style.display = "flex";
+                        choiceElement.parentElement.style.alignItems = "center";
+                        choiceElement.parentElement.appendChild(percentageContainer);
+                    }
+
+                    // Mettre à jour le texte avec le pourcentage
+                    percentageContainer.textContent = `${percentage}%`;
+percentageContainer.style.color = "blue";
+percentageContainer.style.fontWeight = "bold";
+percentageContainer.style.marginLeft = "auto"; // Aligne le pourcentage à droite
+percentageContainer.style.textAlign = "right"; // Alignement du texte dans le conteneur
+percentageContainer.style.paddingLeft = "10px"; // Optionnel, ajoute un espace entre la case et le pourcentage
+
+                    console.log(`Pourcentage mis à jour pour ${choiceId}: ${percentage}%.`);
+                } else {
+                    console.warn(`Checkbox non trouvée pour le choix ${choiceId}.`);
+                }
+            });
+        })
+        .catch((error) => {
+            console.error("Erreur :", error);
+            alert("Une erreur est survenue lors de la soumission ou du calcul des pourcentages.");
+        })
+        .finally(() => {
+            console.log("Fin de la fonction correctAndSubmitQuestion.");
+        });
+}
+
+
+// Function to retrieve CSRF token
+function getCsrfToken() {
+    const csrfCookie = document.cookie
+        .split('; ')
+        .find((row) => row.startsWith('csrftoken='));
+    return csrfCookie ? csrfCookie.split('=')[1] : null;
+}
+
+
+
+
+</script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+
+    <script src="{% static 'java/comment.js' %}"></script>

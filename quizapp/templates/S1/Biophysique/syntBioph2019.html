@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+
+    </div>
+
+        <div class="quiz-title">
+            <h1>Biophysique 2019</h1>
+        </div>
+
+
+<form id="quiz-form">
+<input type="hidden" name="file_name" value="Bioph2019">
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Les rayonnements ionisants sont des rayonnements qui sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- capables d'arracher un électron à un atome de la matière.</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Sont tout des rayonnements électromagnétiques.</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Sont tous des rayonnements particulaires</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Entraîne une modification de la température de matière.</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- N'ont aucun effet sur la matière.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Les rayonnements particulaires sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Des rayonnements électromagnétiques.</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Des rayonnements qui ont une masse nulle au repos.</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Des rayonnements directement ionisants.</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Appelés photons.</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Des rayonnements qui n’ont aucun effet sur la matière.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Quelle est la valeur maximum que peut prendre l'énergie E' du photon diffusé (ou rétro diffusé) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- 511 Kev</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- 100 Kev</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- 72 Kev</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- 30 Kev</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- 0 Kev.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Quelle est la valeur minimum que peut prendre l'énergie E' du photon diffusé :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- 511 Kev</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- 100 Kev</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- 72 Kev</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- 30 Kev</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- 0 Kev.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Quelle est la valeur maximum de l'énergie cinétique Ec que peut prendre l'électron compton :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- 511 Kev</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- 100 Kev</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- 50 Kev</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- 28 Kev</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- 0 Kev.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Concernant l'atténuation d'un rayonnement électromagnétique de 100 Kev après traversée d'un matériau d'épaisseur x et de coefficient d'atténuation μ, quelle est (ou quelles sont) la (ou les) proposition(s) exactes(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Elle augmente quand l'énergie du rayonnement diminue.</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Elle est proportionnelle à x.</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Elle augmente quand μ, exprimé en cm, augmente.</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Elle est indépendante de la fréquence de rayonnement et de son énergie.</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Elle est indépendante de la densité du milieu quelque soit le type d'effets.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Pour réaliser une mammographie, on utilise des rayons X d'énergie E= 20 Kev. On sait que 3 cm de tissu mammaire arrêtent 78% de ces photons par effet photo-électrique. Le coefficient d’atténuation, T, par effet photo-électrique du tissu mammaire pour ces photons est égale à :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- T = 5 cm⁻¹</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- T = 3 cm⁻¹</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- T = 1,05 cm⁻¹</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- T = 0,1 cm⁻¹</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- T = 0,505 cm⁻¹</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Le potassium ⁴⁰₁₉K est un isotope radioactif du potassium; il se désintègre par émission d'un β⁺ pour donner de l'argon ⁴⁰₁₈Ar.</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- L’émission d’un β⁺ est une caractéristique des noyaux ayant un excès de protons.</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- L’émission d’un β⁺ est une caractéristique des noyaux ayant un excès de neutrons</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- L’émission d’un β⁻ est une caractéristique des noyaux ayant un excès de nucléons</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- L’émission d’un β⁻ est une caractéristique des noyaux ayant un excès d’électrons</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- L’émission d’un β⁺ traduit au niveau du noyau un proton en plus et un neutron en moins.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Le potassium ⁴⁰₁₉K est un isotope radioactif du potassium; il se désintègre par émission d'un rayonnement β⁺ pour donner de l'argon ⁴⁰₁₈Ar. Son équation de désintégration est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- ⁴⁰₁₉K → ⁴⁰₁₈Ar + ⁰₋₁e</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- ⁴⁰₁₉K → ⁴⁰₁₈Ar + ⁰₊₁e</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- ⁴⁰₁₉K → ⁴⁰₂₀Ca + ⁰₋₁e</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- ⁴⁰₁₉K → ⁴⁰₂₀Ca + ⁰₊₁e</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- ⁴⁰₁₉K → ⁴⁰₁₈Ar + ⁰₊₁e</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) L’azote ¹⁴₇N est constitué de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- 14 protons et 7 neutrons donc 7 nucléons.</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- 7 protons et 7 neutrons donc 7 nucléons.</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- 7 protons et 14 neutrons donc 7 nucléons.</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- 7 protons et 7 neutrons donc 14 nucléons.</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- 7 protons et 14 neutrons donc 14 nucléons.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Quelle est l’activité de la source à midi (12h00) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- 7.56 GBq</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- 12 GBq</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- 3 GBq</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- 10 GBq</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- 6 GBq</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Au bout de combien d'heures son activité atteint 0.1875 GBq :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- 5 heures</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- 24 heures</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- 30 heures</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- 18 heures</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- 10 périodes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Quel est le nombre de noyaux dans cette activité a₀ = 12 GBq :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- N₀ = 3, 37.10¹²</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- N₀ = 3, 37.10¹⁴</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- N₀ = 3, 37.10¹¹</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- N₀ = 3, 37.10¹³</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- N₀ = 3, 37.10¹⁰</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Le technétium 99 métastable (⁹⁹mTc) et le technétium stable ⁹⁹Tc sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Sont des isotopes.</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Sont des isotones.</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Sont des isobares.</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Sont tous les deux des noyaux stables.</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Sont des isomères.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) La dose absorbée est égale au KERMA (D=K) quand les conditions d'équilibre électronique sont réunies. Les conditions de l'équilibre électronique sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Un faisceau uniforme, un milieu homogène, une énergie < 3 MeV.</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Un faisceau uniforme, un milieu homogène, une énergie > 3 MeV.</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Un faisceau hétérogène, un milieu homogène, une énergie < 3 MeV.</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Un faisceau uniforme, un milieu hétérogène, une énergie > 3 MeV.</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Un faisceau uniforme, un milieu hétérogène, une énergie < 3 MeV.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Le nombre d'ionisations créé par ce rayonnement dans un détecteur à gaz est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- 4200</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- 5000</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- 4117,64</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- 46666,66</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- 61000</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Le nombre d'ionisations créé dans un détecteur à semi-conducteurs est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- 4200, 66</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- 5000, 64</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- 4117, 64</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- 46666,66</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- 61000, 34</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) On observe l'effet de rayonnements sur des cellules en culture. Un rayonnement γ à la dose de 5 Gy, provoque la mort de 50% des cellules. Le taux de mortalité serait-il différent si cette dose de 5 Gy était délivrée par un rayonnement α ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Non, le taux de mortalité cellulaire sera le même.</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Oui, le taux de mortalité sera plus important car le TEL est élevé pour les particules α.</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Oui, le taux de mortalité sera plus important car le TEL est faible pour les α.</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Non, les rayonnements α n’entraînent pas d’effets sur les cellules.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Les produits de la radiolyse de l'eau sont responsables d'un effet :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Directe des rayonnements ionisants sur la matière.</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- N'ont aucun effet sur la matière.</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Ont un effet protecteur sur la matière.</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Indirecte des rayonnements ionisants sur la matière.</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Ont un effet totalement bénin, sauf en présence d'oxygène.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Déterminer l'impédance acoustique Z d'un milieu dont la densité est de 100 kg/m³ et la vitesse du son dans ce milieu est 1480 m/s :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- 148.10³ kg/m².s</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- 148 kg/m².s</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- 6,7 kg/m².s</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- 200 kg/m².s</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- 10,5 kg/m².s</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Les sons sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Le son pur et le bruit</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Le son pur et le son complexe</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Le son pur, le son complexe et le bruit</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- Le bruit et le son complexe</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- La musique, le bruit et le son complexe</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) L'imagerie par tomodensitométrie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Est une technique d'imagerie médicale dont l'image est obtenue par l'atténuation des rayons gamma par le corps du patient</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Est une technique d'imagerie médicale dont l'image est obtenue par la réflexion des ondes ultrasonores par le corps du patient</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Est une technique d'imagerie médicale dont l'image est obtenue par l'atténuation des rayons X par le corps du patient</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Est une technique d'imagerie médicale dont l'image est obtenue par l'atténuation des rayons de radiofréquence par le corps du patient</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Les unités Hounsfield sont comprises entre -400 (graisse) et + 400 (os)</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) La scintigraphie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- est une technique d'imagerie diagnostique utilisant des radiopharmaceutiques émetteur de rayonnement gamma</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- est une technique d'imagerie diagnostique utilisant des radiopharmaceutiques émetteur de rayonnement alpha</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- est une technique d'imagerie diagnostique utilisant des radiopharmaceutiques émetteur de rayonnement bêta</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- est une technique d'imagerie diagnostique utilisant des ondes ultra sonores</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- est une technique d'imagerie diagnostique utilisant des radiopharmaceutiques émetteur de rayonnement β-</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) On considère un faisceau de photons d'énergie E=80 KeV traversant une épaisseur x de béton. Le coefficient d'atténuation du béton pour ces photons est de 0,46 cm-¹. Quelle épaisseur de plomb faut-il choisir si on souhaite atténuer le faisceau de 99 % :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- 13,4 cm</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- 4,6 cm</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- 19,51 cm</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- 9,51 cm</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- 5,34 cm</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Les trois règles de la radioprotection sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- La justification, l'optimisation et la limitation</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- La diminution du temps, l'augmentation de la distance, l'interposition d'écrans</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- La diminution du temps, l'augmentation de la distance, la justification</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- La limitation, l'augmentation de la distance, la justification</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- La diminution du temps, l'augmentation de la distance, l'optimisation</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+         
+
+        
+
+       
+    
+    
+    
+</div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S1" "Biophysique" "Bioph2019" %}';">Réessayer tout le Quiz</button>
+</div>
+
+<div id="details-section" class="details-section" style="display: none;">
+    <h3>Tableau des questions</h3>
+    <div class="question-links" id="question-links"></div>
+</div>
+
+
+
+
+<!-- Section pour afficher le tableau avec les numéros encerclés -->
+<div id="details-section" style="display:none;">
+    <h2>Questions :</h2>
+    <div id="question-links" class="question-links">
+        <!-- Le tableau de numéros va être généré ici -->
+    </div>
+</div>
+
+<script>
+const correctAnswers = {
+  q1: ['A'],
+  q2: ['C'],
+  q3: ['B'],
+  q4: ['C'],
+  q5: ['D'],
+  q6: ['A'],
+  q7: ['E'],
+  q8: ['A'],
+  q9: ['E'],
+  q10: ['D'],
+  q11: ['A'],
+  q12: ['D'],
+  q13: ['B'],
+  q14: ['E'],
+  q15: ['A'],
+  q16: ['C'],
+  q17: ['D'],
+  q18: ['B'],
+  q19: ['D'],
+  q20: ['A'],
+  q21: ['C'],
+  q22: ['C'],
+  q23: ['A'],
+  q24: ['C'],
+  q25: ['B']
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersBioph2019'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

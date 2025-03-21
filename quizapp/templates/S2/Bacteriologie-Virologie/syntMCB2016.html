@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / 50</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+
+
+            <div class="quiz-title">
+                <h1>QCM Microbiologie</h1>
+            </div>
+            <form id="quiz-form">
+                <input type="hidden" id='exam_name' name="exam_name" value="MCB2016">
+    {% csrf_token %}>
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Bacteroides fragilis est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Une bactérie aéro-anaérobie facultative</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Un hôte normal du tube digestif</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Sensible au métronidazole</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Il appartient à la flore de veillon</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Peut-être agent d'infection opportuniste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) En ce qui concerne haemophilus influenzae :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- C'est un bacille à Gram positif</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Est un commensal des voies aériennes supérieures</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Ne produit jamais de bêta-lactamase</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Le vaccin produit une immunité contre tous les sérotypes</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Il peut être responsable de sinusites</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Les agents des infections respiratoires dont la transmission est interhumaine stricte sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Corynebacterium diphteriae</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Haemophilus influenzae</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Streptococcus pyogenes</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Streptococcus pneumoniae</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Streptococcus viridans</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Les leptospires peuvent être recherchées dans :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Le liquide céphalorachidien</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Le sang</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Les urines</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Un prélèvement de gorge</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Une biopsie cutanée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) En ce qui concerne Listeria monocytogenes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- C'est un germe répandu dans l'environnement</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Il peut contaminer les aliments</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- La transmission materno-fœtale est possible</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- L'infection peut être prévenue par vaccination</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Il est sensible aux Céphalosporines de 3ème génération</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) En ce qui concerne le méningocoque :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- C'est un commensal du rhino-pharynx</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Peut être recherché dans les selles</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- La chimio-prophylaxie est à base de la Pénicilline G</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Il produit une Ig A protéase</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Seul le diagnostic direct est utilisé</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) La bactérie responsable du Tétanos :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Est un bacille anaérobie</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Existe sous forme sporulée</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Produit une exotoxine</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Diffuse dans le sang</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Peut être retrouvé au niveau du sol</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Un examen direct montre des diplocoques à Gram positif capsulés, il s'agit de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Listeria monocytogenes</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Mycoplasma pneumoniae</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Streptococcus pneumoniae</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Staphylococcus aureus</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Haemophilus influenzae</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) En ce qui concerne les streptocoques :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Certains sont des hôtes normaux de l'oropharynx</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- La recherche de la beta hémolyse est réalisée par PCR</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Le streptocoque du groupe B est responsable d'angines</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Ils produisent tous une coagulase</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Ils sont toujours résistants aux aminosides</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Les entérovirus :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Sont de distribution mondiale</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- L'infection est toujours symptomatique (cliniquement apparente)</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Comprennent les coxsackie virus</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Les infections qui leur sont associées atteignent essentiellement les adultes</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Peuvent être isolés à partir des selles</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Le glissement antigénique des virus de la grippe :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Ne concerne que les virus de type A</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Peut entraîner une modification antigénique de l'hémagglutinine</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Peut entraîner une modification antigénique de la neuraminidase</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Rend nécessaire une mise à jour annuelle du vaccin</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- A pour origine des échanges de gènes entre virus animaux et humains</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) En ce qui concerne le virus de l'hépatite C :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- C'est un virus à ARN segmenté</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Peut être responsable du cancer primitif du foie</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Existe sous 6 génotypes différents</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Le passage à la chronicité est peu fréquent</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- La connaissance du génotype a un intérêt thérapeutique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) En ce qui concerne le virus de l'hépatite E :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- C'est un virus à ADN</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Il peut donner des épidémies</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Il est résistant dans le milieu extérieur</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Le diagnostic biologique repose sur la détection des IgM spécifiques</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Il existe sous forme de vaccin</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) En ce qui concerne le virus des oreillons :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Il est strictement humain</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Il est de transmission oro-fécale</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Ce virus peut être responsable de méningites</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Il peut être recherché dans la salive</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Il existe sous forme de vaccin</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) En ce qui concerne la Rubéole :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Le virus responsable appartient à la famille des Herpesviridae</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- L'infection peut être asymptomatique</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Le diagnostic de routine est sérologique</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- En cas de réinfection il n’y a absence de virémie</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Elle peut se manifester sous forme d’une infection congénitale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Le vaccin antigripal est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Un vaccin inactivé</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Un vaccin polyvalent</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Un vaccin injectable</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Entraine une immunité stable</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Contre-indiqué chez la femme enceinte</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) En ce qui concerne le virus de la varicelle Zona :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Est un virus de la famille des Herpesviridae</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- N’entraine aucun risque pour le fœtus</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Est responsable d’infections latentes</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Peut être diagnostiqué par sérologie</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Existe sous forme de vaccin</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) En ce qui concerne le diagnostic biologique de la tuberculose :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- L’examen direct met à profit le caractère acido-alcoolo résistant des bacilles</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- L’examen direct n’a aucune valeur diagnostique</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- La culture constitue la méthode de référence</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- La mise en culture des crachats nécessite un traitement préalable</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Le diagnostic par PCR est à la portée de tout laboratoire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Staphylococcus aureus :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Est un parasite strict de l’homme</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Est toujours sensible à la Pénicilline G</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Est un cocci à Gram positif en chaînette</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Peut être à l’origine de toxi-infections alimentaires collectives</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Est caractérisé par la production de coagulase</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) En ce qui concerne le Cytomégalovirus (CMV) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Peut être responsable d’infections congénitales</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Peut être mis en évidence par immunofluorescence directe</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Est sensible à ganciclovir</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Donne des atteintes graves chez les transplantés d’organes</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Existe sous forme de vaccin</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) En ce qui concerne le virus de l’hépatite A (HAV) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Il est transmis par insecte</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Les formes cliniquement inapparentes sont très fréquentes</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- L’infection évolue souvent vers la chronicité</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- Il peut être prévenu par vaccination</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Le diagnostic de routine est sérologique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) En ce qui concerne le virus de l’hépatite B :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- L’infection est strictement humaine</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- La transmission de la mère à l’enfant est toujours in utero</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- L’infection peut évoluer vers la forme chronique</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Il existe plusieurs sous types</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Le vaccin est virus vivant atténué</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) En ce qui concerne la coqueluche :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Elle est due à un rhinovirus</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- La contagiosité est maximale à la phase catarrhale</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- L’agent responsable peut être détecté dans les sécrétions naso-pharyngées</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- L’immunité vaccinale s’atténue avec le temps</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Le vaccin fait partie du programme national d’immunisation</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Mycobacterium tuberculosis :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Se multiplie dans les macrophages</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Cultive en moins de 7 jours</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- C’est un parasite strict de l’homme</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Est sensible à la Pénicilline G</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Agit par l’intermédiaire d’une toxine</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) En ce qui concerne la rage :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Le virus responsable est détruit par le savon</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Le seul réservoir du virus est le chien</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Le diagnostic biologique est sérologique</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Le vaccin est constitué de virus vivant atténué</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Elle est toujours mortelle chez les sujets non vaccinés</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) En ce qui concerne le virus de la Rougeole :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- Il est responsable d’une fièvre éruptive</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- Il est strictement humain</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- Il existe sous forme de vaccin vivant atténué</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- L’immunité post infection dure toute la vie</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- Il peut être transmis par les aliments</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) Cocher la ou les réponses justes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- E coli occupe le deuxième rang après Klebsiella parmi les bactéries les plus incriminées dans les infections urinaires</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- La prostatite peut être une conséquence de l’infection urinaire haute</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Le pouvoir pathogène des Proteus est dû à la production d’uréase</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Une infection urinaire haute s’accompagne de fièvre et de douleurs dorsales</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- Enterobacter aerogenes n’est jamais incriminé dans les infections urinaires</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) Cocher la ou les réponses justes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- La voie sanguine est la principale voie d’acquisition des infections urinaires</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- Les petites filles ne sont pas sujettes aux infections urinaires</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- Les bactéries pathogènes opportunistes existent normalement à l’état commensal</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- La femme est plus touchée par les infections urinaires que l’homme</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- Chez les sujets coopératifs, le prélèvement d’urines est réalisé à l’aide de sonde</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) En ce qui concerne la syphilis :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- Seule Treponema pallidum est responsable de la syphilis vénérienne</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- Treponema pallidum est un germe non exigeant à culture facile</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- 40% de mortalité in utero est due à la syphilis congénitale</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- Est une maladie en un seul stade qui évolue progressivement après 3j d’incubation</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- Le test VDRL est un test spécifique à l’antigène cardiolipidique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) Cocher la ou les réponses justes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- Le chancre mou est une ulcération profonde et douloureuse avec démangeaisons</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- Le traitement du VIH est basé sur une bithérapie</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- La glycoprotéine gp120 est responsable de la fixation du VIH sur le récepteur CD4</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- L’herpès virus HSV1 est responsable de 70% des infections sexuellement transmissibles</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- Le virus du VIH est très sensible à l’eau de javel</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) En ce qui concerne les infections sexuellement transmissibles (IST) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- L’urétrite non gonococcique est due à Neisseria gonorrhoeae</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- Le gonocoque produit une Ig A-protéase qui lui permet d’échapper à l’immunité locale</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- La culture du gonocoque nécessite un milieu enrichi tel que la gélose chocolat</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- Chlamydia trachomatis est responsable de cervicite et de salpingite chez la femme</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- Le lymphogranulome vénérien (maladie de Nicolas-Favre) est causé par Mycoplasma</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) Parmi les étiologies possibles des IST, on peut citer :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A- Mycoplasma hominis</li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B- Helicobacter pylori</li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C- ECEH</li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D- Haemophilus ducreyi</li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E- Clostridium perfringens</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) Cocher les réponses justes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A- Les ECEP sont responsables des gastro-entérites infantiles à allure épidémique</li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B- Lors d’une fièvre typho-paratyphoïde, la mise en évidence des anticorps se fait par le sérodiagnostic de Widal et Félix</li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C- L’hémoculture est la première analyse à réaliser lors d’une salmonellose mineure</li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D- La fièvre typhoïde est une septicémie à point de départ digestif</li>
+            
+                    <li><input type="checkbox" id="q33e" name="q33" value="E"> E- Aucune réponse n’est vraie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) Cocher la ou les réponses justes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A- Helicobacter pylori est une bactérie strictement humaine</li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B- Helicobacter pylori est un bacille Gram négatif incurvé</li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C- La présence d’H. pylori n’a aucun lien avec l’augmentation du risque de cancer gastrique</li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D- Les ECEP sont des bactéries qui provoquent la destruction des microvillosités intestinales sans production de toxines</li>
+            
+                    <li><input type="checkbox" id="q34e" name="q34" value="E"> E- Les ECEP sont responsables du syndrome hémolytique et urémique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) Cocher la ou les réponses justes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A- A. La shigellose est une diarrhée due à une cause infectieuse très faible de Shigella</li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B- B. Shigella dysenteriae est responsable de la dysenterie bacillaire (selles à aspect crachat rectal)</li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C- C. Campylobacter jejuni est un commensal de l’intestin des humains</li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D- D. Les vaccins contre la typhoïde présentent une protection de l’ordre de 60%</li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E- E. Campylobacter jejuni est une bactérie anaérobie stricte</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-36" class="question-container">
+            <div class="question">
+                <p>36.) Cocher la ou les réponses justes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q36a" name="q36" value="A"> A- Le choléra est une maladie strictement humaine due à V. cholerae O1 ou O139</li>
+            
+                    <li><input type="checkbox" id="q36b" name="q36" value="B"> B- Vibrio cholerae est une bactérie invasive</li>
+            
+                    <li><input type="checkbox" id="q36c" name="q36" value="C"> C- Sept pandémies de choléra ont touché le monde entier</li>
+            
+                    <li><input type="checkbox" id="q36d" name="q36" value="D"> D- Vibrio cholerae est un cocc Gram positif immobile</li>
+            
+                    <li><input type="checkbox" id="q36e" name="q36" value="E"> E- L’entérotoxine du V. cholerae est composée de deux sous-unités</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-37" class="question-container">
+            <div class="question">
+                <p>37.) En ce qui concerne l’aspect des diarrhées du Choléra :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q37a" name="q37" value="A"> A- Diarrhée sanglante</li>
+            
+                    <li><input type="checkbox" id="q37b" name="q37" value="B"> B- Diarrhée muco-purulente</li>
+            
+                    <li><input type="checkbox" id="q37c" name="q37" value="C"> C- Diarrhée en eau de riz</li>
+            
+                    <li><input type="checkbox" id="q37d" name="q37" value="D"> D- Diarrhée profuse</li>
+            
+                    <li><input type="checkbox" id="q37e" name="q37" value="E"> E- Aucune réponse n’est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-38" class="question-container">
+            <div class="question">
+                <p>38.) Cocher la ou les réponses justes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q38a" name="q38" value="A"> A- Les rotavirus sont la première cause de diarrhées chez les enfants moins de 2 ans</li>
+            
+                    <li><input type="checkbox" id="q38b" name="q38" value="B"> B- La culture des rotavirus se fait sur milieu gélosé coulé en boîte de Pétri</li>
+            
+                    <li><input type="checkbox" id="q38c" name="q38" value="C"> C- La transmission des rotavirus se fait par voie sexuelle et congénitale</li>
+            
+                    <li><input type="checkbox" id="q38d" name="q38" value="D"> D- Les rotavirus sont des virus à ARN composé de 11 segments</li>
+            
+                    <li><input type="checkbox" id="q38e" name="q38" value="E"> E- Toutes les réponses sont justes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-39" class="question-container">
+            <div class="question">
+                <p>39.) Cocher la ou les réponses justes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q39a" name="q39" value="A"> A- La flore de Veillon est composée de germes de la flore commensale</li>
+            
+                    <li><input type="checkbox" id="q39b" name="q39" value="B"> B- Les infections à germes anaérobies sont souvent polymicrobiennes</li>
+            
+                    <li><input type="checkbox" id="q39c" name="q39" value="C"> C- Bacteroides fragilis est le germe le plus incriminé dans les infections à anaérobies</li>
+            
+                    <li><input type="checkbox" id="q39d" name="q39" value="D"> D- Ne jamais utiliser une seringue pour les prélèvements des germes anaérobies</li>
+            
+                    <li><input type="checkbox" id="q39e" name="q39" value="E"> E- La culture des germes anaérobies nécessite l’utilisation d’une jarre</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-40" class="question-container">
+            <div class="question">
+                <p>40.) Cocher la ou les réponses justes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q40a" name="q40" value="A"> A- Clostridium botulinum est un Bacille Gram positif non sporulé</li>
+            
+                    <li><input type="checkbox" id="q40b" name="q40" value="B"> B- La neurotoxine tétanique est responsable des contractures musculaires généralisées</li>
+            
+                    <li><input type="checkbox" id="q40c" name="q40" value="C"> C- Le tétanos néonatal n’existe que dans les pays développés</li>
+            
+                    <li><input type="checkbox" id="q40d" name="q40" value="D"> D- Clostridium perfringens est l’agent des myonécroses (gangrène gazeuse)</li>
+            
+                    <li><input type="checkbox" id="q40e" name="q40" value="E"> E- Les 1er symptômes du botulisme sont des troubles de la vision et de la parole</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-41" class="question-container">
+            <div class="question">
+                <p>41.) En ce qui concerne les constituants bactériens :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q41a" name="q41" value="A"> A- La capsule a un rôle dans le pouvoir pathogène</li>
+            
+                    <li><input type="checkbox" id="q41b" name="q41" value="B"> B- Les pili n’ont aucun rôle dans le pouvoir pathogène</li>
+            
+                    <li><input type="checkbox" id="q41c" name="q41" value="C"> C- La composition de la paroi permet de classer les bactéries selon la coloration de Gram</li>
+            
+                    <li><input type="checkbox" id="q41d" name="q41" value="D"> D- Le sporale est un constituant constant</li>
+            
+                    <li><input type="checkbox" id="q41e" name="q41" value="E"> E- Seuls les spirochètes sont capables de former des spores</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-42" class="question-container">
+            <div class="question">
+                <p>42.) En ce qui concerne la nutrition et croissance des bactéries :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q42a" name="q42" value="A"> A- Le temps de génération est très variable selon les espèces</li>
+            
+                    <li><input type="checkbox" id="q42b" name="q42" value="B"> B- Toutes les bactéries ont des besoins nutritifs simples</li>
+            
+                    <li><input type="checkbox" id="q42c" name="q42" value="C"> C- L’oxygène est très nocif pour certaines bactéries</li>
+            
+                    <li><input type="checkbox" id="q42d" name="q42" value="D"> D- Certaines bactéries ne sont pas cultivables</li>
+            
+                    <li><input type="checkbox" id="q42e" name="q42" value="E"> E- Certaines bactéries ne peuvent être cultivées que sur un milieu spécifique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-43" class="question-container">
+            <div class="question">
+                <p>43.) Lors du diagnostic bactériologique, l’examen direct du produit pathologique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q43a" name="q43" value="A"> A- Constitue un élément d’orientation diagnostique</li>
+            
+                    <li><input type="checkbox" id="q43b" name="q43" value="B"> B- Contribue au choix de l’antibiothérapie probabiliste</li>
+            
+                    <li><input type="checkbox" id="q43c" name="q43" value="C"> C- Donne un résultat dans l’heure qui suit</li>
+            
+                    <li><input type="checkbox" id="q43d" name="q43" value="D"> D- Permet l’identification précise de la bactérie responsable de l’infection</li>
+            
+                    <li><input type="checkbox" id="q43e" name="q43" value="E"> E- Nécessite des milieux de culture enrichis</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-44" class="question-container">
+            <div class="question">
+                <p>44.) En ce qui concerne la morphologie bactérienne :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q44a" name="q44" value="A"> A- Son étude nécessite un microscope électronique</li>
+            
+                    <li><input type="checkbox" id="q44b" name="q44" value="B"> B- Elle est étudiée par examen microscopique à l’état frais</li>
+            
+                    <li><input type="checkbox" id="q44c" name="q44" value="C"> C- Les spirochètes sont des bactéries en forme de virgule</li>
+            
+                    <li><input type="checkbox" id="q44d" name="q44" value="D"> D- La forme est conditionnée par la capsule</li>
+            
+                    <li><input type="checkbox" id="q44e" name="q44" value="E"> E- Les cocci associés en chaînettes sont appelés streptocoques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-45" class="question-container">
+            <div class="question">
+                <p>45.) Les bactéries :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q45a" name="q45" value="A"> A- Possèdent toutes une capsule</li>
+            
+                    <li><input type="checkbox" id="q45b" name="q45" value="B"> B- Ont toujours une vie autonome</li>
+            
+                    <li><input type="checkbox" id="q45c" name="q45" value="C"> C- Certaines peuvent être colorées par le Gram</li>
+            
+                    <li><input type="checkbox" id="q45d" name="q45" value="D"> D- Poussent toutes sur un milieu gélosé</li>
+            
+                    <li><input type="checkbox" id="q45e" name="q45" value="E"> E- Peuvent être observées au microscope optique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-46" class="question-container">
+            <div class="question">
+                <p>46.) En ce qui concerne les antibiotiques :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q46a" name="q46" value="A"> A- La cible des bêta-lactamines est la synthèse des protéines</li>
+            
+                    <li><input type="checkbox" id="q46b" name="q46" value="B"> B- Les streptocoques présentent une résistance naturelle aux aminosides</li>
+            
+                    <li><input type="checkbox" id="q46c" name="q46" value="C"> C- Sont tous bactéricides</li>
+            
+                    <li><input type="checkbox" id="q46d" name="q46" value="D"> D- Les glycopeptides agissent au niveau de la paroi bactérienne</li>
+            
+                    <li><input type="checkbox" id="q46e" name="q46" value="E"> E- Leur prescription est obligatoire devant tout signe d’infection</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-47" class="question-container">
+            <div class="question">
+                <p>47.) Les virus :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q47a" name="q47" value="A"> A- Sont des parasites intracellulaires obligatoires</li>
+            
+                    <li><input type="checkbox" id="q47b" name="q47" value="B"> B- Ils peuvent être sensibles aux antibiotiques</li>
+            
+                    <li><input type="checkbox" id="q47c" name="q47" value="C"> C- Certains parmi eux possèdent une enveloppe</li>
+            
+                    <li><input type="checkbox" id="q47d" name="q47" value="D"> D- Ne sont retrouvés que chez l’homme</li>
+            
+                    <li><input type="checkbox" id="q47e" name="q47" value="E"> E- Entraînent toujours une infection latente</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-48" class="question-container">
+            <div class="question">
+                <p>48.) En ce qui concerne les bactéries :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q48a" name="q48" value="A"> A- Elles possèdent plusieurs chromosomes</li>
+            
+                    <li><input type="checkbox" id="q48b" name="q48" value="B"> B- La membrane nucléaire délimite le génome</li>
+            
+                    <li><input type="checkbox" id="q48c" name="q48" value="C"> C- Elles se reproduisent par mitose</li>
+            
+                    <li><input type="checkbox" id="q48d" name="q48" value="D"> D- Elles possèdent les 2 types d’acide nucléique</li>
+            
+                    <li><input type="checkbox" id="q48e" name="q48" value="E"> E- Leur métabolisme est assuré par leurs propres systèmes enzymatiques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+
+            
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S5" "Radiologie" "Rd2022" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+                
+            <script>
+const correctAnswers = {
+    q1: ['B', 'C', 'D', 'E'],
+    q2: ['B', 'E'],
+    q3: ['A', 'B', 'C', 'D'],
+    q4: ['A', 'B', 'C'],
+    q5: ['A', 'B', 'C'],
+    q6: ['A', 'D', 'E'],
+    q7: ['A', 'B', 'C', 'E'],
+    q8: ['C'],
+    q9: ['A', 'E'],
+    q10: ['A', 'C', 'E'],
+    q11: ['B', 'C', 'D'],
+    q12: ['B', 'C', 'E'],
+    q13: ['B', 'C', 'D'],
+    q14: ['A', 'C', 'D', 'E'],
+    q15: ['B', 'C', 'D', 'E'],
+    q16: ['A', 'B', 'C'],
+    q17: ['A', 'C', 'D', 'E'],
+    q18: ['A', 'C', 'D'],
+    q19: ['D', 'E'],
+    q20: ['A', 'B', 'C', 'D'],
+    q21: ['B', 'D', 'E'],
+    q22: ['A', 'C', 'D'],
+    q23: ['B', 'C', 'D', 'E'],
+    q24: ['A', 'C'],
+    q25: ['A', 'D', 'E'],
+    q26: ['A', 'B', 'C', 'D'],
+    q27: ['B', 'C', 'D'],
+    q28: ['C', 'D'],
+    q29: ['A', 'C', 'E'],
+    q30: ['A', 'C', 'E'],
+    q31: ['B', 'C', 'D'],
+    q32: ['A', 'D'],
+    q33: ['A', 'B', 'D'],
+    q34: ['A', 'B', 'E'],
+    q35: ['A', 'B', 'D'],
+    q36: ['A', 'C', 'E'],
+    q37: ['C'],
+    q38: ['A', 'D'],
+    q39: ['A', 'B', 'C', 'E'],
+    q40: ['B', 'D', 'E'],
+    q41: ['A', 'C', 'E'],
+    q42: ['A', 'B', 'C', 'E'],
+    q43: ['A', 'B', 'C', 'E'],
+    q44: ['A', 'C', 'D', 'E'],
+    q45: ['A', 'B', 'C'],
+    q46: ['E'],
+    q47: ['C', 'E'],
+    q48: ['B', 'D'],
+    q49: ['A', 'C'],
+    q50: ['C', 'D', 'E'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersRd2022'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+<script src="{% static 'java/question-stats.js' %}" defer></script>

@@ -1,0 +1,2715 @@
+<!DOCTYPE html>
+{% load static %}
+
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'css/stylequiz.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+
+</head>
+<body>
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+
+    <div id="content">
+
+         <div class="quiz-title">
+            <h1>
+Maladie Infectueuses et Parasitologie 2019</h1>
+         </div>
+         <form id="quiz-form">
+    <input type="hidden" id='exam_name' name="exam_name" value="MIP2019R">
+    {% csrf_token %}
+            <div class="question-container" id="question-1">
+               <div class="question">
+                  <p> 1.) Un homme âgé de 66 ans qui travaille dans un hammam consulte pour fièvre, ictère flamboyant épisaxis, gingivorragies et purpur Il n’a jamais
+                     voyagé en dehors du Maro L’interrogatoire révèle qu’il est en contact avec des rats. Quel est le premier diagnostic qu’il faut évoquer ? </p>
+                  <ul>
+                     <li>
+                        <input id="q1a" name="q1" type="checkbox" value="A" /> A- une grippe </li>
+                     <li>
+                        <input id="q1b" name="q1" type="checkbox" value="B" /> B- une leptospirose </li>
+                     <li>
+                        <input id="q1c" name="q1" type="checkbox" value="C" /> C- une tuberculose </li>
+                     <li>
+                        <input id="q1d" name="q1" type="checkbox" value="D" /> D- un paludisme </li>
+                     <li>
+                        <input id="q1e" name="q1" type="checkbox" value="E" /> E- une fièvre typhoïde </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q1')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q1')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="1"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_1" onclick="toggleCommentSection('MIP2019R_1', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_1">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-2">
+               <div class="question">
+                  <p> 2.) Quel est l'examen biologique qui permet de confirmer le diagnostic chez ce malade ? </p>
+                  <ul>
+                     <li>
+                        <input id="q2a" name="q2" type="checkbox" value="A" /> A- un ECBU </li>
+                     <li>
+                        <input id="q2b" name="q2" type="checkbox" value="B" /> B- une myéoculture </li>
+                     <li>
+                        <input id="q2c" name="q2" type="checkbox" value="C" /> C- une goutte épaisse </li>
+                     <li>
+                        <input id="q2d" name="q2" type="checkbox" value="D" /> D- une sérologie de Martin et Petit </li>
+                     <li>
+                        <input id="q2e" name="q2" type="checkbox" value="E" /> E- une coproculture </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q2')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q2')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="2"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_2" onclick="toggleCommentSection('MIP2019R_2', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_2">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-3">
+               <div class="question">
+                  <p> 3.) Quelle est la première complication qu'il faut chercher chez ce malade ? </p>
+                  <ul>
+                     <li>
+                        <input id="q3a" name="q3" type="checkbox" value="A" /> A- une insuffisance respiratoire </li>
+                     <li>
+                        <input id="q3b" name="q3" type="checkbox" value="B" /> B- une insuffisance cardiaque </li>
+                     <li>
+                        <input id="q3c" name="q3" type="checkbox" value="C" /> C- une insuffisance rénale </li>
+                     <li>
+                        <input id="q3d" name="q3" type="checkbox" value="D" /> D- une insuffisance hépatique </li>
+                     <li>
+                        <input id="q3e" name="q3" type="checkbox" value="E" /> E- une insuffisance médullaire </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q3')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q3')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="3"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_3" onclick="toggleCommentSection('MIP2019R_3', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_3">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-4">
+               <div class="question">
+                  <p> 4.) Quel est le facteur de risque qu’a ce malade pour développer une forme grave de la maladie ? </p>
+                  <ul>
+                     <li>
+                        <input id="q4a" name="q4" type="checkbox" value="A" /> A- le sexe masculin </li>
+                     <li>
+                        <input id="q4b" name="q4" type="checkbox" value="B" /> B- la profession </li>
+                     <li>
+                        <input id="q4c" name="q4" type="checkbox" value="C" /> C- le contact avec les rats </li>
+                     <li>
+                        <input id="q4d" name="q4" type="checkbox" value="D" /> D- l’âge </li>
+                     <li>
+                        <input id="q4e" name="q4" type="checkbox" value="E" /> E- la fièvre </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q4')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q4')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="4"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_4" onclick="toggleCommentSection('MIP2019R_4', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_4">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-5">
+               <div class="question">
+                  <p> 5.) Une femme âgée de 30 ans enceinte vous consulte pendant le mois d’août avec une fièvre à 40°C, des céphalées, des myalgies importantes et une
+                     éruption maculo-papuleuse généralisée avec atteinte des paumes des mains et des plantes des pieds. Elle était en vacances avec sa fille âgée
+                     de 2 ans et sa mère âgée de 69 ans. Quel est le premier diagnostic à évoquer ? </p>
+                  <ul>
+                     <li>
+                        <input id="q5a" name="q5" type="checkbox" value="A" /> A- Fièvre typhoïde </li>
+                     <li>
+                        <input id="q5b" name="q5" type="checkbox" value="B" /> B- Brucellose </li>
+                     <li>
+                        <input id="q5c" name="q5" type="checkbox" value="C" /> C- Paludisme </li>
+                     <li>
+                        <input id="q5d" name="q5" type="checkbox" value="D" /> D- Rickettsiose </li>
+                     <li>
+                        <input id="q5e" name="q5" type="checkbox" value="E" /> E- Grippe </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q5')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q5')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="5"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_5" onclick="toggleCommentSection('MIP2019R_5', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_5">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-6">
+               <div class="question">
+                  <p> 6.) Quels sont les deux éléments qu’il faut chercher par l’examen clinique pour confirmer le diagnostic ? </p>
+                  <ul>
+                     <li>
+                        <input id="q6a" name="q6" type="checkbox" value="A" /> A- L'atteinte des paumes des mains et des plantes des pieds </li>
+                     <li>
+                        <input id="q6b" name="q6" type="checkbox" value="B" /> B- un ictère flamboyant </li>
+                     <li>
+                        <input id="q6c" name="q6" type="checkbox" value="C" /> C- des hématomes cutanés </li>
+                     <li>
+                        <input id="q6d" name="q6" type="checkbox" value="D" /> D- une conjonctivite </li>
+                     <li>
+                        <input id="q6e" name="q6" type="checkbox" value="E" /> E- une tache noirâtre </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q6')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q6')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="6"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_6" onclick="toggleCommentSection('MIP2019R_6', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_6">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-7">
+               <div class="question">
+                  <p> 7.) Avec quel antinéfectieux vous allez traiter cette malade ? </p>
+                  <ul>
+                     <li>
+                        <input id="q7a" name="q7" type="checkbox" value="A" /> A- Albendazole </li>
+                     <li>
+                        <input id="q7b" name="q7" type="checkbox" value="B" /> B- Sulfamide </li>
+                     <li>
+                        <input id="q7c" name="q7" type="checkbox" value="C" /> C- Josamycine </li>
+                     <li>
+                        <input id="q7d" name="q7" type="checkbox" value="D" /> D- Doxycycline </li>
+                     <li>
+                        <input id="q7e" name="q7" type="checkbox" value="E" /> E- Amoxicilline </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q7')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q7')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="7"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_7" onclick="toggleCommentSection('MIP2019R_7', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_7">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-8">
+               <div class="question">
+                  <p> 8.) Si la mère de la malade est infectée par le même germe que sa fille, qu’est-ce qu’elle risque ? </p>
+                  <ul>
+                     <li>
+                        <input id="q8a" name="q8" type="checkbox" value="A" /> A- Faire une forme grave de la maladie </li>
+                     <li>
+                        <input id="q8b" name="q8" type="checkbox" value="B" /> B- Faire une forme asymptomatique de la maladie </li>
+                     <li>
+                        <input id="q8c" name="q8" type="checkbox" value="C" /> C- Faire une forme résistante aux antiinfectieux </li>
+                     <li>
+                        <input id="q8d" name="q8" type="checkbox" value="D" /> D- Faire une forme difficile à diagnostiquer </li>
+                     <li>
+                        <input id="q8e" name="q8" type="checkbox" value="E" /> E- Elle ne risque rien </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q8')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q8')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="8"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_8" onclick="toggleCommentSection('MIP2019R_8', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_8">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-9">
+               <div class="question">
+                  <p> 9.) Si la fille de la malade fait la même maladie avec quel antinéfectieux vous allez la traiter ? </p>
+                  <ul>
+                     <li>
+                        <input id="q9a" name="q9" type="checkbox" value="A" /> A- Métronidazole </li>
+                     <li>
+                        <input id="q9b" name="q9" type="checkbox" value="B" /> B- Acyclovir </li>
+                     <li>
+                        <input id="q9c" name="q9" type="checkbox" value="C" /> C- Ciprofloxacine </li>
+                     <li>
+                        <input id="q9d" name="q9" type="checkbox" value="D" /> D- Doxycycline </li>
+                     <li>
+                        <input id="q9e" name="q9" type="checkbox" value="E" /> E- Josamycine </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q9')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q9')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="9"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_9" onclick="toggleCommentSection('MIP2019R_9', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_9">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-10">
+               <div class="question">
+                  <p> 10.) Un homme âgé de 30 ans marié et père d’une fille de 2 ans consulte pour diarrhée chronique avec amaigrissement de 10 kg. Il a dans les antécédents
+                     un accident de la voie publique et un zon Quel est le premier diagnostic à évoquer chez ce malade ? </p>
+                  <ul>
+                     <li>
+                        <input id="q10a" name="q10" type="checkbox" value="A" /> A- une tuberculose </li>
+                     <li>
+                        <input id="q10b" name="q10" type="checkbox" value="B" /> B- une amibiase intestinale </li>
+                     <li>
+                        <input id="q10c" name="q10" type="checkbox" value="C" /> C- une infection par le VIH </li>
+                     <li>
+                        <input id="q10d" name="q10" type="checkbox" value="D" /> D- une intoxication alimentaire </li>
+                     <li>
+                        <input id="q10e" name="q10" type="checkbox" value="E" /> E- une giardiase </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q10')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q10')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="10"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_10" onclick="toggleCommentSection('MIP2019R_10', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_10">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-11">
+               <div class="question">
+                  <p> 11.) Quel test biologique vous allez demander pour confirmer votre diagnostic ? </p>
+                  <ul>
+                     <li>
+                        <input id="q11a" name="q11" type="checkbox" value="A" /> A- IDR à la tuberculine </li>
+                     <li>
+                        <input id="q11b" name="q11" type="checkbox" value="B" /> B- une sérologie d’amibiase </li>
+                     <li>
+                        <input id="q11c" name="q11" type="checkbox" value="C" /> C- un examen parasitologique des selles </li>
+                     <li>
+                        <input id="q11d" name="q11" type="checkbox" value="D" /> D- une coproculture </li>
+                     <li>
+                        <input id="q11e" name="q11" type="checkbox" value="E" /> E- une sérologie VIH </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q11')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q11')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="11"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_11" onclick="toggleCommentSection('MIP2019R_11', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_11">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-12">
+               <div class="question">
+                  <p> 12.) Quels sont les autres infections que vous devriez chercher chez ce malade ? </p>
+                  <ul>
+                     <li>
+                        <input id="q12a" name="q12" type="checkbox" value="A" /> A- une tuberculose </li>
+                     <li>
+                        <input id="q12b" name="q12" type="checkbox" value="B" /> B- une rétinite à CMV </li>
+                     <li>
+                        <input id="q12c" name="q12" type="checkbox" value="C" /> C- une angiobase </li>
+                     <li>
+                        <input id="q12d" name="q12" type="checkbox" value="D" /> D- une brucellose </li>
+                     <li>
+                        <input id="q12e" name="q12" type="checkbox" value="E" /> E- une leptospirose </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q12')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q12')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="12"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_12" onclick="toggleCommentSection('MIP2019R_12', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_12">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-13">
+               <div class="question">
+                  <p> 13.) Comment vous allez procéder pour vérifier si le malade a contaminé sa femme et sa fille ? </p>
+                  <ul>
+                     <li>
+                        <input id="q13a" name="q13" type="checkbox" value="A" /> A- faire une IDR à la tuberculine chez la mère et chez la fille </li>
+                     <li>
+                        <input id="q13b" name="q13" type="checkbox" value="B" /> B- faire une coproculture chez la mère et chez la fille </li>
+                     <li>
+                        <input id="q13c" name="q13" type="checkbox" value="C" /> C- faire chez la fille seule le même test qui est revenu positif chez le malade </li>
+                     <li>
+                        <input id="q13d" name="q13" type="checkbox" value="D" /> D- faire chez la femme seule le même test qui est revenu positif chez le malade </li>
+                     <li>
+                        <input id="q13e" name="q13" type="checkbox" value="E" /> E- faire chez la femme et la fille le même test qui est revenu positif chez le malade et si la femme est positive le faire chez la fille
+                        </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q13')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q13')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="13"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_13" onclick="toggleCommentSection('MIP2019R_13', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_13">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-14">
+               <div class="question">
+                  <p> 14.) L’hydrophobie est un signe pathognomonique de quelle maladie ? </p>
+                  <ul>
+                     <li>
+                        <input id="q14a" name="q14" type="checkbox" value="A" /> A- Le paludisme </li>
+                     <li>
+                        <input id="q14b" name="q14" type="checkbox" value="B" /> B- Le SIDA </li>
+                     <li>
+                        <input id="q14c" name="q14" type="checkbox" value="C" /> C- La bilharziose </li>
+                     <li>
+                        <input id="q14d" name="q14" type="checkbox" value="D" /> D- La brucellose </li>
+                     <li>
+                        <input id="q14e" name="q14" type="checkbox" value="E" /> E- La rage </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q14')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q14')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="14"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_14" onclick="toggleCommentSection('MIP2019R_14', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_14">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-15">
+               <div class="question">
+                  <p> 15.) La diarrhée au cours du choléra : </p>
+                  <ul>
+                     <li>
+                        <input id="q15a" name="q15" type="checkbox" value="A" /> A- est aiguë </li>
+                     <li>
+                        <input id="q15b" name="q15" type="checkbox" value="B" /> B- s’accompagne de vomissements </li>
+                     <li>
+                        <input id="q15c" name="q15" type="checkbox" value="C" /> C- eau de riz </li>
+                     <li>
+                        <input id="q15d" name="q15" type="checkbox" value="D" /> D- entraîne une déshydratation </li>
+                     <li>
+                        <input id="q15e" name="q15" type="checkbox" value="E" /> E- s’accompagne de fièvre </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q15')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q15')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="15"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_15" onclick="toggleCommentSection('MIP2019R_15', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_15">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-16">
+               <div class="question">
+                  <p> 16.) Parmi les symptômes suivants, quel est celui qui doit faire évoquer en premier lieu le diagnostic d’une fièvre typhoïde ? </p>
+                  <ul>
+                     <li>
+                        <input id="q16a" name="q16" type="checkbox" value="A" /> A- une fièvre </li>
+                     <li>
+                        <input id="q16b" name="q16" type="checkbox" value="B" /> B- des céphalées </li>
+                     <li>
+                        <input id="q16c" name="q16" type="checkbox" value="C" /> C- des vomissements </li>
+                     <li>
+                        <input id="q16d" name="q16" type="checkbox" value="D" /> D- une constipation </li>
+                     <li>
+                        <input id="q16e" name="q16" type="checkbox" value="E" /> E- un pouls dissocié </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q16')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q16')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="16"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_16" onclick="toggleCommentSection('MIP2019R_16', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_16">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-17">
+               <div class="question">
+                  <p> 17.) Quels sont les deux complications digestives les plus fréquentes au cours d’une fièvre typhoïde ? </p>
+                  <ul>
+                     <li>
+                        <input id="q17a" name="q17" type="checkbox" value="A" /> A- Gastrites </li>
+                     <li>
+                        <input id="q17b" name="q17" type="checkbox" value="B" /> B- Pancréatites </li>
+                     <li>
+                        <input id="q17c" name="q17" type="checkbox" value="C" /> C- Occlusions intestinales </li>
+                     <li>
+                        <input id="q17d" name="q17" type="checkbox" value="D" /> D- Hémorragies intestinales </li>
+                     <li>
+                        <input id="q17e" name="q17" type="checkbox" value="E" /> E- Perforations intestinales </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q17')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q17')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="17"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_17" onclick="toggleCommentSection('MIP2019R_17', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_17">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-18">
+               <div class="question">
+                  <p> 18.) Quel est le symptôme qui doit faire évoquer systématiquement un paludisme chez une personne qui revient d’un séjour récent dans une zone impaludée
+                     ? </p>
+                  <ul>
+                     <li>
+                        <input id="q18a" name="q18" type="checkbox" value="A" /> A- Une diarrhée </li>
+                     <li>
+                        <input id="q18b" name="q18" type="checkbox" value="B" /> B- Un prurit </li>
+                     <li>
+                        <input id="q18c" name="q18" type="checkbox" value="C" /> C- Une fièvre </li>
+                     <li>
+                        <input id="q18d" name="q18" type="checkbox" value="D" /> D- Des céphalées isolées </li>
+                     <li>
+                        <input id="q18e" name="q18" type="checkbox" value="E" /> E- Des vomissements </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q18')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q18')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="18"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_18" onclick="toggleCommentSection('MIP2019R_18', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_18">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-19">
+               <div class="question">
+                  <p> 19.) Pour la prévention individuelle du paludisme d’importation, le voyageur dans une zone impaludée, doit respecter les recommandations suivantes
+                     : </p>
+                  <ul>
+                     <li>
+                        <input id="q19a" name="q19" type="checkbox" value="A" /> A- Le port de vêtements longs la nuit </li>
+                     <li>
+                        <input id="q19b" name="q19" type="checkbox" value="B" /> B- L’utilisation de répulsifs sur les parties découvertes du corps </li>
+                     <li>
+                        <input id="q19c" name="q19" type="checkbox" value="C" /> C- L’utilisation de moustiquaires </li>
+                     <li>
+                        <input id="q19d" name="q19" type="checkbox" value="D" /> D- La prise des médicaments antipaludiques pendant tout le séjour </li>
+                     <li>
+                        <input id="q19e" name="q19" type="checkbox" value="E" /> E- L’ouverture de la chambre d’hôtel le soir pour aérer la chambre </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q19')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q19')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="19"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_19" onclick="toggleCommentSection('MIP2019R_19', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_19">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-20">
+               <div class="question">
+                  <p> 20.) Quels sont les symptômes d’un accès palustre simple ? </p>
+                  <ul>
+                     <li>
+                        <input id="q20a" name="q20" type="checkbox" value="A" /> A- La fièvre </li>
+                     <li>
+                        <input id="q20b" name="q20" type="checkbox" value="B" /> B- Les frissons </li>
+                     <li>
+                        <input id="q20c" name="q20" type="checkbox" value="C" /> C- Des sueurs </li>
+                     <li>
+                        <input id="q20d" name="q20" type="checkbox" value="D" /> D- Une éruption cutanée </li>
+                     <li>
+                        <input id="q20e" name="q20" type="checkbox" value="E" /> E- Un ictère </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q20')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q20')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="20"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_20" onclick="toggleCommentSection('MIP2019R_20', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_20">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-21">
+               <div class="question">
+                  <p> 21.) Quels sont les symptômes qui permettent de poser le diagnostic d’un neuropaludisme ? </p>
+                  <ul>
+                     <li>
+                        <input id="q21a" name="q21" type="checkbox" value="A" /> A- Convulsions </li>
+                     <li>
+                        <input id="q21b" name="q21" type="checkbox" value="B" /> B- Troubles de la conscience </li>
+                     <li>
+                        <input id="q21c" name="q21" type="checkbox" value="C" /> C- ictère </li>
+                     <li>
+                        <input id="q21d" name="q21" type="checkbox" value="D" /> D- Troubles de tonus </li>
+                     <li>
+                        <input id="q21e" name="q21" type="checkbox" value="E" /> E- diarrhée </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q21')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q21')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="21"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_21" onclick="toggleCommentSection('MIP2019R_21', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_21">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-22">
+               <div class="question">
+                  <p> 22.) Au cours du paludisme, la goutte épaisse permet de : </p>
+                  <ul>
+                     <li>
+                        <input id="q22a" name="q22" type="checkbox" value="A" /> A- Préciser le type de plasmodium </li>
+                     <li>
+                        <input id="q22b" name="q22" type="checkbox" value="B" /> B- Confirmer le diagnostic du paludisme </li>
+                     <li>
+                        <input id="q22c" name="q22" type="checkbox" value="C" /> C- Évaluer la parasitémie </li>
+                     <li>
+                        <input id="q22d" name="q22" type="checkbox" value="D" /> D- Adapter la posologie des antipaludiques </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q22')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q22')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="22"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_22" onclick="toggleCommentSection('MIP2019R_22', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_22">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-23">
+               <div class="question">
+                  <p> 23.) Pour la prévention du paludisme, le Malaril doit être : </p>
+                  <ul>
+                     <li>
+                        <input id="q23a" name="q23" type="checkbox" value="A" /> A- Administré avec un repas à heure fixe </li>
+                     <li>
+                        <input id="q23b" name="q23" type="checkbox" value="B" /> B- Pris la veille du voyage vers la zone impaludée </li>
+                     <li>
+                        <input id="q23c" name="q23" type="checkbox" value="C" /> C- Pris à raison d’un comprimé par jour </li>
+                     <li>
+                        <input id="q23d" name="q23" type="checkbox" value="D" /> D- Pris pendant et 4 semaines après le retour au Maroc </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q23')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q23')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="23"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_23" onclick="toggleCommentSection('MIP2019R_23', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_23">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-24">
+               <div class="question">
+                  <p> 24.) Dans quelles situations la durée de l’incubation de la rage peut être courte (inférieure à 7 jours) ? </p>
+                  <ul>
+                     <li>
+                        <input id="q24a" name="q24" type="checkbox" value="A" /> A- Chez les enfants </li>
+                     <li>
+                        <input id="q24b" name="q24" type="checkbox" value="B" /> B- En cas de morsures graves </li>
+                     <li>
+                        <input id="q24c" name="q24" type="checkbox" value="C" /> C- En cas de morsures intéressants la tête </li>
+                     <li>
+                        <input id="q24d" name="q24" type="checkbox" value="D" /> D- Chez un malade sous anticoagulant </li>
+                     <li>
+                        <input id="q24e" name="q24" type="checkbox" value="E" /> E- Chez un immunodéprimé </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q24')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q24')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="24"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_24" onclick="toggleCommentSection('MIP2019R_24', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_24">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-25">
+               <div class="question">
+                  <p> 25.) Quel est le premier geste à faire chez une personne qui consulte après la morsure par un chien enragé ? </p>
+                  <ul>
+                     <li>
+                        <input id="q25a" name="q25" type="checkbox" value="A" /> A- Laver la plaie avec de l’eau et du savon </li>
+                     <li>
+                        <input id="q25b" name="q25" type="checkbox" value="B" /> B- Laver la plaie avec de l’eau de Javel </li>
+                     <li>
+                        <input id="q25c" name="q25" type="checkbox" value="C" /> C- Protéger la plaie avec un pansement stérile </li>
+                     <li>
+                        <input id="q25d" name="q25" type="checkbox" value="D" /> D- Appliquer de la Bétadine sur la plaie </li>
+                     <li>
+                        <input id="q25e" name="q25" type="checkbox" value="E" /> E- Suture de la plaie </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q25')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q25')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="25"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_25" onclick="toggleCommentSection('MIP2019R_25', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_25">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-26">
+               <div class="question">
+                  <p> 26.) Le virus de l’immunodéficience humaine (VIH) : </p>
+                  <ul>
+                     <li>
+                        <input id="q26a" name="q26" type="checkbox" value="A" /> A- Est un rétrovirus </li>
+                     <li>
+                        <input id="q26b" name="q26" type="checkbox" value="B" /> B- est transmis par voie sexuelle </li>
+                     <li>
+                        <input id="q26c" name="q26" type="checkbox" value="C" /> C- est transmis aujourd'hui par transfusion sanguine </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q26')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q26')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="26"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_26" onclick="toggleCommentSection('MIP2019R_26', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_26">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-27">
+               <div class="question">
+                  <p> 27.) La transmission materno-fœtale du VIH peut se faire : </p>
+                  <ul>
+                     <li>
+                        <input id="q27a" name="q27" type="checkbox" value="A" /> A- au cours de la grossesse </li>
+                     <li>
+                        <input id="q27b" name="q27" type="checkbox" value="B" /> B- au moment de l’accouchement </li>
+                     <li>
+                        <input id="q27c" name="q27" type="checkbox" value="C" /> C- lors de l’allaitement </li>
+                     <li>
+                        <input id="q27d" name="q27" type="checkbox" value="D" /> D- lors des contacts corporels entre la mère et le nouveau-né </li>
+                     <li>
+                        <input id="q27e" name="q27" type="checkbox" value="E" /> E- par la salive de la mère lors des baisers </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q27')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q27')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="27"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_27" onclick="toggleCommentSection('MIP2019R_27', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_27">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-28">
+               <div class="question">
+                  <p> 28.) Quelles sont les précautions à prendre avant et après la réalisation d’une sérologie VIH ? </p>
+                  <ul>
+                     <li>
+                        <input id="q28a" name="q28" type="checkbox" value="A" /> A- Obtention du consentement de la personne </li>
+                     <li>
+                        <input id="q28b" name="q28" type="checkbox" value="B" /> B- Respect de la confidentialité </li>
+                     <li>
+                        <input id="q28c" name="q28" type="checkbox" value="C" /> C- Réalisation de test par Western Blot avant d’annoncer une séropositivité VIH </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q28')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q28')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="28"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_28" onclick="toggleCommentSection('MIP2019R_28', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_28">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-29">
+               <div class="question">
+                  <p> 29.) Après un AES la victime doit faire 4 des 5 actions suivantes. Lesquelles ? </p>
+                  <ul>
+                     <li>
+                        <input id="q29a" name="q29" type="checkbox" value="A" /> A- Presser la plaie </li>
+                     <li>
+                        <input id="q29b" name="q29" type="checkbox" value="B" /> B- Nettoyer la plaie à l’eau courante et savon </li>
+                     <li>
+                        <input id="q29c" name="q29" type="checkbox" value="C" /> C- Tremper la partie blessée dans l’eau de Javel dilué </li>
+                     <li>
+                        <input id="q29d" name="q29" type="checkbox" value="D" /> D- Rincer à l’eau </li>
+                     <li>
+                        <input id="q29e" name="q29" type="checkbox" value="E" /> E- Contacter un médecin référent </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q29')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q29')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="29"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_29" onclick="toggleCommentSection('MIP2019R_29', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_29">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-30">
+               <div class="question">
+                  <p> 30.) Quelles sont les propositions qui sont justes après un AES ? </p>
+                  <ul>
+                     <li>
+                        <input id="q30a" name="q30" type="checkbox" value="A" /> A- Le risque de transmission du VIH est de 0,3 % </li>
+                     <li>
+                        <input id="q30b" name="q30" type="checkbox" value="B" /> B- Le risque de transmission du VHB est de 30 % </li>
+                     <li>
+                        <input id="q30c" name="q30" type="checkbox" value="C" /> C- Le risque de transmission du VHC est de 3 % </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q30')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q30')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="30"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_30" onclick="toggleCommentSection('MIP2019R_30', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_30">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-31">
+               <div class="question">
+                  <p> 31.) Quand il faut prescrire plus d’un antibiotique ? </p>
+                  <ul>
+                     <li>
+                        <input id="q31a" name="q31" type="checkbox" value="A" /> A- En cas d’association d’infection à aérobies et d’infection à anaérobies </li>
+                     <li>
+                        <input id="q31b" name="q31" type="checkbox" value="B" /> B- Si les globules blancs dépassent 18 000 </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q31')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q31')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="31"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_31" onclick="toggleCommentSection('MIP2019R_31', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_31">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-32">
+               <div class="question">
+                  <p> 32.) Quels sont les éléments qui font partie de la définition d’une séropositivité ? </p>
+                  <ul>
+                     <li>
+                        <input id="q32a" name="q32" type="checkbox" value="A" /> A- La déclaration au médecin </li>
+                     <li>
+                        <input id="q32b" name="q32" type="checkbox" value="B" /> B- La période de détection des anticorps </li>
+                     <li>
+                        <input id="q32c" name="q32" type="checkbox" value="C" /> C- La présence de virus dans les sécrétions corporelles </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q32')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q32')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="32"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_32" onclick="toggleCommentSection('MIP2019R_32', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_32">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-33">
+               <div class="question">
+                  <p> 33.) Quelles sont parmi les maladies suivantes, celles qui doivent être déclarées par téléphone ? </p>
+                  <ul>
+                     <li>
+                        <input id="q33a" name="q33" type="checkbox" value="A" /> A- La rage </li>
+                     <li>
+                        <input id="q33b" name="q33" type="checkbox" value="B" /> B- Le choléra </li>
+                     <li>
+                        <input id="q33c" name="q33" type="checkbox" value="C" /> C- La méningite à méningocoque </li>
+                     <li>
+                        <input id="q33d" name="q33" type="checkbox" value="D" /> D- La brucellose </li>
+                     <li>
+                        <input id="q33e" name="q33" type="checkbox" value="E" /> E- Les toxi-infections alimentaires collectives </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q33')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q33')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="33"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_33" onclick="toggleCommentSection('MIP2019R_33', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_33">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-34">
+               <div class="question">
+                  <p> 34.) Parmi les éléments suivants, quels sont ceux qui sont justes dans la chaîne de transmission de Salmonella typhi ? </p>
+                  <ul>
+                     <li>
+                        <input id="q34a" name="q34" type="checkbox" value="A" /> A- La porte d’entrée est l’appareil digestif </li>
+                     <li>
+                        <input id="q34b" name="q34" type="checkbox" value="B" /> B- La porte de sortie est l’appareil urinaire </li>
+                     <li>
+                        <input id="q34c" name="q34" type="checkbox" value="C" /> C- La transmission se fait par voie aérienne </li>
+                     <li>
+                        <input id="q34d" name="q34" type="checkbox" value="D" /> D- La transmission peut se faire par l’eau contaminée </li>
+                     <li>
+                        <input id="q34e" name="q34" type="checkbox" value="E" /> E- La source de l’infection est l’homme </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q34')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q34')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="34"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_34" onclick="toggleCommentSection('MIP2019R_34', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_34">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-35">
+               <div class="question">
+                  <p> 35.) Quels sont parmi les éléments suivants les 3 qui déterminent le caractère épidémiogène d’un agent pathogène ? </p>
+                  <ul>
+                     <li>
+                        <input id="q35a" name="q35" type="checkbox" value="A" /> A- la pathogénicité </li>
+                     <li>
+                        <input id="q35b" name="q35" type="checkbox" value="B" /> B- la contagiosité </li>
+                     <li>
+                        <input id="q35c" name="q35" type="checkbox" value="C" /> C- la porte d’entrée </li>
+                     <li>
+                        <input id="q35d" name="q35" type="checkbox" value="D" /> D- la fréquence de contagion possible </li>
+                     <li>
+                        <input id="q35e" name="q35" type="checkbox" value="E" /> E- la réceptivité de la population à risque </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q35')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q35')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="35"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_35" onclick="toggleCommentSection('MIP2019R_35', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_35">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-36">
+               <div class="question">
+                  <p> 36.) L’hyperéosinophilie d’origine parasitaire ? </p>
+                  <ul>
+                     <li>
+                        <input id="q36a" name="q36" type="checkbox" value="A" /> A- Est due à l’apamge des helminthes </li>
+                     <li>
+                        <input id="q36b" name="q36" type="checkbox" value="B" /> B- Elle diminue immédiatement après l’administration des anthelminthiques </li>
+                     <li>
+                        <input id="q36c" name="q36" type="checkbox" value="C" /> C- Elle est plus importante au cours des zoonoses </li>
+                     <li>
+                        <input id="q36d" name="q36" type="checkbox" value="D" /> D- Elle est plus importante lors de la phase d’invasion des parasites </li>
+                     <li>
+                        <input id="q36e" name="q36" type="checkbox" value="E" /> E- Elle est égale durant toute la durée de l’infection </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q36')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q36')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="36"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_36" onclick="toggleCommentSection('MIP2019R_36', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_36">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-37">
+               <div class="question">
+                  <p> 37.) Concernant le diagnostic sérologique des maladies parasitaires : </p>
+                  <ul>
+                     <li>
+                        <input id="q37a" name="q37" type="checkbox" value="A" /> A- Sa négativité affirme et exclut le diagnostic </li>
+                     <li>
+                        <input id="q37b" name="q37" type="checkbox" value="B" /> B- Est indiqué dans les parasitoses fermées </li>
+                     <li>
+                        <input id="q37c" name="q37" type="checkbox" value="C" /> C- Peut aider à dater une infection </li>
+                     <li>
+                        <input id="q37d" name="q37" type="checkbox" value="D" /> D- Est indiqué dans les études épidémiologiques </li>
+                     <li>
+                        <input id="q37e" name="q37" type="checkbox" value="E" /> E- Est indiqué dans le suivi post thérapeutique de certaines parasitoses </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q37')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q37')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="37"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_37" onclick="toggleCommentSection('MIP2019R_37', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_37">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-38">
+               <div class="question">
+                  <p> 38.) L’examen parasitologique des selles standard permet de : </p>
+                  <ul>
+                     <li>
+                        <input id="q38a" name="q38" type="checkbox" value="A" /> A- Renseigner sur l’état de la digestion </li>
+                     <li>
+                        <input id="q38b" name="q38" type="checkbox" value="B" /> B- Identifier la présence de certains parasites </li>
+                     <li>
+                        <input id="q38c" name="q38" type="checkbox" value="C" /> C- Reconnaître certains œufs et oocystes de cryptosporidioses </li>
+                     <li>
+                        <input id="q38d" name="q38" type="checkbox" value="D" /> D- Rechercher la giardiase en fonction de l’aspect macroscopique des selles </li>
+                     <li>
+                        <input id="q38e" name="q38" type="checkbox" value="E" /> E- Rechercher plusieurs parasites sur un seul prélèvement </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q38')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q38')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="38"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_38" onclick="toggleCommentSection('MIP2019R_38', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_38">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-39">
+               <div class="question">
+                  <p> 39.) Quel est l’examen à prescrire en première intention pour le diagnostic d’une oxyurose ? </p>
+                  <ul>
+                     <li>
+                        <input id="q39a" name="q39" type="checkbox" value="A" /> A- La biopsie intestinale </li>
+                     <li>
+                        <input id="q39b" name="q39" type="checkbox" value="B" /> B- L’examen parasitologique des selles </li>
+                     <li>
+                        <input id="q39c" name="q39" type="checkbox" value="C" /> C- La recherche d’antigènes parasitaires dans les selles </li>
+                     <li>
+                        <input id="q39d" name="q39" type="checkbox" value="D" /> D- Le scotch test anal </li>
+                     <li>
+                        <input id="q39e" name="q39" type="checkbox" value="E" /> E- La sérologie </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q39')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q39')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="39"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_39" onclick="toggleCommentSection('MIP2019R_39', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_39">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-40">
+               <div class="question">
+                  <p> 40.) Parmi les parasites suivants, lesquels peuvent se compliquer d’une réaction allergique ? </p>
+                  <ul>
+                     <li>
+                        <input id="q40a" name="q40" type="checkbox" value="A" /> A- L’ascaridiose </li>
+                     <li>
+                        <input id="q40b" name="q40" type="checkbox" value="B" /> B- La giardiase </li>
+                     <li>
+                        <input id="q40c" name="q40" type="checkbox" value="C" /> C- La leishmaniose </li>
+                     <li>
+                        <input id="q40d" name="q40" type="checkbox" value="D" /> D- L’hydatidose </li>
+                     <li>
+                        <input id="q40e" name="q40" type="checkbox" value="E" /> E- La trichomonose </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q40')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q40')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="40"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_40" onclick="toggleCommentSection('MIP2019R_40', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_40">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-41">
+               <div class="question">
+                  <p> 41.) Le chien est impliqué dans le cycle épidémiologique de quel parasite ou champignon ? </p>
+                  <ul>
+                     <li>
+                        <input id="q41a" name="q41" type="checkbox" value="A" /> A- Entamoeba histolytica </li>
+                     <li>
+                        <input id="q41b" name="q41" type="checkbox" value="B" /> B- Giardia intestinalis </li>
+                     <li>
+                        <input id="q41c" name="q41" type="checkbox" value="C" /> C- Leishmania infantum </li>
+                     <li>
+                        <input id="q41d" name="q41" type="checkbox" value="D" /> D- Toxoplasma gondii </li>
+                     <li>
+                        <input id="q41e" name="q41" type="checkbox" value="E" /> E- Cryptosporidium </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q41')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q41')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="41"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_41" onclick="toggleCommentSection('MIP2019R_41', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_41">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-42">
+               <div class="question">
+                  <p> 42.) Quelle est la caractéristique de Giardia intestinalis ? </p>
+                  <ul>
+                     <li>
+                        <input id="q42a" name="q42" type="checkbox" value="A" /> A- Il s’agit d’un rhizopode </li>
+                     <li>
+                        <input id="q42b" name="q42" type="checkbox" value="B" /> B- Il est transmis par voie transcutanée </li>
+                     <li>
+                        <input id="q42c" name="q42" type="checkbox" value="C" /> C- Il est responsable d’une trichomonose </li>
+                     <li>
+                        <input id="q42d" name="q42" type="checkbox" value="D" /> D- Il est fréquent chez le VIH </li>
+                     <li>
+                        <input id="q42e" name="q42" type="checkbox" value="E" /> E- Il est flagellé </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q42')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q42')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="42"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_42" onclick="toggleCommentSection('MIP2019R_42', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_42">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-43">
+               <div class="question">
+                  <p> 43.) Parmi les mécanismes d’action suivants, lequel est spécifique d’Entamoeba histolytica ? </p>
+                  <ul>
+                     <li>
+                        <input id="q43a" name="q43" type="checkbox" value="A" /> A- Blessures des microvillosités intestinales </li>
+                     <li>
+                        <input id="q43b" name="q43" type="checkbox" value="B" /> B- Inhibition de l’absorption des lipides </li>
+                     <li>
+                        <input id="q43c" name="q43" type="checkbox" value="C" /> C- Hématophagie du parasite </li>
+                     <li>
+                        <input id="q43d" name="q43" type="checkbox" value="D" /> D- Spoliation des nutriments </li>
+                     <li>
+                        <input id="q43e" name="q43" type="checkbox" value="E" /> E- Troubles de l’absorption intestinale </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q43')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q43')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="43"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_43" onclick="toggleCommentSection('MIP2019R_43', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_43">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-44">
+               <div class="question">
+                  <p> 44.) Le diagnostic biologique de certitude de l’amibiase hépatique repose en première intention sur : </p>
+                  <ul>
+                     <li>
+                        <input id="q44a" name="q44" type="checkbox" value="A" /> A- La biopsie intestinale </li>
+                     <li>
+                        <input id="q44b" name="q44" type="checkbox" value="B" /> B- L’entérotest </li>
+                     <li>
+                        <input id="q44c" name="q44" type="checkbox" value="C" /> C- L’examen parasitologique des selles </li>
+                     <li>
+                        <input id="q44d" name="q44" type="checkbox" value="D" /> D- La numération du taux de Polynucléaires neutrophiles </li>
+                     <li>
+                        <input id="q44e" name="q44" type="checkbox" value="E" /> E- La sérologie </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q44')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q44')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="44"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_44" onclick="toggleCommentSection('MIP2019R_44', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_44">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-45">
+               <div class="question">
+                  <p> 45.) Quelle est la caractéristique des amibes du genre Acanthamoeba ? </p>
+                  <ul>
+                     <li>
+                        <input id="q45a" name="q45" type="checkbox" value="A" /> A- Elles sont transmises par voie aérienne </li>
+                     <li>
+                        <input id="q45b" name="q45" type="checkbox" value="B" /> B- Elles sont saprophytes du tube digestif </li>
+                     <li>
+                        <input id="q45c" name="q45" type="checkbox" value="C" /> C- Elles sont responsables de kératites </li>
+                     <li>
+                        <input id="q45d" name="q45" type="checkbox" value="D" /> D- Elles sont mises en évidence au niveau des selles </li>
+                     <li>
+                        <input id="q45e" name="q45" type="checkbox" value="E" /> E- Leur diagnostic repose sur la recherche d’anticorps spécifiques </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q45')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q45')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="45"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_45" onclick="toggleCommentSection('MIP2019R_45', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_45">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-46">
+               <div class="question">
+                  <p> 46.) Un patient de 35 ans consulte pour des douleurs abdominales avec diarrhées et type d’émission d’hydrosanguinolente. Quel est le parasite le
+                     plus probablement responsable de cette symptomatologie clinique ? </p>
+                  <ul>
+                     <li>
+                        <input id="q46a" name="q46" type="checkbox" value="A" /> A- Ankylostoma duodenale </li>
+                     <li>
+                        <input id="q46b" name="q46" type="checkbox" value="B" /> B- Cryptosporidium parvum </li>
+                     <li>
+                        <input id="q46c" name="q46" type="checkbox" value="C" /> C- Entamoeba histolytica </li>
+                     <li>
+                        <input id="q46d" name="q46" type="checkbox" value="D" /> D- Giardia intestinalis </li>
+                     <li>
+                        <input id="q46e" name="q46" type="checkbox" value="E" /> E- Taenia saginata </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q46')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q46')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="46"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_46" onclick="toggleCommentSection('MIP2019R_46', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_46">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-47">
+               <div class="question">
+                  <p> 47.) Une patiente de trente ans, infectée par le virus de l’immunodéficience humaine présente depuis 4 mois une diarrhée liquidienne sans glaire
+                     ni sang, ni fièvre. Quels parasites peuvent être responsables de cette symptomatologie ? </p>
+                  <ul>
+                     <li>
+                        <input id="q47a" name="q47" type="checkbox" value="A" /> A- Cryptosporidium parvum </li>
+                     <li>
+                        <input id="q47b" name="q47" type="checkbox" value="B" /> B- Cyclospora cayetanensis </li>
+                     <li>
+                        <input id="q47c" name="q47" type="checkbox" value="C" /> C- Endolimax nana </li>
+                     <li>
+                        <input id="q47d" name="q47" type="checkbox" value="D" /> D- Isospora belli </li>
+                     <li>
+                        <input id="q47e" name="q47" type="checkbox" value="E" /> E- Pneumocystis jirovecii </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q47')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q47')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="47"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_47" onclick="toggleCommentSection('MIP2019R_47', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_47">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-48">
+               <div class="question">
+                  <p> 48.) Le diagnostic de certitude des microsporidioses intestinales repose en première intention sur : </p>
+                  <ul>
+                     <li>
+                        <input id="q48a" name="q48" type="checkbox" value="A" /> A- La biopsie intestinale </li>
+                     <li>
+                        <input id="q48b" name="q48" type="checkbox" value="B" /> B- L’examen parasitologique des selles standard </li>
+                     <li>
+                        <input id="q48c" name="q48" type="checkbox" value="C" /> C- L’examen parasitologique des selles avec coloration au trichrome </li>
+                     <li>
+                        <input id="q48d" name="q48" type="checkbox" value="D" /> D- L’examen parasitologique des selles avec coloration de Ziehl Neelsen </li>
+                     <li>
+                        <input id="q48e" name="q48" type="checkbox" value="E" /> E- La sérologie </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q48')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q48')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="48"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_48" onclick="toggleCommentSection('MIP2019R_48', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_48">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-49">
+               <div class="question">
+                  <p> 49.) La contamination par Cryptosporidium peut se faire suite à : </p>
+                  <ul>
+                     <li>
+                        <input id="q49a" name="q49" type="checkbox" value="A" /> A- Baignade en eau douce </li>
+                     <li>
+                        <input id="q49b" name="q49" type="checkbox" value="B" /> B- Boisson d’eau du robinet </li>
+                     <li>
+                        <input id="q49c" name="q49" type="checkbox" value="C" /> C- Contact avec des jeunes bovins diarrhéiques </li>
+                     <li>
+                        <input id="q49d" name="q49" type="checkbox" value="D" /> D- Ingestion de crudités souillées </li>
+                     <li>
+                        <input id="q49e" name="q49" type="checkbox" value="E" /> E- Piqûre d’insectes hématophages </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q49')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q49')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="49"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_49" onclick="toggleCommentSection('MIP2019R_49', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_49">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-50">
+               <div class="question">
+                  <p> 50.) Parmi les propositions suivantes, laquelle vous oriente vers le diagnostic d’une ascaridiose ? </p>
+                  <ul>
+                     <li>
+                        <input id="q50a" name="q50" type="checkbox" value="A" /> A- Une anémie par carence en fer </li>
+                     <li>
+                        <input id="q50b" name="q50" type="checkbox" value="B" /> B- La découverte d’anneaux mobiles à la surface des selles </li>
+                     <li>
+                        <input id="q50c" name="q50" type="checkbox" value="C" /> C- L’émission par voie anale de vers ronds blancs-rosés d’environ 20 cm de long </li>
+                     <li>
+                        <input id="q50d" name="q50" type="checkbox" value="D" /> D- La marche pieds nus dans la boue </li>
+                     <li>
+                        <input id="q50e" name="q50" type="checkbox" value="E" /> E- La notion d’immunodépression </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q50')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q50')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="50"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_50" onclick="toggleCommentSection('MIP2019R_50', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_50">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-51">
+               <div class="question">
+                  <p> 51.) Un enfant de 5 ans est ramené en consultation pour un prurit anal à prédominance nocturne accompagné de troubles du sommeil. Quel est votre
+                     diagnostic le plus probable ? </p>
+                  <ul>
+                     <li>
+                        <input id="q51a" name="q51" type="checkbox" value="A" /> A- Amibiase intestinale </li>
+                     <li>
+                        <input id="q51b" name="q51" type="checkbox" value="B" /> B- Cryptosporidiose </li>
+                     <li>
+                        <input id="q51c" name="q51" type="checkbox" value="C" /> C- Giardiase </li>
+                     <li>
+                        <input id="q51d" name="q51" type="checkbox" value="D" /> D- Oxyurose </li>
+                     <li>
+                        <input id="q51e" name="q51" type="checkbox" value="E" /> E- Trichomonose </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q51')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q51')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="51"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_51" onclick="toggleCommentSection('MIP2019R_51', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_51">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-52">
+               <div class="question">
+                  <p> 52.) Quelle est la caractéristique de Taenia saginata ? </p>
+                  <ul>
+                     <li>
+                        <input id="q52a" name="q52" type="checkbox" value="A" /> A- C’est un flagelle </li>
+                     <li>
+                        <input id="q52b" name="q52" type="checkbox" value="B" /> B- Elle mesure plusieurs mètres de long </li>
+                     <li>
+                        <input id="q52c" name="q52" type="checkbox" value="C" /> C- Elle s’accompagne d’une réaction allergique en phase d’invasion </li>
+                     <li>
+                        <input id="q52d" name="q52" type="checkbox" value="D" /> D- L’homme en est l’hôte intermédiaire </li>
+                     <li>
+                        <input id="q52e" name="q52" type="checkbox" value="E" /> E- Son diagnostic est sérologique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q52')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q52')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="52"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_52" onclick="toggleCommentSection('MIP2019R_52', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_52">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-53">
+               <div class="question">
+                  <p> 53.) Quel est l’hôte intermédiaire habituel de Taenia solium ? </p>
+                  <ul>
+                     <li>
+                        <input id="q53a" name="q53" type="checkbox" value="A" /> A- Le bœuf </li>
+                     <li>
+                        <input id="q53b" name="q53" type="checkbox" value="B" /> B- Le chien </li>
+                     <li>
+                        <input id="q53c" name="q53" type="checkbox" value="C" /> C- Le porc </li>
+                     <li>
+                        <input id="q53d" name="q53" type="checkbox" value="D" /> D- L’homme </li>
+                     <li>
+                        <input id="q53e" name="q53" type="checkbox" value="E" /> E- Aucun </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q53')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q53')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="53"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_53" onclick="toggleCommentSection('MIP2019R_53', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_53">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-54">
+               <div class="question">
+                  <p> 54.) Quelle est la caractéristique de l’anguillulose ? </p>
+                  <ul>
+                     <li>
+                        <input id="q54a" name="q54" type="checkbox" value="A" /> A- Elle est transmise par voie orale </li>
+                     <li>
+                        <input id="q54b" name="q54" type="checkbox" value="B" /> B- Elle se complique rarement en phase d’état </li>
+                     <li>
+                        <input id="q54c" name="q54" type="checkbox" value="C" /> C- Elle se complique d’une anémie en phase d’état </li>
+                     <li>
+                        <input id="q54d" name="q54" type="checkbox" value="D" /> D- Elle peut provoquer des formes invasives chez les patients sous corticothérapie </li>
+                     <li>
+                        <input id="q54e" name="q54" type="checkbox" value="E" /> E- Son diagnostic est sérologique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q54')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q54')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="54"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_54" onclick="toggleCommentSection('MIP2019R_54', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_54">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-55">
+               <div class="question">
+                  <p> 55.) Quel est l’hôte définitif d’Echinococcus granulosus ? </p>
+                  <ul>
+                     <li>
+                        <input id="q55a" name="q55" type="checkbox" value="A" /> A- Le chien </li>
+                     <li>
+                        <input id="q55b" name="q55" type="checkbox" value="B" /> B- Le chat </li>
+                     <li>
+                        <input id="q55c" name="q55" type="checkbox" value="C" /> C- L’homme </li>
+                     <li>
+                        <input id="q55d" name="q55" type="checkbox" value="D" /> D- Le porc </li>
+                     <li>
+                        <input id="q55e" name="q55" type="checkbox" value="E" /> E- Aucun </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q55')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q55')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="55"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_55" onclick="toggleCommentSection('MIP2019R_55', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_55">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-56">
+               <div class="question">
+                  <p> 56.) Pour éviter les récidives de kyste hydatique, quel conseil donnerez-vous à votre patient ? </p>
+                  <ul>
+                     <li>
+                        <input id="q56a" name="q56" type="checkbox" value="A" /> A- Éviter le contact avec des veaux diarrhéiques </li>
+                     <li>
+                        <input id="q56b" name="q56" type="checkbox" value="B" /> B- Éviter la consommation de foie de mouton insuffisamment cuit </li>
+                     <li>
+                        <input id="q56c" name="q56" type="checkbox" value="C" /> C- Éviter le contact avec les sujets parasités </li>
+                     <li>
+                        <input id="q56d" name="q56" type="checkbox" value="D" /> D- Laver correctement les fruits et légumes avant leur consommation </li>
+                     <li>
+                        <input id="q56e" name="q56" type="checkbox" value="E" /> E- Porter des bottes lors de la marche dans un sol boueux </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q56')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q56')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="56"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_56" onclick="toggleCommentSection('MIP2019R_56', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_56">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-57">
+               <div class="question">
+                  <p> 57.) Le tableau ci-après représente des résultats sérologiques effectués chez des femmes enceintes... </p>
+                  <ul>
+                     <li>
+                        <input id="q57a" name="q57" type="checkbox" value="A" /> A- Conclure à une séroconversion toxoplasmique </li>
+                     <li>
+                        <input id="q57b" name="q57" type="checkbox" value="B" /> B- Conclure à une immunité acquise </li>
+                     <li>
+                        <input id="q57c" name="q57" type="checkbox" value="C" /> C- Conclure à une absence de toxoplasmose </li>
+                     <li>
+                        <input id="q57d" name="q57" type="checkbox" value="D" /> D- Prescrire une sérologie complémentaire </li>
+                     <li>
+                        <input id="q57e" name="q57" type="checkbox" value="E" /> E- Effectuer une surveillance sérologique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q57')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q57')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="57"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_57" onclick="toggleCommentSection('MIP2019R_57', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_57">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-58">
+               <div class="question">
+                  <p> 58.) Quelle est la caractéristique de Toxoplasma gondii ? </p>
+                  <ul>
+                     <li>
+                        <input id="q58a" name="q58" type="checkbox" value="A" /> A- Il s’agit d’un parasite strictement humain </li>
+                     <li>
+                        <input id="q58b" name="q58" type="checkbox" value="B" /> B- Il peut être transmis par contact avec des chiens errants </li>
+                     <li>
+                        <input id="q58c" name="q58" type="checkbox" value="C" /> C- Il est exclusivement transmis par voie orale </li>
+                     <li>
+                        <input id="q58d" name="q58" type="checkbox" value="D" /> D- Il entraîne une immunité protectrice chez l’immunocompétent </li>
+                     <li>
+                        <input id="q58e" name="q58" type="checkbox" value="E" /> E- Il est diagnostiqué par la mise en évidence d’oocystes à l’examen parasitologique des selles </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q58')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q58')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="58"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_58" onclick="toggleCommentSection('MIP2019R_58', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_58">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-59">
+               <div class="question">
+                  <p> 59.) Pour optimiser la recherche des œufs de Schistosoma haematobium, le prélèvement des urines doit être : </p>
+                  <ul>
+                     <li>
+                        <input id="q59a" name="q59" type="checkbox" value="A" /> A- Conservé au congélateur </li>
+                     <li>
+                        <input id="q59b" name="q59" type="checkbox" value="B" /> B- Conservé à l’obscurité </li>
+                     <li>
+                        <input id="q59c" name="q59" type="checkbox" value="C" /> C- Conservé dans du chlorure de sodium </li>
+                     <li>
+                        <input id="q59d" name="q59" type="checkbox" value="D" /> D- Effectué à jeun </li>
+                     <li>
+                        <input id="q59e" name="q59" type="checkbox" value="E" /> E- Effectué au repos </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q59')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q59')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="59"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_59" onclick="toggleCommentSection('MIP2019R_59', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_59">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-60">
+               <div class="question">
+                  <p> 60.) Concernant la trichomonose uro-génitale, une des propositions suivantes est fausse. Laquelle ? </p>
+                  <ul>
+                     <li>
+                        <input id="q60a" name="q60" type="checkbox" value="A" /> A- L’agent pathogène est Trichomonas vaginalis </li>
+                     <li>
+                        <input id="q60b" name="q60" type="checkbox" value="B" /> B- Sa transmission est due à sa forme kystique </li>
+                     <li>
+                        <input id="q60c" name="q60" type="checkbox" value="C" /> C- Elle s’accompagne de leucorrhées spumeuses, jaunes verdâtres et nauséabondes </li>
+                     <li>
+                        <input id="q60d" name="q60" type="checkbox" value="D" /> D- Elle peut entraîner un prurit vulvaire </li>
+                     <li>
+                        <input id="q60e" name="q60" type="checkbox" value="E" /> E- Elle peut s’accompagner de troubles urinaires </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q60')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q60')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="60"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_60" onclick="toggleCommentSection('MIP2019R_60', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_60">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-61">
+               <div class="question">
+                  <p> 61.) L’espèce responsable de la leishmaniose viscérale au Maroc est : </p>
+                  <ul>
+                     <li>
+                        <input id="q61a" name="q61" type="checkbox" value="A" /> A- Leishmania aethiopica </li>
+                     <li>
+                        <input id="q61b" name="q61" type="checkbox" value="B" /> B- Leishmania donovani </li>
+                     <li>
+                        <input id="q61c" name="q61" type="checkbox" value="C" /> C- Leishmania infantum </li>
+                     <li>
+                        <input id="q61d" name="q61" type="checkbox" value="D" /> D- Leishmania major </li>
+                     <li>
+                        <input id="q61e" name="q61" type="checkbox" value="E" /> E- Leishmania tropica </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q61')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q61')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="61"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_61" onclick="toggleCommentSection('MIP2019R_61', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_61">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-62">
+               <div class="question">
+                  <p> 62.) Un enfant de 9 ans est amené en consultation pour une lésion ulcéro-croûteuse surinfectée du visage qui évolue depuis deux mois. Le diagnostic
+                     de leishmaniose cutanée est suspecté devant quel élément : </p>
+                  <ul>
+                     <li>
+                        <input id="q62a" name="q62" type="checkbox" value="A" /> A- Le caractère douloureux de la lésion </li>
+                     <li>
+                        <input id="q62b" name="q62" type="checkbox" value="B" /> B- La notion de prurit </li>
+                     <li>
+                        <input id="q62c" name="q62" type="checkbox" value="C" /> C- Sa résidence dans la province de Ouarzazate </li>
+                     <li>
+                        <input id="q62d" name="q62" type="checkbox" value="D" /> D- La présence d’adénopathies </li>
+                     <li>
+                        <input id="q62e" name="q62" type="checkbox" value="E" /> E- La présence de fièvre </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q62')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q62')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="62"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_62" onclick="toggleCommentSection('MIP2019R_62', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_62">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-63">
+               <div class="question">
+                  <p> 63.) L’agent responsable de la gale est : </p>
+                  <ul>
+                     <li>
+                        <input id="q63a" name="q63" type="checkbox" value="A" /> A- Epidermophyton floccosum </li>
+                     <li>
+                        <input id="q63b" name="q63" type="checkbox" value="B" /> B- Malassezia furfur </li>
+                     <li>
+                        <input id="q63c" name="q63" type="checkbox" value="C" /> C- Pediculus humanis </li>
+                     <li>
+                        <input id="q63d" name="q63" type="checkbox" value="D" /> D- Phthirus pubis </li>
+                     <li>
+                        <input id="q63e" name="q63" type="checkbox" value="E" /> E- Sarcoptes scabiei </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q63')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q63')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="63"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_63" onclick="toggleCommentSection('MIP2019R_63', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_63">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-64">
+               <div class="question">
+                  <p> 64.) Trichophyton violaceum est responsable de : </p>
+                  <ul>
+                     <li>
+                        <input id="q64a" name="q64" type="checkbox" value="A" /> A- Intertrigo interorteil </li>
+                     <li>
+                        <input id="q64b" name="q64" type="checkbox" value="B" /> B- Dermatite séborrhéique </li>
+                     <li>
+                        <input id="q64c" name="q64" type="checkbox" value="C" /> C- Muguet buccal </li>
+                     <li>
+                        <input id="q64d" name="q64" type="checkbox" value="D" /> D- Teignes du cuir chevelu </li>
+                     <li>
+                        <input id="q64e" name="q64" type="checkbox" value="E" /> E- Septicémies </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q64')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q64')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="64"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_64" onclick="toggleCommentSection('MIP2019R_64', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_64">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-65">
+               <div class="question">
+                  <p> 65.) Une femme de 65 ans diabétique consulte pour un onyx avec périonyxis de l’index droit. Quel est l’agent le plus probablement responsable de
+                     cette symptomatologie ? </p>
+                  <ul>
+                     <li>
+                        <input id="q65a" name="q65" type="checkbox" value="A" /> A- Aspergillus fumigatus </li>
+                     <li>
+                        <input id="q65b" name="q65" type="checkbox" value="B" /> B- Candida albicans </li>
+                     <li>
+                        <input id="q65c" name="q65" type="checkbox" value="C" /> C- Malassezia furfur </li>
+                     <li>
+                        <input id="q65d" name="q65" type="checkbox" value="D" /> D- Trichophyton rubrum </li>
+                     <li>
+                        <input id="q65e" name="q65" type="checkbox" value="E" /> E- Trichophyton mentagrophytes </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q65')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q65')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="65"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_65" onclick="toggleCommentSection('MIP2019R_65', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_65">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-66">
+               <div class="question">
+                  <p> 66.) Les aspergilloses invasives sont favorisées par : </p>
+                  <ul>
+                     <li>
+                        <input id="q66a" name="q66" type="checkbox" value="A" /> A- L’antibiothérapie prolongée </li>
+                     <li>
+                        <input id="q66b" name="q66" type="checkbox" value="B" /> B- Le contact avec les pigeons </li>
+                     <li>
+                        <input id="q66c" name="q66" type="checkbox" value="C" /> C- L’hospitalisation en unité de soins intensifs </li>
+                     <li>
+                        <input id="q66d" name="q66" type="checkbox" value="D" /> D- La neutropénie </li>
+                     <li>
+                        <input id="q66e" name="q66" type="checkbox" value="E" /> E- Les travaux à proximité des services hospitaliers </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q66')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q66')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="66"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_66" onclick="toggleCommentSection('MIP2019R_66', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_66">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-67">
+               <div class="question">
+                  <p> 67.) Quelle est la caractéristique de Candida albicans ? </p>
+                  <ul>
+                     <li>
+                        <input id="q67a" name="q67" type="checkbox" value="A" /> A- Il s’agit d’un champignon filamenteux </li>
+                     <li>
+                        <input id="q67b" name="q67" type="checkbox" value="B" /> B- Elle est commensale de l’homme </li>
+                     <li>
+                        <input id="q67c" name="q67" type="checkbox" value="C" /> C- Elle est rarement impliquée en pathologie humaine </li>
+                     <li>
+                        <input id="q67d" name="q67" type="checkbox" value="D" /> D- Elle peut être responsable de teignes du cuir chevelu </li>
+                     <li>
+                        <input id="q67e" name="q67" type="checkbox" value="E" /> E- Son développement est favorisé par la prise prolongée d’antibiotiques </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q67')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q67')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="67"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_67" onclick="toggleCommentSection('MIP2019R_67', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_67">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-68">
+               <div class="question">
+                  <p> 68.) Parmi les dermatophytes suivants lesquels sont zoophiles ? </p>
+                  <ul>
+                     <li>
+                        <input id="q68a" name="q68" type="checkbox" value="A" /> A- Trichophyton Schoenleinii </li>
+                     <li>
+                        <input id="q68b" name="q68" type="checkbox" value="B" /> B- Trichophyton mentagrophytes </li>
+                     <li>
+                        <input id="q68c" name="q68" type="checkbox" value="C" /> C- Trichophyton violaceum </li>
+                     <li>
+                        <input id="q68d" name="q68" type="checkbox" value="D" /> D- Trichophyton rubrum </li>
+                     <li>
+                        <input id="q68e" name="q68" type="checkbox" value="E" /> E- Microsporum canis </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q68')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q68')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="68"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_68" onclick="toggleCommentSection('MIP2019R_68', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_68">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-69">
+               <div class="question">
+                  <p> 69.) Un enfant de 10 ans, ayant une notion de contact avec des chats, est amené en consultation pour des plaques alopéciques du cuir chevelu mesurant
+                     4 cm de diamètre avec des cheveux coupés. Quel est le diagnostic le plus probable ? </p>
+                  <ul>
+                     <li>
+                        <input id="q69a" name="q69" type="checkbox" value="A" /> A- Dermatite séborrhéique </li>
+                     <li>
+                        <input id="q69b" name="q69" type="checkbox" value="B" /> B- Teigne tondante trichophytique </li>
+                     <li>
+                        <input id="q69c" name="q69" type="checkbox" value="C" /> C- Teigne tondante microsporique </li>
+                     <li>
+                        <input id="q69d" name="q69" type="checkbox" value="D" /> D- Teigne inflammatoire </li>
+                     <li>
+                        <input id="q69e" name="q69" type="checkbox" value="E" /> E- Teigne favique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q69')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q69')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="69"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_69" onclick="toggleCommentSection('MIP2019R_69', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_69">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-70">
+               <div class="question">
+                  <p> 70.) Les champignons du genre Malassezia : </p>
+                  <ul>
+                     <li>
+                        <input id="q70a" name="q70" type="checkbox" value="A" /> A- Sont des champignons filamenteux </li>
+                     <li>
+                        <input id="q70b" name="q70" type="checkbox" value="B" /> B- Sont lipophiles </li>
+                     <li>
+                        <input id="q70c" name="q70" type="checkbox" value="C" /> C- Sont commensaux de la peau </li>
+                     <li>
+                        <input id="q70d" name="q70" type="checkbox" value="D" /> D- Sont responsables d’onychomycose </li>
+                     <li>
+                        <input id="q70e" name="q70" type="checkbox" value="E" /> E- Sont favorisés par l’hyperglycémie </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q70')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q70')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="70"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_70" onclick="toggleCommentSection('MIP2019R_70', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_70">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-71">
+               <div class="question">
+                  <p> 71.) Un jeune garçon de 17 ans consulte pour des lésions achromiques apparaissant au niveau du dos, du visage et des épaules. Le diagnostic de
+                     Pityriasis versicolor est alors soulevé. Quel examen allez-vous prescrire en première intention pour confirmer le diagnostic ? </p>
+                  <ul>
+                     <li>
+                        <input id="q71a" name="q71" type="checkbox" value="A" /> A- Biopsie cutanée </li>
+                     <li>
+                        <input id="q71b" name="q71" type="checkbox" value="B" /> B- Culture des squames cutanés </li>
+                     <li>
+                        <input id="q71c" name="q71" type="checkbox" value="C" /> C- Examen à la lumière de Wood </li>
+                     <li>
+                        <input id="q71d" name="q71" type="checkbox" value="D" /> D- Écouvillonnage des lésions </li>
+                     <li>
+                        <input id="q71e" name="q71" type="checkbox" value="E" /> E- Scotch test cutané </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q71')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q71')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="71"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_71" onclick="toggleCommentSection('MIP2019R_71', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_71">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-72">
+               <div class="question">
+                  <p> 72.) Quelle est la caractéristique d’Aspergillus fumigatus ? </p>
+                  <ul>
+                     <li>
+                        <input id="q72a" name="q72" type="checkbox" value="A" /> A- C’est un protozoaire </li>
+                     <li>
+                        <input id="q72b" name="q72" type="checkbox" value="B" /> B- Il est opportuniste chez le VIH </li>
+                     <li>
+                        <input id="q72c" name="q72" type="checkbox" value="C" /> C- Il peut être responsable d’infections nosocomiales </li>
+                     <li>
+                        <input id="q72d" name="q72" type="checkbox" value="D" /> D- Il possède une capsule </li>
+                     <li>
+                        <input id="q72e" name="q72" type="checkbox" value="E" /> E- Il est fréquemment responsable d’infections vulvo-vaginales </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q72')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q72')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="72"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_72" onclick="toggleCommentSection('MIP2019R_72', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_72">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-73">
+               <div class="question">
+                  <p> 73.) Quelle est la caractéristique des infections à Cryptococcus neoformans ? </p>
+                  <ul>
+                     <li>
+                        <input id="q73a" name="q73" type="checkbox" value="A" /> A- Elles sont contractées exclusivement par voie aérienne </li>
+                     <li>
+                        <input id="q73b" name="q73" type="checkbox" value="B" /> B- Elles sont essentiellement liées à la variété gattii </li>
+                     <li>
+                        <input id="q73c" name="q73" type="checkbox" value="C" /> C- Elles sont responsables d’atteintes essentiellement respiratoires </li>
+                     <li>
+                        <input id="q73d" name="q73" type="checkbox" value="D" /> D- Elles concernent exclusivement les patients immunodéprimés </li>
+                     <li>
+                        <input id="q73e" name="q73" type="checkbox" value="E" /> E- Elles peuvent être dépistées précocement par la mise en évidence d’antigènes circulants </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q73')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q73')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="73"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_73" onclick="toggleCommentSection('MIP2019R_73', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_73">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-74">
+               <div class="question">
+                  <p> 74.) Un patient de 30 ans infecté par le VIH et ayant des CD4 à 50/mm³ présente une pneumopathie interstitielle avec hypoxémie et fièvre. Quel
+                     est le diagnostic le plus probable ? </p>
+                  <ul>
+                     <li>
+                        <input id="q74a" name="q74" type="checkbox" value="A" /> A- Une amibiase pleuro-pulmonaire </li>
+                     <li>
+                        <input id="q74b" name="q74" type="checkbox" value="B" /> B- Une aspergillose invasive </li>
+                     <li>
+                        <input id="q74c" name="q74" type="checkbox" value="C" /> C- Une cryptococcose pulmonaire </li>
+                     <li>
+                        <input id="q74d" name="q74" type="checkbox" value="D" /> D- Un kyste hydatique pulmonaire </li>
+                     <li>
+                        <input id="q74e" name="q74" type="checkbox" value="E" /> E- Une pneumocystose respiratoire </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q74')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q74')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="74"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_74" onclick="toggleCommentSection('MIP2019R_74', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_74">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-75">
+               <div class="question">
+                  <p> 75.) Un homme de 35 ans souffrant de fièvre prolongée, sueurs nocturnes et perte de poids inexpliquée, présente un épaississement de l'arc costal
+                     supérieur gauche à la radiographie. Quel diagnostic évoquez-vous ? </p>
+                  <ul>
+                     <li>
+                        <input id="q75a" name="q75" type="checkbox" value="A" /> A- Tuberculose ostéo-articulaire </li>
+                     <li>
+                        <input id="q75b" name="q75" type="checkbox" value="B" /> B- Tumeur osseuse maligne </li>
+                     <li>
+                        <input id="q75c" name="q75" type="checkbox" value="C" /> C- Maladie de Paget </li>
+                     <li>
+                        <input id="q75d" name="q75" type="checkbox" value="D" /> D- Actinomycose osseuse </li>
+                     <li>
+                        <input id="q75e" name="q75" type="checkbox" value="E" /> E- Leishmaniose viscérale </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q75')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q75')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="75"> ❤ </button>
+                  <button class="comment-button" data-question-id="MIP2019R_75" onclick="toggleCommentSection('MIP2019R_75', event)"> 💬 <span class="badge" data-comment-id="MIP2019R_75">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="button-container">
+               <button class="submit-quiz-button" onclick="submitQuiz()" type="button"> Soumettre tout le Quiz </button>
+               <button class="favorite-button" id="voir-favoris-btn" onclick="voirFavoris()"> Voir Favoris </button>
+               <!-- Nouveau bouton -->
+            </div>
+            <div class="blur-background" id="blur-background"> </div>
+            <div class="result-popup" id="result-popup">
+               <h3>
+Résultat du Quiz
+</h3>
+               <div id="result"> </div>
+               <button class="close-button" id="close-result" onclick="closeResult(event)"> Fermer </button>
+               <button class="detail-button" id="voir-detail-btn" onclick="afficherDetails(event)" style="display: none;"> Voir Détail </button>
+               <button class="reset-quiz-button" onclick="resetAll()" type="button"> Réessayer tout le Quiz </button>
+            </div>
+            <div class="details-section" id="details-section" style="display: none;">
+               <h3>
+Tableau des questions
+</h3>
+               <div class="question-links" id="question-links"> </div>
+            </div>
+            <div id="timer-container"> <span id="timer">
+60:00
+</span> </div>
+<div class="comments-section" id="comments-section">
+    <h3>Commentaires</h3>
+    <textarea id="new-comment" placeholder="Écrire un commentaire..."></textarea>
+    <button type="button" onclick="addComment(event)">Ajouter</button>
+    <div id="comment-alert" class="alert" style="display: none;"></div>
+    <div id="comments-list"></div>
+</div>
+
+    <div id="comments-list"></div>
+</div>
+
+<!-- Boutons flottants -->
+<div id="floating-buttons" class="floating-buttons" style="position: fixed; bottom: 50px; right: 50px; z-index: 1000;">
+    <!-- Bouton pour afficher le cours -->
+    <button id="show-course-btn" class="floating-btn" type="button" 
+            onclick="window.open('https://drive.google.com/drive/folders/1Xd_FaJbPk4FJv3G5-96L7G0UlQnUZuSf', '_blank');">📚</button>
+    <!-- Bouton pour afficher le contact -->
+<button id="open-contact-modal" class="floating-btn" type="button">
+    ✉️
+</button>
+
+</div>
+
+
+
+
+
+<div class="message-container" id="message-container" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#f9f9f9; padding:40px; box-shadow:0 4px 12px rgba(0,0,0,0.15); border-radius:12px; z-index:1001; width:600px; max-width:90%; font-family:Arial, sans-serif;">
+    <div style="text-align:center; margin-bottom:30px;">
+        <h2 style="margin:0; font-size:24px; font-weight:bold; color:#333;">Posez vos observations <span>📝</span></h2>
+        <p style="margin:10px 0 0; font-size:16px; color:#666;">Nous sommes à votre écoute</p>
+    </div>
+    <div class="mb-3" style="margin-bottom:30px;">
+        <p style="font-size:16px; color:#333; margin:0;">En tant Que :</p>
+        <div style="margin-top:10px;">
+            <input type="radio" id="username" name="mode" value="username" style="margin-right:8px;">
+            <label for="username" style="font-size:16px; color:#333; cursor:pointer;">{{ user_full_name}}</label>
+            <br>
+            <input type="radio" id="anonymous" name="mode" value="anonymous" checked style="margin-right:8px; margin-top:10px;">
+            <label for="anonymous" style="font-size:16px; color:#333; cursor:pointer;">Anonyme</label>
+        </div>
+    </div>
+    <div class="mb-3">
+        <label for="message" class="form-label" style="font-size:18px; font-weight:bold; color:#333; margin-bottom:10px; display:block;">Votre message :</label>
+        <textarea class="form-control" id="message" rows="6" placeholder="Precisez l'examen si c'est en rapport avec une question..." style="width:100%; font-size:16px; padding:15px; border:1px solid #ccc; border-radius:8px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.1); background:#fff;"></textarea>
+    </div>
+<span class="close-btn" id="close-btn" style="cursor:pointer; position:absolute; top:15px; right:15px; font-size:51px; color:#ff0000; font-weight:bold;">&times;</span>
+<!-- Bouton Envoyer stylé -->
+<div style="text-align:center; margin-top:30px;">
+    <button type="button" class="btn btn-primary" id="send-message" style="background-color:#007bff; color:white; border:none; padding:12px 30px; border-radius:8px; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 4px 8px rgba(0, 0, 0, 0.2); transition:all 0.3s ease;">
+        Envoyer
+    </button>
+</div>
+</div>
+
+
+
+
+<div id="blur-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;"></div>
+
+
+
+<script src="{% static 'java/contact.js' %}"></script>
+            </div>
+            <script>
+            // Réponses correctes pour les questions
+            const correctAnswers = {
+               q1: ['B'],
+               q2: ['D'],
+               q3: ['B'],
+               q4: ['D'],
+               q5: ['E'],
+               q6: ['D'],
+               q7: ['C'],
+               q8: ['E'],
+               q9: ['C'],
+               q10: ['E'],
+               q11: ['A', 'B'],
+               q12: ['A', 'B', 'D'],
+               q13: ['A', 'B', 'D'],
+               q14: ['D'],
+               q15: ['C'],
+               q16: ['E'],
+               q17: ['C', 'E'],
+               q18: ['D'],
+               q19: ['A', 'B', 'D'],
+               q20: ['B', 'C', 'D'],
+               q21: ['A', 'B', 'D'],
+               q22: ['A'],
+               q23: ['D'],
+               q24: ['C', 'E'],
+               q25: ['B', 'D'],
+               q26: ['A', 'B', 'D', 'E'],
+               q27: ['B', 'C'],
+               q28: ['A', 'B', 'D', 'E'],
+               q29: ['B', 'C', 'D', 'E'],
+               q30: ['A', 'D'],
+               q31: ['A', 'D', 'E'],
+               q32: ['C'],
+               q33: ['A', 'B', 'E'],
+               q34: ['A', 'E'],
+               q35: ['A', 'B', 'C'],
+               q36: ['A', 'D'],
+               q37: ['C', 'D', 'E'],
+               q38: ['A', 'E'],
+               q39: ['D'],
+               q40: ['C', 'D'],
+               q41: ['C'],
+               q42: ['A', 'D'],
+               q43: ['A', 'C', 'D', 'E'],
+               q44: ['E'],
+               q45: ['B', 'C', 'D'],
+               q46: ['C'],
+               q47: ['A', 'B'],
+               q48: ['C'],
+               q49: ['D'],
+               q50: ['C'],
+               q51: ['D'],
+               q52: ['A', 'B', 'C'],
+               q53: ['E'],
+               q54: ['A', 'B', 'D'],
+               q55: ['B'],
+               q56: ['B', 'D'],
+               q57: ['D'],
+               q58: ['A', 'D', 'E'],
+               q59: ['C'],
+               q60: ['B'],
+               q61: ['C'],
+               q62: ['C', 'D'],
+               q63: ['E'],
+               q64: ['E'],
+               q65: ['D'],
+               q66: ['B', 'C', 'D'],
+               q67: ['B'],
+               q68: ['A', 'B', 'E'],
+               q69: ['D'],
+               q70: ['D'],
+               q71: ['E'],
+               q72: ['A', 'B', 'C'],
+               q73: ['A', 'B', 'D', 'E'],
+               q74: ['E'],
+               q75: ['E'],
+            };
+            // Variable globale pour stocker l'intervalle du timer
+            let timerInterval;
+            const userAnswers = {}; // Object pour stocker les réponses de l'utilisateur
+            // Fonction pour démarrer le timer
+            function startTimer(duration, display) {
+               let timer = duration,
+                  minutes, seconds;
+               timerInterval = setInterval(() => {
+                  minutes = parseInt(timer / 60, 10);
+                  seconds = parseInt(timer % 60, 10);
+                  minutes = minutes < 10 ? "0" + minutes : minutes;
+                  seconds = seconds < 10 ? "0" + seconds : seconds;
+                  display.textContent = minutes + ":" + seconds;
+                  // Vérifie si le temps est écoulé
+                  if (--timer < 0) {
+                     clearInterval(timerInterval);
+                     showEndMessage();
+                  }
+               }, 1000);
+            }
+            // Fonction pour afficher le message de fin de test
+            function showEndMessage() {
+               const blurBackground = document.createElement('div');
+               blurBackground.id = 'test-end-blur';
+               blurBackground.style.position = 'fixed';
+               blurBackground.style.top = '0';
+               blurBackground.style.left = '0';
+               blurBackground.style.width = '100%';
+               blurBackground.style.height = '100%';
+               blurBackground.style.background = 'rgba(0, 0, 0, 0.5)';
+               blurBackground.style.zIndex = '100';
+               blurBackground.style.display = 'flex';
+               blurBackground.style.alignItems = 'center';
+               blurBackground.style.justifyContent = 'center';
+               const endMessage = document.createElement('div');
+               endMessage.id = 'test-end-message';
+               endMessage.style.padding = '40px';
+               endMessage.style.background = '#ffffff';
+               endMessage.style.borderRadius = '8px';
+               endMessage.style.textAlign = 'center';
+               endMessage.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+               endMessage.innerHTML = '<h2>Test terminé</h2><p>Le temps imparti est écoulé.</p><button onclick="location.reload()">Recommencer</button>';
+               blurBackground.appendChild(endMessage);
+               document.body.appendChild(blurBackground);
+               // Optionnel : masquer le conteneur de timer
+               const timerContainer = document.getElementById('timer-container');
+               timerContainer.classList.add('hide');
+            }
+ // Fonction pour réinitialiser une seule question
+            function resetQuestion(questionName) {
+               const form = document.getElementById('quiz-form');
+               const questionDiv = document.querySelector(`input[name="${questionName}"]`).closest('.question-container');
+               // Décocher toutes les cases de cette question
+               const inputs = Array.from(form.elements[questionName]);
+               inputs.forEach(input => {
+                  input.checked = false;
+               });
+               // Supprimer les styles correct/incorrect et remettre les couleurs par défaut
+               questionDiv.classList.remove('correct', 'incorrect');
+               questionDiv.querySelectorAll('li').forEach(li => {
+                  li.style.color = ''; // Réinitialiser la couleur
+                  li.style.fontWeight = ''; // Réinitialiser le texte en gras
+                  li.style.textShadow = ''; // Réinitialiser l'ombre du texte
+                  li.style.backgroundColor = ''; // Réinitialiser le fond
+                  li.style.border = ''; // Réinitialiser la bordure
+               });
+               // Supprimer les informations enregistrées sur la réponse de cette question
+               delete userAnswers[questionName];
+            }
+            // Fonction pour soumettre le quiz et afficher le résultat
+            
+// Fonction pour soumettre le quiz et afficher le résultat
+async function submitQuiz() {
+    console.log("Début de la soumission du quiz.");
+
+    const form = document.getElementById('quiz-form');
+    if (!form) {
+        console.error("Erreur : Formulaire introuvable.");
+        alert("Formulaire introuvable. Veuillez réessayer.");
+        return;
+    }
+
+    let score = 0;
+
+    // Évaluer les réponses utilisateur
+    for (const question of Object.keys(correctAnswers)) {
+        correctQuestion(question); // Fonction pour corriger chaque question
+        const userAnswer = userAnswers[question]?.isCorrect;
+        if (userAnswer) {
+            score++;
+        }
+    }
+
+    console.log("Score brut calculé (frontend) :", score);
+    console.log("Réponses utilisateur envoyées :", userAnswers);
+
+    // Lancer les confettis et afficher le message de félicitations si le score est parfait (50 sur 50)
+    lancerConfettisEtMessage(score);
+
+    // Mise à jour du résultat dans la boîte de dialogue
+    const resultDiv = document.getElementById('result'); // Assure-toi que tu as un div avec l'id 'result' dans ton HTML
+
+    if (score === 0) { resultDiv.innerHTML = `<p>Vous avez aucune réponse juste, bozo !</p>`; } else if  (score === 75) {
+        // Liste des messages de félicitations
+        const messages = [
+"Félicitations ! Votre maîtrise des mécanismes des maladies infectieuses est impressionnante !",
+"Bravo ! Vous excellez dans l'identification des agents pathogènes.",
+"Incroyable ! Votre compréhension des infections fongiques et parasitaires est remarquable.",
+"Parfait ! Vous êtes sur le chemin pour devenir un(e) expert(e) en maladies infectieuses.",
+"Votre rigueur dans l'analyse des cycles parasitaires est admirable.",
+"Impressionnant ! Vous démontrez une expertise exceptionnelle en microbiologie clinique.",
+"Bravo ! Votre aptitude à relier les symptômes aux pathogènes est exceptionnelle.",
+"Extraordinaire ! Votre compréhension des mécanismes de transmission est inspirante.",
+"Félicitations ! Vous excellez dans la reconnaissance des infections complexes.",
+"Votre capacité à analyser les cultures microbiologiques est impressionnante.",
+"Impressionnant ! Vous explorez les traitements antimicrobiens avec rigueur.",
+"Bravo ! Votre passion pour la lutte contre les infections est évidente.",
+"Votre expertise en diagnostic fongique et parasitaire est un véritable atout.",
+"Parfait ! Vous démontrez une aptitude exceptionnelle pour comprendre les maladies émergentes.",
+"Félicitations ! Vous êtes prêt(e) à devenir un(e) spécialiste en maladies infectieuses.",
+"Votre précision dans l'identification des agents pathogènes est exemplaire.",
+"Bravo ! Vous appliquez les connaissances en parasitologie avec rigueur et précision.",
+"Incroyable ! Vous identifiez les interactions hôte-pathogène avec une facilité admirable.",
+"Félicitations ! Votre curiosité pour les mécanismes infectieux est une source d'inspiration.",
+"Votre capacité à interpréter les résultats de laboratoire est impressionnante.",
+
+        ];
+        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+        resultDiv.innerHTML = `<p>${randomMessage}</p>`;
+    } else {
+        resultDiv.innerHTML = `Vous avez obtenu ${score} bonnes réponses sur ${Object.keys(correctAnswers).length}.`;
+    }
+
+    // Afficher la boîte de résultat avec animation
+    const resultPopup = document.getElementById('result-popup');
+    const blurBackground = document.getElementById('blur-background');
+
+    blurBackground.style.display = 'block';
+    resultPopup.style.display = 'block';
+
+    setTimeout(() => {
+        blurBackground.classList.add('show'); // Ajoute l'animation de fondu sur le fond flouté
+        resultPopup.classList.add('show'); // Ajoute l'animation de zoom sur la boîte de résultat
+    }, 100); // Légère pause pour plus de fluidité
+
+    document.getElementById('voir-detail-btn').style.display = 'inline-block';
+
+    // Envoi des données au backend
+    try {
+        console.log("Préparation de l'enregistrement au backend...");
+
+        const response = await fetch("/soumettre-quiz/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}" // Inclure le token CSRF
+            },
+            body: JSON.stringify({
+                exam_name: "MIP2019R", // Remplacez par le nom réel de l'examen
+                score: score,
+                userAnswers: userAnswers
+            })
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+            console.log("Score enregistré avec succès :", result);
+        } else {
+            console.error("Erreur du serveur :", result.message);
+            alert(`Erreur : ${result.message}`);
+        }
+    } catch (error) {
+        console.error("Erreur lors de l'envoi des données :", error);
+        alert("Une erreur s'est produite lors de la soumission. Veuillez réessayer.");
+    }
+}
+
+            function resetAll() {
+               const form = document.getElementById('quiz-form');
+               // Réinitialiser toutes les questions
+               for (const question of Object.keys(correctAnswers)) {
+                  const questionDiv = document.querySelector(`input[name="${question}"]`).closest('.question-container');
+                  form.elements[question].forEach(input => {
+                     input.checked = false; // Décocher toutes les cases
+                  });
+                  // Supprimer les styles correct/incorrect sans toucher au style des bonnes réponses
+                  questionDiv.classList.remove('correct', 'incorrect');
+                  questionDiv.querySelectorAll('li').forEach(li => {
+                     li.style.color = ''; // Réinitialiser la couleur du texte
+                     li.style.fontWeight = ''; // Supprimer les styles ajoutés
+                     li.style.textShadow = ''; // Réinitialiser l'ombre du texte
+                     li.style.backgroundColor = ''; // Remettre le fond par défaut
+                     li.style.border = ''; // Réinitialiser la bordure
+                  });
+               }
+               // Réinitialiser l'affichage du timer
+               const timerDuration = 60 * 60; // Remettre à 60 minutes (ou 10 secondes pour le test)
+               const display = document.querySelector('#timer');
+               startTimer(timerDuration, display); // Redémarrer le timer
+               // Masquer la boîte de résultat
+               const resultPopup = document.getElementById('result-popup');
+               const blurBackground = document.getElementById('blur-background');
+               resultPopup.classList.remove('show');
+               blurBackground.classList.remove('show');
+               setTimeout(() => {
+                  resultPopup.style.display = 'none';
+                  blurBackground.style.display = 'none';
+               }, 500);
+               // Remonter en haut de la page
+               window.scrollTo({
+                  top: 0,
+                  behavior: 'smooth'
+               });
+               document.getElementById('voir-detail-btn').style.display = 'none'; // Masquer le bouton "Voir Détail"
+            }
+            // Fonction pour fermer la popup et garder les couleurs des bonnes/mauvaises réponses
+            function closeResult(event) {
+               event.preventDefault(); // Empêche le comportement par défaut du bouton
+               const resultPopup = document.getElementById('result-popup');
+               const blurBackground = document.getElementById('blur-background');
+               // Masquer la boîte de résultat
+               resultPopup.classList.remove('show');
+               blurBackground.classList.remove('show');
+               setTimeout(() => {
+                  resultPopup.style.display = 'none';
+                  blurBackground.style.display = 'none';
+               }, 500);
+               // Décocher toutes les cases sans changer la couleur des bonnes/mauvaises réponses
+               const form = document.getElementById('quiz-form');
+               for (const question of Object.keys(correctAnswers)) {
+                  form.elements[question].forEach(input => {
+                     input.checked = false; // Décocher toutes les cases
+                  });
+               }
+            }
+            // Fonction pour afficher les détails et rediriger vers SyntMIP2019R
+            function afficherDetails(event) {
+               event.preventDefault(); // Empêche le comportement par défaut du bouton
+               saveUserAnswers(); // Enregistrer les réponses avant de quitter la page
+               window.location.href = '{% url 'dynamic_view' 'S5' 'Maladies_Infectieuses_and_Parasytologie_et_Mycologie' 'syntMIP2019R' %}'; // Redirection vers SyntMIP2019R
+            }
+            // Fonction pour défiler jusqu'à la question
+            function scrollToQuestion(questionNumber) {
+               const questionDiv = document.querySelector(`.question-container:nth-of-type(${questionNumber})`);
+               if (questionDiv) {
+                  questionDiv.scrollIntoView({
+                     behavior: 'smooth'
+                  });
+               }
+            }
+
+            function saveUserAnswers() {
+               // Change la clé pour la version 2019R
+               localStorage.setItem('userAnswersMIP2019R', JSON.stringify(userAnswers));
+            }
+            // Fonction pour afficher les confettis et ajouter le message de félicitations dans la popup de résultats
+            function lancerConfettisEtMessage(score) {
+    if (score === 75) {
+                  // Lancer les confettis
+                  confetti({
+                     particleCount: 200,
+                     spread: 70,
+                     origin: {
+                        y: 0.6
+                     },
+                     colors: ['#bb0000', '#ffffff'], // Couleurs de confettis
+                  });
+                  // Ajouter un message de félicitations à la boîte de résultat
+                  const resultDiv = document.getElementById('result');
+                  const felicitationMessage = `<p>Félicitations! Vous avez obtenu ${score} bonnes réponses. Vous serez un grand médecin !</p>`;
+                  // Ajouter le message à la fin du résultat
+                  resultDiv.innerHTML += felicitationMessage;
+               }
+            }
+            // Partie favori pour Anatomie2020
+            // Tableau pour stocker les questions favorites, récupéré depuis le localStorage (Anatomie2019R)
+            let favoriteQuestionsMIP2019R = JSON.parse(localStorage.getItem('favoriteQuestionsMIP2019R')) || [];
+            console.log('Favorite questions loaded from localStorage:', favoriteQuestionsMIP2019R);
+
+            function toggleFavorite(event, questionNumber) {
+               event.preventDefault(); // Empêche le rafraîchissement de la page
+               const button = document.querySelector(`.favorite-button[data-question="${questionNumber}"]`);
+               const questionContent = document.querySelector(`#question-${questionNumber}`).innerHTML; // Récupère le contenu HTML de la question
+               // Vérifie si la question est déjà dans les favoris
+               const isFavorited = favoriteQuestionsMIP2019R.includes(questionNumber);
+               if (isFavorited) {
+                  // Si elle est déjà favorisée, on la retire des favoris
+                  favoriteQuestionsMIP2019R = favoriteQuestionsMIP2019R.filter(q => q !== questionNumber);
+                  button.classList.remove('favorited'); // Retire la classe favori
+                  localStorage.removeItem(`favoriteContent2019R-${questionNumber}`); // Supprime le contenu de la question
+               } else {
+                  // Si elle n'est pas favorisée, on l'ajoute
+                  favoriteQuestionsMIP2019R.push(questionNumber);
+                  button.classList.add('favorited'); // Ajoute la classe favori
+                  localStorage.setItem(`favoriteContent2019R-${questionNumber}`, questionContent); // Stocke le contenu de la question dans le localStorage
+               }
+               // Sauvegarde uniquement les favoris
+               saveFavoriteState2019R(); // <== Remplacez par saveFavoriteState2019R
+               // Mise à jour du bouton "Voir Favori" sans rafraîchir la page
+               showFavoriteButton();
+            }
+
+            function saveFavoriteState2019R() {
+               localStorage.setItem('favoriteQuestionsMIP2019R', JSON.stringify(favoriteQuestionsMIP2019R)); // Sauvegarde les questions favorites
+            }
+
+            function initializeFavoriteButtons() {
+               const allFavoriteButtons = document.querySelectorAll('.favorite-button');
+               allFavoriteButtons.forEach(button => {
+                  const questionNumber = parseInt(button.getAttribute('data-question'), 10);
+                  // Vérifie si cette question est dans les favoris et applique la classe
+                  if (favoriteQuestionsMIP2019R.includes(questionNumber)) {
+                     button.classList.add('favorited'); // Ajoute l'état favori
+                  } else {
+                     button.classList.remove('favorited'); // Retire l'état favori
+                  }
+                  // Ajoute un événement de clic pour chaque bouton et empêche le rafraîchissement
+                  button.addEventListener('click', (event) => toggleFavorite(event, questionNumber));
+               });
+            }
+
+            function showFavoriteButton() {
+               const voirFavorisBtn = document.getElementById('voir-favoris-btn');
+               if (favoriteQuestionsMIP2019R.length > 0) {
+                  voirFavorisBtn.style.display = 'inline-block'; // Affiche le bouton si des questions sont favorisées
+               } else {
+                  voirFavorisBtn.style.display = 'none'; // Cache le bouton si aucun favori
+               }
+            }
+            // Appelle cette fonction après avoir ajouté ou retiré des favoris
+            window.onload = function() {
+               console.log('Page loaded, initializing favorite buttons for 2019R.');
+               initializeFavoriteButtons(); // Charger les boutons de favoris
+               showFavoriteButton(); // Afficher le bouton "Voir Favori" si des favoris existent
+               const timerDuration = 60 * 60; // 60 minutes
+               const display = document.querySelector('#timer');
+               startTimer(timerDuration, display);
+               // Récupère toutes les listes (li) qui contiennent des propositions
+               const propositions = document.querySelectorAll('li');
+               propositions.forEach(function(proposition) {
+                  // Trouve la checkbox dans chaque liste
+                  const checkbox = proposition.querySelector('input[type="checkbox"]');
+                  if (checkbox) {
+                     // Créer un label
+                     const label = document.createElement('label');
+                     // Donner un id à la checkbox si elle n'en a pas
+                     if (!checkbox.id) {
+                        checkbox.id = checkbox.name + '-' + checkbox.value; // Ex: q1-A
+                     }
+                     // Déplacer le texte de la proposition dans le label
+                     label.htmlFor = checkbox.id; // Le 'for' du label correspond à l'id de la checkbox
+                     label.appendChild(checkbox); // Déplacer la checkbox dans le label
+                     label.appendChild(document.createTextNode(proposition.textContent.trim())); // Ajouter le texte de la proposition
+                     // Remplacer le contenu original par le nouveau label
+                     proposition.innerHTML = ''; // Vider le contenu de l'élément <li>
+                     proposition.appendChild(label); // Ajouter le label modifié
+                  }
+               });
+            };
+            try {
+               localStorage.setItem('testKey', 'testValue');
+               const testValue = localStorage.getItem('testKey');
+               if (testValue !== 'testValue') {
+                  console.error('localStorage is not functioning as expected.');
+               }
+            } catch (error) {
+               console.error('localStorage error:', error);
+            }
+
+            function voirFavoris() {
+               console.log('Redirection vers la page des favoris');
+               window.location.href = "{% url 'render_favorite' 'S5' 'Favori10' %}";
+            }
+
+
+            </script>
+            <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js">
+
+
+            </script>
+         </form>
+      </div>
+      
+   </body>
+
+</html>      <script>
+// Fonction pour corriger une question
+function correctQuestion(questionName) {
+    const form = document.getElementById('quiz-form');
+    const questionDiv = document.querySelector(`input[name="${questionName}"]`).closest('.question-container');
+    const selected = Array.from(form.elements[questionName]).filter(input => input.checked).map(input => input.value);
+
+    // Calculer si la réponse est correcte
+    const isCorrect = JSON.stringify(correctAnswers[questionName].sort()) === JSON.stringify(selected.sort());
+
+    // Enregistre si la réponse est correcte ou incorrecte
+    userAnswers[questionName] = {
+        selected: selected,
+        isCorrect: isCorrect
+    };
+
+    // Supprimer les styles précédents
+    questionDiv.classList.remove('correct', 'incorrect');
+    questionDiv.querySelectorAll('li').forEach(li => li.style.color = '');
+
+    // Applique les couleurs selon la validité des réponses
+    questionDiv.querySelectorAll('li').forEach(li => {
+        const isChoiceCorrect = correctAnswers[questionName].includes(li.querySelector('input').value);
+        const isSelected = selected.includes(li.querySelector('input').value);
+
+        if (isChoiceCorrect) {
+            // Appliquer le style vert aux bonnes réponses
+            li.style.color = 'green';
+            li.style.fontWeight = 'bold';
+            li.style.textShadow = '1px 1px 2px rgba(0, 128, 0, 0.7)';
+        }
+
+        if (isSelected && !isChoiceCorrect) {
+            // Appliquer le style rouge pour les mauvaises réponses sélectionnées
+            li.style.color = 'red';
+        }
+    });
+
+    console.log(`Début de la correction pour la question ${questionName}`);
+    console.log(`Réponses sélectionnées pour ${questionName}: ${selected.join(', ')}`);
+    console.log(`Résultat pour ${questionName}: ${isCorrect ? 'Correct' : 'Incorrect'}`);
+
+    // Déterminer le nom de l'examen et l'ID complet de la question
+    const examNameElement = document.getElementById('exam_name');
+    const examName = examNameElement.value; // Nom de l'examen (par exemple, Anatomie2023)
+    const fullChoiceIds = selected.map(choice => `${examName}_${questionName.substring(1)}_${choice.toLowerCase()}`);
+    console.log(`IDs complets générés pour les choix : ${fullChoiceIds.join(', ')}`);
+
+    // Envoyer les données au serveur
+    fetch('/track_attempts/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            question_name: questionName,
+            full_choice_ids: fullChoiceIds
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log(`Données reçues du serveur : ${JSON.stringify(data)}`);
+            handleAlert(data.alert, questionDiv);
+            updateStatisticalAlerts(data, questionDiv);
+        })
+        .catch(error => console.error('Erreur lors de l’envoi des données:', error));
+}
+
+// Fonction pour gérer les alertes
+function handleAlert(alertData, questionDiv) {
+    const existingAlert = questionDiv.querySelector('.alert-indicator');
+    if (existingAlert) {
+        existingAlert.remove();
+    }
+
+    if (alertData) {
+        const alertIndicator = document.createElement('div');
+        alertIndicator.className = 'alert-indicator';
+        alertIndicator.style.backgroundColor = alertData.color || '#f8d7da';
+        alertIndicator.style.padding = '10px';
+        alertIndicator.style.marginTop = '10px';
+        alertIndicator.style.borderRadius = '5px';
+        alertIndicator.style.fontWeight = 'bold';
+        alertIndicator.style.color = '#721c24';
+        alertIndicator.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.1)';
+        alertIndicator.textContent = alertData.message;
+
+        questionDiv.appendChild(alertIndicator);
+        saveAlertToLocalStorage(questionDiv.getAttribute('data-question-id'), alertData);
+    } else {
+        removeAlertFromLocalStorage(questionDiv.getAttribute('data-question-id'));
+    }
+}
+
+// Charger les alertes persistantes
+function loadAlertsFromLocalStorage() {
+    const storedAlerts = JSON.parse(localStorage.getItem('alerts')) || {};
+    Object.keys(storedAlerts).forEach(questionId => {
+        const questionDiv = document.querySelector(`.question-container[data-question-id="${questionId}"]`);
+        if (questionDiv) {
+            handleAlert(storedAlerts[questionId], questionDiv);
+        }
+    });
+}
+
+// Sauvegarder les alertes dans localStorage
+function saveAlertToLocalStorage(questionId, alertData) {
+    const storedAlerts = JSON.parse(localStorage.getItem('alerts')) || {};
+    storedAlerts[questionId] = alertData;
+    localStorage.setItem('alerts', JSON.stringify(storedAlerts));
+}
+
+// Supprimer une alerte de localStorage
+function removeAlertFromLocalStorage(questionId) {
+    const storedAlerts = JSON.parse(localStorage.getItem('alerts')) || {};
+    delete storedAlerts[questionId];
+    localStorage.setItem('alerts', JSON.stringify(storedAlerts));
+}
+
+// Mise à jour des alertes statistiques
+function updateStatisticalAlerts(data, questionDiv) {
+    const existingStatisticalAlerts = questionDiv.querySelectorAll('.statistical-alert');
+    existingStatisticalAlerts.forEach(alert => alert.remove());
+
+    if (data.failure_rate > 0.6) {
+        const failureRateAlert = document.createElement('div');
+        failureRateAlert.className = 'statistical-alert';
+        failureRateAlert.style.backgroundColor = '#add8e6';
+        failureRateAlert.style.padding = '10px';
+        failureRateAlert.style.marginTop = '10px';
+        failureRateAlert.style.borderRadius = '5px';
+        failureRateAlert.style.fontWeight = 'bold';
+        failureRateAlert.style.color = '#004085';
+        failureRateAlert.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.1)';
+        failureRateAlert.textContent = `🔵 Votre taux d'échec est de ${(data.failure_rate * 100).toFixed(0)}%. Revoir cette question est conseillé.`;
+
+        questionDiv.appendChild(failureRateAlert);
+    }
+}
+
+// Charger les alertes au démarrage
+document.addEventListener('DOMContentLoaded', () => {
+    loadAlertsFromLocalStorage();
+});
+
+</script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+    <script src="{% static 'java/comment.js' %}"></script>

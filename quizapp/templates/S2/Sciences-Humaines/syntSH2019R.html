@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="SH2019R">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Selon l'organisation Mondiale de la Santé, la viabilité d'un fœtus est définie selon deux critères :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Un poids supérieur ou égal à 500 gr</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- 22 semaines d'aménorrhée</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Aspect échographique humain</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- 20 semaines d'aménorrhée</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Absence d'altération morphologique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) L'euthanasie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Constitue la violation d'un interdit fondateur de toute organisation sociale humaine et civilisée : l'interdiction de tuer son prochain</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Peut être active, passive ou subversive</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Pénalement est assimilée à un meurtre</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Respecte le principe éthique de l'assistance à personne en danger</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Est autorisée en Australie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) La protection du cadavre :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Est un fait juridique</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Stipule l'interdiction de violation des tombes</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Autorise le recel des cadavres</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Implique les morceaux de cadavres</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Implique les cendres de cadavres en cas de crémation</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Un chirurgien critique publiquement son collègue, violant ainsi :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Respect de la relation médecin-médecin</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Acceptation d'honoraires dans le but de fournir un client à un collègue</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Confidentialité</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Faire face aux incompétences</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Réaction aux comportements contraires à l'éthique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Propositions pour gérer une situation non éthique entre collègues :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Dénoncer le collègue aux pouvoirs disciplinaires, en dernier ressort</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Contacter le collègue et lui signaler que son comportement est non éthique en premier</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Le confronter physiquement</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Contacter la direction du collègue, l'en informer et lui laisser la décision, si échec de la première étape</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Faire autant, pour démontrer aux patients la réalité : le critiquer et pointer ses défaillances devant les malades</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Monsieur S est rassuré par son médecin sur la couleur de ses urines : sur quel axe de la maladie cette interaction est-elle basée ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Axe intensité/gravité</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Axe clinique/étiologique</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Axe social/culturel</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Axe physiologique/psychopathologique</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Axe normal/pathologique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Un patient avec perturbations gastro-intestinales et stress : quelle phase de stress traverse-t-il ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Phase d'épuisement</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Phase d'adaptation</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Phase de réaménagement</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Phase de résistance</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Phase de tolérance</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Un adolescent souffrant d'une acné dérangeante : quel type de maladie est-ce ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Grave</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Sensoriel</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Affichante</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Secondaire</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Psycho-somatique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Spécificités des maladies affichantes comme l'acné :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Les troubles du self-estime</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Les troubles des relations aux autres</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Le retrait</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Le risque de survenue de décompensation cardio-vasculaire</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Le risque de mort</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Un chirurgien refuse de soigner un patient qu'il juge anormal : à quel principe éthique a-t-il failli ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Autonomie</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Bienfaisance</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Non-malfaisance</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Justice</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Sollicitude</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) À travers les époques, la maladie a été considérée comme :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Malédiction dans l'horizon de la morale</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Expression du rapport de l'individu à la société</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Châtiment dans l'horizon du sacré</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Désir de renaissance</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Épreuve</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) La profession médicale est différente des autres métiers du fait de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Ses fondements biologiques</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Son scientifique aigu</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Ses valeurs que le médecin doit connaître, ressentir et appliquer</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Son empirisme qui est toujours de mise</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Ses expertises pratiques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) La conception pasteurienne de la maladie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Considère la maladie comme une variation quantitative par rapport à la norme physiologique</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- S'inscrit sur un continuum entre mal et pathologique</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Inclut les maladies infectieuses dans sa définition</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Permet la perpétuation de l'espèce</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Pose la problématique de l'abaissement des seuils</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Les maladies définies par des variations relatives à une norme posent les problèmes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Du seuil de variation permettant de décider qu'un individu est malade</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Du continuum entre normal et pathologique</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- De l'abaissement des seuils</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- De l'évolution des normes</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Du diagnostic génétique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) La décision médicale :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- A pour but de déterminer un traitement approprié en s'appuyant sur ce qui convient à un individu particulier sur un plan humain</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Respecte la liberté de choix du patient, de refuser un soin</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Respecte la valeur éthique de l'autonomie du patient</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Devrait imposer le traitement approprié pour l'intérêt du patient</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Devrait solliciter la collaboration du malade</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Le père fondateur de la sociologie est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Émile Durkheim</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Michel Crozier</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Alain Touraine</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Auguste Comte</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Pierre Bourdieu</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Quelle(s) affirmation(s) correspond(ent) à la construction de la socialisation primaire ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- S'effectue uniquement au sein de la famille</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- S'affirme à l'école</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Se fait par l'apprentissage des valeurs et des normes</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Se développe au sein de l'environnement professionnel</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Se détermine au contact des pairs</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Parmi les agents suivants, lesquels participent à la socialisation secondaire ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- La famille</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Les syndicats</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Le milieu professionnel</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- L'école primaire</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Les médias</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Quelle est la définition de valeur ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Des comportements à adopter en société</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- L'insertion sociale</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Une obligation</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Un idéal à atteindre</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Une règle que la société impose</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Le caducée d'Hermès est l'emblème de la médecine :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Au Canada</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- En France</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- En Espagne</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Au Maroc</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Aux États-Unis</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) L'école de Salerne est caractérisée par un enseignement de la médecine :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Centré sur l'hygiène</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Consacré à l'ophtalmologie</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Enseigné par des médecins laïcs</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- Prodigué en plusieurs langues</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Spécialisé en pédiatrie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Parmi les médecins suivants, quels sont ceux qui ont contribué à l'amélioration de la prise en charge des maladies mentales ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Ambroise Paré (1510-1590)</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Félix Platter (1536-1614)</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Thomas Sydenham (1624-1689)</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Philippe Pinel (1745-1826)</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Rhazes (865-925)</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Indiquer le(s) ouvrage(s) écrits par des médecins arabes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Le De Materia Medica</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Le Canon</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Le Continens</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- La Pratique</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Le Régime de Santé</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Parmi les médecins suivants, quels sont ceux qui sont connus pour leur contribution à la description et à la connaissance de la goutte ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Thomas Sydenham (1624-1689)</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Rhazes (865-925)</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Ibn Sina (980-1037)</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Van Leeuwenhoek (1632-1723)</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Edward Jenner (1749-1823)</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Laquelle des compétences suivantes ne fait pas partie d'un comité d'éthique ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Juriste</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Sociologue</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Comptable</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Médecin</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Philosophe</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Le secret médical s'impose :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- Au médecin uniquement</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- Aux professionnels paramédicaux</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- À tout professionnel de santé</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- À tous les professionnels intervenant dans le système de santé</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- À la famille du patient</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) Quelles maladies doivent obligatoirement être déclarées aux autorités de santé ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- La coqueluche</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- La gonorrhée</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Le rhumatisme articulaire aigu</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- La grippe due à un nouveau sous-type de virus</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- La leucémie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) La théorie de l'attachement se définit comme :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- Besoin primordial du jeune enfant d'établir un lien stable et sécurisant avec une figure maternelle répondant à ses besoins</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- L'attachement à la figure maternelle servirait de base de sécurité à l'enfant pour explorer l'environnement</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- Besoin nutritif fondamental qui lie le bébé à la mère</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- Ce lien est une source de sécurité extérieure</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- Ce lien est une source de sécurité intérieure</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) Les 4 variables de mesure du type et du degré d'attachement sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- Besoin de proximité physique comme base de sécurité</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- La capacité d'exploration et d'autonomie</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- L'existence d'un port d'attache en cas de stress</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- La présence d'une réaction de protestation en cas de rupture</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- La capacité à dormir seul sans la présence du parent</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) Parmi les mécanismes de défenses psychiques, le déplacement est défini comme :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- Remplacer l'objet initial par un objet moins menaçant</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- Refuser de prendre conscience de désirs, de pensées ou de sentiments jugés inacceptables en adoptant des comportements qui leurs sont contraires</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- Ignorer les aspects émotifs d'une expérience pénible en se concentrant sur des pensées abstraites, sur des mots ou sur des idées</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- Se protéger d'une réalité désagréable en refusant d'en admettre l'existence</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- Empêcher des pensées douloureuses ou menaçantes d'accéder au conscient</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) Parmi les mécanismes de défenses psychiques, la formation réactionnelle est définie comme :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- Remplacer l'objet initial par un objet moins menaçant</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- Refuser de prendre conscience de désirs, de pensées ou de sentiments jugés inacceptables en adoptant des comportements qui leurs sont contraires</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- Ignorer les aspects émotifs d'une expérience pénible en se concentrant sur des pensées abstraites, sur des mots ou sur des idées</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- Se protéger d'une réalité désagréable en refusant d'en admettre l'existence</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- Empêcher des pensées douloureuses ou menaçantes d'accéder au conscient</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) Dans l'approche interactionniste, plusieurs facteurs entrent en jeu dans la formation de la personnalité :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A- Traits génétiques hérités (40-50%)</li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B- La relation mère-bébé (7%)</li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C- Facteurs environnementaux non partagés (27%)</li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D- Facteurs environnementaux communs (parents, famille) (7%)</li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E- Facteurs inconnus (16-26%)</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) Les 5 axiomes de la communication selon Bateson et Watzlawick (1967) sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A- Il est impossible de ne pas communiquer</li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B- Indice (contenu) et ordre (affect, contexte) des interactions</li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C- Enchaînement des séquences : circularité</li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D- Langage verbal/langage non-verbal</li>
+            
+                    <li><input type="checkbox" id="q33e" name="q33" value="E"> E- Interactions symétriques/interactions complémentaires</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) Au cours du stade anal selon la théorie de Freud :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A- La zone érogène dominante est la région anale</li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B- La propreté consiste à apprendre à contrôler ses productions</li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C- Il apprend le contrôle volontaire de son intestin : 'retenir' ou 'laisser aller'</li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D- C'est le deuxième conflit 'social' de l'enfant</li>
+            
+                    <li><input type="checkbox" id="q34e" name="q34" value="E"> E- Selon Freud, la conduite des parents face à cet apprentissage est très importante</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) Le concept de séparation-individuation selon M. Malher comporte plusieurs phases :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A- L'utilisation d'un objet transitionnel</li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B- Le déplacement autonome avec éloignement grâce à la marche</li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C- L'exploration de l'espace et des objets</li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D- La phase symbiotique</li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E- L'utilisation du langage et le jeu symbolique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-36" class="question-container">
+            <div class="question">
+                <p>36.) Les principaux facteurs de risque en périnatalité sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q36a" name="q36" value="A"> A- Maladie ou handicap chez la mère</li>
+            
+                    <li><input type="checkbox" id="q36b" name="q36" value="B"> B- Antécédents psychiatriques de la mère</li>
+            
+                    <li><input type="checkbox" id="q36c" name="q36" value="C"> C- Grossesse antérieure suivie</li>
+            
+                    <li><input type="checkbox" id="q36d" name="q36" value="D"> D- Mère adolescente</li>
+            
+                    <li><input type="checkbox" id="q36e" name="q36" value="E"> E- Isolement social, rupture avec le père du bébé</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-37" class="question-container">
+            <div class="question">
+                <p>37.) Les interactions affectives mère-bébé sont caractérisées par l'influence réciproque de la vie émotionnelle du bébé et de celle de la mère :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q37a" name="q37" value="A"> A- La mère perçoit l'affect que ressent son bébé et lui propose une interprétation par des mots</li>
+            
+                    <li><input type="checkbox" id="q37b" name="q37" value="B"> B- Le bébé perçoit l'état affectif de la mère, ses indices sont la prosodie maternelle</li>
+            
+                    <li><input type="checkbox" id="q37c" name="q37" value="C"> C- Le bébé perçoit l'état affectif de la mère, ses indices sont l'ajustement tonico-postural</li>
+            
+                    <li><input type="checkbox" id="q37d" name="q37" value="D"> D- Il y a toujours un accordage affectif</li>
+            
+                    <li><input type="checkbox" id="q37e" name="q37" value="E"> E- La sensibilité extrême du bébé à l'état affectif de sa mère est démontrée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-38" class="question-container">
+            <div class="question">
+                <p>38.) Les principaux dysfonctionnements des interactions précoces sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q38a" name="q38" value="A"> A- Insuffisance chronique de l'attachement</li>
+            
+                    <li><input type="checkbox" id="q38b" name="q38" value="B"> B- Les carences affectives</li>
+            
+                    <li><input type="checkbox" id="q38c" name="q38" value="C"> C- Surplus d'excitation</li>
+            
+                    <li><input type="checkbox" id="q38d" name="q38" value="D"> D- Défaut de protection</li>
+            
+                    <li><input type="checkbox" id="q38e" name="q38" value="E"> E- Incohérence</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-39" class="question-container">
+            <div class="question">
+                <p>39.) Les niveaux de conscience selon Freud sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q39a" name="q39" value="A"> A- Le surmoi</li>
+            
+                    <li><input type="checkbox" id="q39b" name="q39" value="B"> B- L'inconscient</li>
+            
+                    <li><input type="checkbox" id="q39c" name="q39" value="C"> C- Le subconscient</li>
+            
+                    <li><input type="checkbox" id="q39d" name="q39" value="D"> D- Le moi</li>
+            
+                    <li><input type="checkbox" id="q39e" name="q39" value="E"> E- Le conscient</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-40" class="question-container">
+            <div class="question">
+                <p>40.) Qui a élaboré le concept d'objet transitionnel ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q40a" name="q40" value="A"> A- S. Freud</li>
+            
+                    <li><input type="checkbox" id="q40b" name="q40" value="B"> B- M. Klein</li>
+            
+                    <li><input type="checkbox" id="q40c" name="q40" value="C"> C- M. Malher</li>
+            
+                    <li><input type="checkbox" id="q40d" name="q40" value="D"> D- D. Winnicott</li>
+            
+                    <li><input type="checkbox" id="q40e" name="q40" value="E"> E- R. Spitz</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S2" "Sciences-Humaines" "SH2019R" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['A', 'D'],
+    q2: ['A', 'C', 'E'],
+    q3: ['A', 'B', 'D', 'E'],
+    q4: ['A', 'E'],
+    q5: ['A', 'B', 'D'],
+    q6: ['E'],
+    q7: ['A'],
+    q8: ['C'],
+    q9: ['A', 'B', 'C'],
+    q10: ['D'],
+    q11: ['B', 'E'],
+    q12: ['A', 'C', 'D'],
+    q13: ['C'],
+    q14: ['A', 'C', 'D'],
+    q15: ['A', 'B', 'C', 'E'],
+    q16: ['D'],
+    q17: ['B', 'C', 'E'],
+    q18: ['B', 'C', 'E'],
+    q19: ['D'],
+    q20: ['E'],
+    q21: ['C', 'D'],
+    q22: ['B'],
+    q23: ['B'],
+    q24: ['A', 'B'],
+    q25: ['C'],
+    q26: ['B', 'C', 'D'],
+    q27: ['A', 'C', 'D'],
+    q28: ['A', 'B', 'D', 'E'],
+    q29: ['A', 'B', 'C', 'D'],
+    q30: ['A'],
+    q31: ['B'],
+    q32: ['A', 'C', 'D', 'E'],
+    q33: ['B', 'C', 'D'],
+    q34: ['A', 'B', 'C', 'E'],
+    q35: ['A', 'C', 'D', 'E'],
+    q36: ['A', 'B', 'D', 'E'],
+    q37: ['A', 'B', 'C', 'E'],
+    q38: ['A', 'B', 'C', 'D'],
+    q39: ['B', 'C', 'E'],
+    q40: ['D'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersSH2019R'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+<script src="{% static 'java/question-stats.js' %}" defer></script>

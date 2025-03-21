@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+
+        <div class="quiz-title">
+            <h1>Methodologie et Terminologie 2018</h1>
+            <p></p>
+        </div>
+
+
+<form id="quiz-form">
+<input type="hidden" name="file_name" value="Meterm2018">
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) La prise de notes par l’étudiant, au moment des cours :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Est utile pour l’étudiant</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Facilite la mémorisation</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Favorise la concentration</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Ne facilite pas l’apprentissage</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Est gênante pour l’enseignant</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Pour que les notes prises par l’étudiant soient fidèles à ce qu’a été dit par l’enseignant :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- L’étudiant doit faire attention à la transcription des idées de l’enseignant</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- L’étudiant doit se concentrer seulement sur ce qui est écrit dans les diapositives</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- L’étudiant doit enregistrer la totalité des cours à l’aide d’un magnétophone</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- L’étudiant ne doit pas confondre les notes de cours et son commentaire personnel</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- L’étudiant doit relire ses écrits après le cours ou le soir même</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Lors de la prise des notes, l’étudiant doit :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Noter intégralement les définitions</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Noter uniquement les idées principales lorsqu’un concept est compris</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Utiliser des abréviations</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Noter tout ce que dit le professeur</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Noter intégralement les schémas les plus pertinents</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) La mémorisation est l’ensemble des systèmes biologiques et psychologiques qui permettent :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Le stockage des informations</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Le codage des informations</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- L’analyse des informations</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Le partage des informations</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- La récupération des informations</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) À propos de la mémoire. Quelles sont parmi les propositions suivantes, celles qui sont vraies ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Elle est parfaite</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Elle est subjective</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Elle n’est pas sélective</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Elle est localisée au niveau de l’hippocampe</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Elle est la même chez tous les étudiants</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Au cours du processus de mémorisation, l’encodage des informations :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Correspond à l’enregistrement des informations</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Fait intervenir la mémoire à court terme</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Fait intervenir la mémoire sensorielle</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Fait intervenir la mémoire de travail</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Nécessite une bonne condition physique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Parmi les éléments suivants, 4 sont nécessaires pour le stockage des informations au cours du processus de mémorisation. Lesquels ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Les émotions</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Les sentiments</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- La concentration</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Le désir de se souvenir</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- La condition physique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Au cours du processus de mémorisation, le stockage des informations :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Nécessite une forte attention</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Se fait dans la mémoire au long terme</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Se fait avec une possibilité de réactiver les informations en cas de besoin</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Se fait dans la mémoire à court terme</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Nécessite une bonne condition physique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Pour apprendre ses cours l’étudiant peut utiliser les méthodes suivantes sauf une. Laquelle ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Apprendre en répétant les cours</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Apprendre en comprenant</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Apprendre par l’action</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Apprendre par les images</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Apprendre en écoutant une seule fois le cours</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) La concentration :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Ne nécessite aucun effort</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Est l’orientation de l’ensemble de ses activités mentales vers un seul objet</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Permet à l’étudiant de fixer son attention sur la tâche à accomplir</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Est un état passif</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Est la même chez tous les étudiants</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) La concentration pendant les révisions :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Est influencée par le lieu de travail</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Peut entraîner une fatigue de l’étudiant</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Est fragile</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- N’est pas influencée par les occasions de se distraire</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Nécessite la motivation de l’étudiant</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) L’endroit de travail dans lequel l’étudiant doit réviser ses cours doit être :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Froid</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Bien éclairé</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Clos</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Bruyant</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Calme</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Quel est l’endroit idéal dans lequel l’étudiant doit être installé au moment des révisions des cours ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Un lit</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Une chaise</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Un fauteuil moelleux</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Un jardin sur le gazon</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Un tabouret</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Au cours des répétitions pour apprendre un cours ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Répéter à haute voix aide dans la mémorisation</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Un cours qui est compris s’apprend facilement</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Les dessins sont mieux retenus en mémoire que des mots</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- La répétition ne doit concerner que les cours difficiles</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- L’utilisation de fiches-résumé peut aider à la mémorisation</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Un étudiant peut trouver des difficultés pour mémoriser un cours quand :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Le cours à retenir n’est pas compris</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Son cerveau n’est pas éveillé</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Il manque de motivation</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Il manque d’argent</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Le désir de se rappeler n’est pas assez vif</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Pour qu’il ne soit dérangé par le téléphone au moment des révisions des cours, l’étudiant doit :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- L’éteindre</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Le mettre en mode silencieux et l’éloigner de la table de travail</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Le mettre en mode silencieux et le consulter toutes les 15 min pour savoir s’il n’a pas reçu d’appel</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Le mettre en mode silencieux et le consulter au moment des pauses</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Le mettre en mode silencieux et le mettre à côté des documents qu’il est en train de réviser</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Pour avoir une bonne concentration, l’étudiant doit :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Dormir 7 heures</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Avoir un sommeil réparateur</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Éviter les éléments stressants</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Boire beaucoup de café avant de commencer la révision</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Regarder au moins un film avant de débuter chaque révision</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Parmi les éléments suivants quels sont les quatre qui font partie des phases de l’acte d’apprentissage selon Robert Gagné :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- La motivation</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- L’acquisition</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- La rétention</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Le rappel</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- L’endurance</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Parmi les facteurs suivants, deux influencent l’apprentissage. Lesquels ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- La rétroaction de l’enseignant</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- L’âge de l’étudiant</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- La motivation de l’étudiant</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- La condition physique de l’étudiant</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- La condition physique de l’enseignant</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Le stress :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Améliore la mémorisation</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Peut gêner la mémoire à long terme</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Est positif quand il motive l’étudiant</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Devient dangereux quand il devient un obstacle pour la révision des cours</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Est fréquent quand l’étudiant laisse les révisions jusqu’à la dernière minute</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Les pauses au moment des révisions :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Sont utiles car elles permettent d’éviter la surcharge cérébrale</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Doivent être sous forme d’une courte pause après chaque heure de travail</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Peuvent être utilisées pour boire de l’eau</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- Peuvent être utilisées pour se dégourdir</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Sont inutiles car elles font perdre du temps à l’étudiant</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) La lumière dans l’endroit du travail pour les révisions des cours doit être :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Orange pour stimuler l’étudiant</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Faible pour ne pas exciter l’étudiant</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Suffisante</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Homogène</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Multicolore</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Lors d’une activité d’apprentissage l’étudiant se souvient de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- 100 % de ce qu’il a lu</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- 75 % de ce qu’il a entendu</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- 30 % de ce qu’il a vu</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- 10 % de ce qu’il a vu</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- 20 % de ce qu’il a entendu</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Dans l’approche préliminaire au cours de la phase de lecture dynamique, les propositions suivantes sont vraies sauf une. Laquelle ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Lecture du titre</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Lecture du texte d’accroche</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Regarder les photos</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Lecture de la conclusion</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Lecture de tout le texte</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) La procrastination est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Le fait de se lever très tôt le matin</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Le fait de bien programmer ses révisions</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Le fait de pouvoir prévoir les questions qui vont être posées le jour de l’examen</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Le fait de tout remettre au lendemain</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Le fait d’être à jour dans ses révisions</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Le suffixe BRADY... signifie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- Atonie</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- Lent</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- Flasque</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- Mou</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) Le suffixe ...CELE signifie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- Prolapsus</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- Ptose</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Hernie</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Relâchement</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) Le suffixe ...STOMIE signifie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- Anastomose</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- Ouverture</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- Abouchement</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- Remplacement</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) Le suffixe ...ECTASIE signifie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- Segmentation</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- Dilatation</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- Division</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- Résection</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) Le suffixe ...TOMIE signifie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- Accouchement</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- Anastomose</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- Ouverture</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- Remplacement</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) Le suffixe ...MEGALIE signifie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- Augmenté de taille</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- Augmenté de volume</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- Taille variable</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- Long</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) Le suffixe TACHY... signifie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A- Court</li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B- Fort</li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C- Trapu</li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D- Rapide</li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) Le suffixe ...ALGIE signifie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A- Douleur articulaire</li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B- Froideur</li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C- Lourdeur</li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D- Fourmillement</li>
+            
+                    <li><input type="checkbox" id="q33e" name="q33" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) Le suffixe ...EMESE signifie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A- Vomissement</li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B- Écoulement vaginal</li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C- Écoulement nasal</li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D- Expectoration de sang</li>
+            
+                    <li><input type="checkbox" id="q34e" name="q34" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) Le suffixe ...IATRE signifie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A- Patient</li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B- Médecin</li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C- Couleur</li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D- Forme</li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-36" class="question-container">
+            <div class="question">
+                <p>36.) Le terme ANKYLO... peut signifier :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q36a" name="q36" value="A"> A- Adhérence</li>
+            
+                    <li><input type="checkbox" id="q36b" name="q36" value="B"> B- Mouvement</li>
+            
+                    <li><input type="checkbox" id="q36c" name="q36" value="C"> C- Gêne</li>
+            
+                    <li><input type="checkbox" id="q36d" name="q36" value="D"> D- Soudure</li>
+            
+                    <li><input type="checkbox" id="q36e" name="q36" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-37" class="question-container">
+            <div class="question">
+                <p>37.) Le terme DOLICHO... peut signifier :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q37a" name="q37" value="A"> A- Long</li>
+            
+                    <li><input type="checkbox" id="q37b" name="q37" value="B"> B- Mou</li>
+            
+                    <li><input type="checkbox" id="q37c" name="q37" value="C"> C- Allongé</li>
+            
+                    <li><input type="checkbox" id="q37d" name="q37" value="D"> D- Court</li>
+            
+                    <li><input type="checkbox" id="q37e" name="q37" value="E"> E- Étroît</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-38" class="question-container">
+            <div class="question">
+                <p>38.) Quand un signe ou symptôme est spécifique d’une maladie donnée, on le qualifie de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q38a" name="q38" value="A"> A- Pathologique</li>
+            
+                    <li><input type="checkbox" id="q38b" name="q38" value="B"> B- Synonymique</li>
+            
+                    <li><input type="checkbox" id="q38c" name="q38" value="C"> C- Symptomatique</li>
+            
+                    <li><input type="checkbox" id="q38d" name="q38" value="D"> D- Physiopathologique</li>
+            
+                    <li><input type="checkbox" id="q38e" name="q38" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-39" class="question-container">
+            <div class="question">
+                <p>39.) Pour désigner une production excessive de sueur au niveau des extrémités, vous utilisez :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q39a" name="q39" value="A"> A- Acrohydrose</li>
+            
+                    <li><input type="checkbox" id="q39b" name="q39" value="B"> B- Acrohyperhidrose</li>
+            
+                    <li><input type="checkbox" id="q39c" name="q39" value="C"> C- Acroanhydrose</li>
+            
+                    <li><input type="checkbox" id="q39d" name="q39" value="D"> D- Acroérythrose</li>
+            
+                    <li><input type="checkbox" id="q39e" name="q39" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-40" class="question-container">
+            <div class="question">
+                <p>40.) Pour désigner un excès de gaz carbonique dans le sang, on utilise le terme :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q40a" name="q40" value="A"> A- Hyperazotémie</li>
+            
+                    <li><input type="checkbox" id="q40b" name="q40" value="B"> B- Hypercapnie</li>
+            
+                    <li><input type="checkbox" id="q40c" name="q40" value="C"> C- Hypercarbonémie</li>
+            
+                    <li><input type="checkbox" id="q40d" name="q40" value="D"> D- Hypernatriémie</li>
+            
+                    <li><input type="checkbox" id="q40e" name="q40" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-41" class="question-container">
+            <div class="question">
+                <p>41.) Le(s) terme(s) utilisé(s) habituellement pour désigner l’existence de quantité anormalement élevée de protides dans les selles :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q41a" name="q41" value="A"> A- Séborhée</li>
+            
+                    <li><input type="checkbox" id="q41b" name="q41" value="B"> B- Céatorrhée</li>
+            
+                    <li><input type="checkbox" id="q41c" name="q41" value="C"> C- Stéatorrhée</li>
+            
+                    <li><input type="checkbox" id="q41d" name="q41" value="D"> D- Protéinorrhée</li>
+            
+                    <li><input type="checkbox" id="q41e" name="q41" value="E"> E- Pyorrhée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-42" class="question-container">
+            <div class="question">
+                <p>42.) Le(s) terme(s) utilisé(s) pour désigner les pertes vaginales blanches chez la femme :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q42a" name="q42" value="A"> A- Leucorrhée</li>
+            
+                    <li><input type="checkbox" id="q42b" name="q42" value="B"> B- Leucopathie</li>
+            
+                    <li><input type="checkbox" id="q42c" name="q42" value="C"> C- Leucocytopathie</li>
+            
+                    <li><input type="checkbox" id="q42d" name="q42" value="D"> D- Colporrhée</li>
+            
+                    <li><input type="checkbox" id="q42e" name="q42" value="E"> E- Hydrorhée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-43" class="question-container">
+            <div class="question">
+                <p>43.) Le(s) terme(s) utilisé(s) pour désigner une douleur aiguë du genou :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q43a" name="q43" value="A"> A- Gonalgie</li>
+            
+                    <li><input type="checkbox" id="q43b" name="q43" value="B"> B- Gonadalgie</li>
+            
+                    <li><input type="checkbox" id="q43c" name="q43" value="C"> C- Gonodynie</li>
+            
+                    <li><input type="checkbox" id="q43d" name="q43" value="D"> D- Gonadyne</li>
+            
+                    <li><input type="checkbox" id="q43e" name="q43" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-44" class="question-container">
+            <div class="question">
+                <p>44.) Le(s) terme(s) habituellement utilisé(s) pour désigner un développement exagéré des poils :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q44a" name="q44" value="A"> A- Hyperpilosité</li>
+            
+                    <li><input type="checkbox" id="q44b" name="q44" value="B"> B- Trichothésis</li>
+            
+                    <li><input type="checkbox" id="q44c" name="q44" value="C"> C- Polytrichose</li>
+            
+                    <li><input type="checkbox" id="q44d" name="q44" value="D"> D- Mégatrichose</li>
+            
+                    <li><input type="checkbox" id="q44e" name="q44" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-45" class="question-container">
+            <div class="question">
+                <p>45.) Le(s) terme(s) utilisé(s) pour désigner une dilatation des vaisseaux capillaires cutanés, des extrémités :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q45a" name="q45" value="A"> A- Érythrodermie</li>
+            
+                    <li><input type="checkbox" id="q45b" name="q45" value="B"> B- Érythrose</li>
+            
+                    <li><input type="checkbox" id="q45c" name="q45" value="C"> C- Vasodilatation</li>
+            
+                    <li><input type="checkbox" id="q45d" name="q45" value="D"> D- Cyanose</li>
+            
+                    <li><input type="checkbox" id="q45e" name="q45" value="E"> E- Télangiectasie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-46" class="question-container">
+            <div class="question">
+                <p>46.) Le(s) terme(s) utilisé(s) pour désigner une diminution de l’oxygène dans le sang :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q46a" name="q46" value="A"> A- Oxygénopénie</li>
+            
+                    <li><input type="checkbox" id="q46b" name="q46" value="B"> B- Hypoxie</li>
+            
+                    <li><input type="checkbox" id="q46c" name="q46" value="C"> C- Hypocapnie</li>
+            
+                    <li><input type="checkbox" id="q46d" name="q46" value="D"> D- Hypoxémie</li>
+            
+                    <li><input type="checkbox" id="q46e" name="q46" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-47" class="question-container">
+            <div class="question">
+                <p>47.) Le(s) terme(s) utilisé(s) pour désigner un écoulement mensuel douloureux chez la femme :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q47a" name="q47" value="A"> A- Dysménorrhée</li>
+            
+                    <li><input type="checkbox" id="q47b" name="q47" value="B"> B- Dysménorrhagie</li>
+            
+                    <li><input type="checkbox" id="q47c" name="q47" value="C"> C- Métrorragie</li>
+            
+                    <li><input type="checkbox" id="q47d" name="q47" value="D"> D- Dysménoménorrhée</li>
+            
+                    <li><input type="checkbox" id="q47e" name="q47" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-48" class="question-container">
+            <div class="question">
+                <p>48.) Le(s) terme(s) utilisé(s) pour désigner une diminution du taux de glucose, dans le liquide céphalo-rachidien :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q48a" name="q48" value="A"> A- Hypoglycorachie</li>
+            
+                    <li><input type="checkbox" id="q48b" name="q48" value="B"> B- Hypoglycémie</li>
+            
+                    <li><input type="checkbox" id="q48c" name="q48" value="C"> C- Hypoglycosurie</li>
+            
+                    <li><input type="checkbox" id="q48d" name="q48" value="D"> D- Hypoglycocéphalie</li>
+            
+                    <li><input type="checkbox" id="q48e" name="q48" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-49" class="question-container">
+            <div class="question">
+                <p>49.) Le(s) terme(s) utilisé(s) pour désigner une maladie caractérisée par l’existence de globules rouges de formes variables :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q49a" name="q49" value="A"> A- Anisocytose</li>
+            
+                    <li><input type="checkbox" id="q49b" name="q49" value="B"> B- Poïkilocytose</li>
+            
+                    <li><input type="checkbox" id="q49c" name="q49" value="C"> C- Leucocytose</li>
+            
+                    <li><input type="checkbox" id="q49d" name="q49" value="D"> D- Leucopénie</li>
+            
+                    <li><input type="checkbox" id="q49e" name="q49" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-50" class="question-container">
+            <div class="question">
+                <p>50.) Le ou les termes habituellement utilisé(s) pour désigner l’incoordination des mouvements :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q50a" name="q50" value="A"> A- Ataxie</li>
+            
+                    <li><input type="checkbox" id="q50b" name="q50" value="B"> B- Dystaxie</li>
+            
+                    <li><input type="checkbox" id="q50c" name="q50" value="C"> C- Dyskinesie</li>
+            
+                    <li><input type="checkbox" id="q50d" name="q50" value="D"> D- Acinésie</li>
+            
+                    <li><input type="checkbox" id="q50e" name="q50" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+         
+
+        
+
+       
+    
+    
+    
+</div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S1" "Methodo_et_termino" "Meterm2018" %}';">Réessayer tout le Quiz</button>
+</div>
+
+<div id="details-section" class="details-section" style="display: none;">
+    <h3>Tableau des questions</h3>
+    <div class="question-links" id="question-links"></div>
+</div>
+
+
+
+
+<!-- Section pour afficher le tableau avec les numéros encerclés -->
+<div id="details-section" style="display:none;">
+    <h2>Questions :</h2>
+    <div id="question-links" class="question-links">
+        <!-- Le tableau de numéros va être généré ici -->
+    </div>
+</div>
+
+<script>
+const correctAnswers = {
+q1: ['A', 'B', 'C'],
+q2: ['A', 'D', 'E'],
+q3: ['A', 'B', 'C', 'E'],
+q4: ['A', 'B', 'E'],
+q5: ['B', 'D'],
+q6: ['A', 'B', 'C', 'D'],
+q7: ['A', 'B', 'C', 'D'],
+q8: ['B', 'C'],
+q9: ['A', 'B', 'C', 'D'],
+q10: ['B', 'C'],
+q11: ['A', 'B', 'C', 'E'],
+q12: ['B', 'E'],
+q13: ['B'],
+q14: ['A', 'B', 'C', 'E'],
+q15: ['A', 'B', 'C', 'E'],
+q16: ['A', 'B', 'D'],  
+q17: ['A', 'B', 'C'],   
+q18: ['A', 'B', 'C'],   
+q19: ['A', 'C'],
+q20: ['B', 'C', 'D', 'E'],
+q21: ['A', 'B', 'C', 'D'],
+q22: ['C', 'D', 'E'],
+q23: ['C', 'E'],
+q24: ['E'],
+q25: ['D'],
+q26: ['B'],
+q27: ['C'],
+q28: ['C'],
+q29: ['B'],
+q30: ['C'],
+q31: ['A'],
+q32: ['D'],
+q33: ['E'],
+q34: ['A'],
+q35: ['B'],
+q36: ['C', 'D'],
+q37: ['A', 'C'],
+q38: ['E'],
+q39: ['B'],
+q40: ['B'],
+q41: ['B'],
+q42: ['A'],
+q43: ['B'],
+q44: ['E'],
+q45: ['E'],
+q46: ['D'],
+q47: ['B'],
+q48: ['A'],
+q49: ['B'],
+q50: ['A'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersMeterm2018'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

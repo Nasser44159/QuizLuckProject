@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM ORL</h1>
+            </div>
+            <form id="quiz-form">
+                <input type="hidden" id='exam_name' name="exam_name" value="ORL2023">
+    {% csrf_token %}>
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Devant une otite séro-muqueuse, quels sont les indications de la pose d’un aérateur transtympanique ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Un épisode de surinfection (otite moyenne aiguë) par an</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Retard de langage chez l’enfant</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Rétraction tympanique non évolutive</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Une fente vélo-palatine associée</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Une surdité de transmission supérieure à 30 dB</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Quel est le diagnostic le plus probable devant ce tableau clinique ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Cholestéatome de l’oreille droite</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Otite externe nécrosante</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Paralysie faciale à Frigore</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Accident vasculaire cérébral</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Zona du nerf facial</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Quelles sont les bases de votre conduite diagnostique et thérapeutique ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Prescrire une ordonnance à base d’antibiothérapie et d’antalgiques en ambulatoire et revoir le patient dans 48 heures</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Demander une TDM des rochers en coupes axiales et coronales</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Indiquer d’emblée une chirurgie d’évidemment pétro-mastoïdien de l’oreille droite</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Demander un bilan biologique complet comportant une glycémie à jeun, Hb A1c, bilan infectieux et bilan rénal</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Démarrer une antibiothérapie parentérale à large spectre en hospitalier</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Quelle est votre conduite à tenir pour ce nourrisson ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Réaliser une paracentèse à visée antalgique</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Prescrire un traitement antipyrétique et antalgique associé à un lavage oculaire et nasal au sérum physiologique</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Prescrire des gouttes antibiotiques auriculaires</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Prescrire une antibiothérapie orale à base de céphalosporine de 1ère génération ou d’Amoxicilline à la dose de 80-90 mg/Kg/j pendant 8 jours</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Prescrire une antibiothérapie orale à base d’Amoxicilline-Acide clavulanique à la dose de 80 mg/kg/j pendant 8 à 10 jours</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Concernant les rhinosinusites, quelles sont les propositions vraies ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- La sinusite maxillaire est la forme la plus fréquente chez l’enfant</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Une rhinosinusite chronique se définit par des symptômes évoluant pendant plus de 3 mois</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Le diagnostic d’une sinusite maxillaire est basée sur la radiographie standard en incidence de Blondeau</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Le bilan radiologique est systématique devant une sinusite sphénoïdale</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- La chirurgie est indiquée en première intention devant toute sinusite aiguë</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Parmi les signes cliniques suivants, quels sont ceux qui doivent alarmer et faire penser à une complication devant une Rhinosinusite ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Diplopie</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Une rhinorrhée purulente</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Les céphalées matinales</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Œdème palpébral ou des parties molles de la face</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Exophtalmie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Quels sont les deux diagnostics les plus probables pour des vertiges récurrents associés à des acouphènes et une surdité du côté droit ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- La maladie de Ménière</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Le cholestéatome de l’oreille moyenne</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Accident vasculaire cérébral</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Le schwanome vestibulaire</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- La névrite vestibulaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) S’il s’agit d’une maladie de Ménière débutante, quels sont les éléments qu’on va retrouver à l’examen clinique ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Un nystagmus vers le côté droit</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Un nystagmus vers le côté gauche</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Des déviations segmentaires vers le côté droit</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Des déviations segmentaires vers le côté gauche</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Signe d’Halmagyi négatif : le regard reste fixé sur la cible</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Quel traitement proposez-vous à ce patient atteint de maladie de Ménière ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Un traitement médical</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Des manœuvres libératoires thérapeutiques</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Une rééducation vestibulaire ultérieure si nécessaire</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Un traitement chirurgical</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Des injections intra-tympaniques de corticoïdes en cas d’échec</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Quelle est votre conduite à tenir devant un cholestéatome suspecté ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Examen otoscopique au microscope</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- IRM des rochers</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- L’audiométrie tonale liminaire (audiogramme)</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Traitement chirurgical d’emblée</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- TDM des rochers</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Le bilan montre un cholestéatome de l’oreille moyenne très limité. Quel(s) traitement(s) proposez-vous à ce patient ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Un traitement médical</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Un traitement chirurgical</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Si chirurgie, une technique fermée est indiquée</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Si chirurgie, une technique ouverte est indiquée</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- La réhabilitation de l’audition si nécessaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Quelle est votre conduite diagnostique devant une dysphonie chronique de 6 mois ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Rechercher les facteurs de risque d’un cancer des VADS</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Prescrire un traitement médical seul</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Faire une Nasofibroscopie</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Faire une TDM du larynx si nécessaire</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Faire une laryngoscopie en suspension avec biopsies si nécessaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Le bilan montre un carcinome épidermoïde des 3 étages avec fixité du larynx et des adénopathies latéro-cervicales. Que proposez-vous à ce patient ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Faire un bilan préthérapeutique</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Le traitement médical seul</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Un curage ganglionnaire</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Une laryngectomie totale</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Une laryngectomie partielle</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Quelle(s) est (sont) parmi ces tuméfactions celle(s) pouvant être de siège cervical antérieur ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Kyste du tractus thyréoglosse</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Tumeur du pôle inférieur de la parotide</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Adénopathie métastatique des voies aérodigestives supérieures</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Nodule thyroïdien</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Lipome</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) L’interrogatoire dans le cadre du bilan étiologique d’une épistaxis doit rechercher la notion de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Hypertension artérielle connue</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Prise de Vitamine K</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Consommation de cocaïne</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Consommation de Vitamine D</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Chirurgie endonasale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) La gravité d’une épistaxis est appréciée sur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Uniquement par l’abondance de l’épistaxis</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- L’abondance, la répétition, la persistance (continuité) de l’épistaxis</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- L’état clinique du patient</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- La mesure de la pression artérielle</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Le bilan biologique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Une obstruction nasale :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Peut être à l’origine, chez le nouveau-né, d’une détresse respiratoire aiguë imposant une prise en charge rapide.</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Peut être à l’origine d’une respiration buccale avec sécheresse buccale.</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Peut être à l’origine d’une mauvaise aération de l’oreille moyenne et des sinus.</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Peut avoir un rôle bénéfique sur le développement facial chez l’enfant.</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Peut être à l’origine d’un trouble de l’odorat et du goût et trouble de l’appétit.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) La classification échographique EU-TIRADS (European Union-Thyroid Imaging And Data System) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Comprend 5 catégories de réponses.</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Permet d’homogénéiser les descriptions échographiques.</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Permet d’homogénéiser la conduite à tenir thérapeutique.</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Permet d’évaluer le risque de malignité.</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Suffit à elle seule pour prendre une décision chirurgicale.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Quel diagnostic retenir en premier ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Pharyngite</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Angine virale non compliquée</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Angine virale compliquée</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Angine bactérienne non compliquée</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Angine bactérienne compliquée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Quelle complication suppurative de l’angine peut-on redouter ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Le rhumatisme articulaire aigu (RAA) = maladie de Bouillaud.</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- La glomérulonéphrite aiguë (GNA) post-streptococcique.</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Le phlegmon péri-amygdalien</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Le syndrome de choc toxique.</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- La scarlatine</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Quel(s) est(sont) Le (les) diagnostic(s) à évoquer cliniquement en premier chez ce patient ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Un aphte.</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Un carcinome épidermoïde de la face interne de la joue.</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Une candidose buccale.</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- Une leucoplasie de la face interne de la joue.</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Un lichen plan de la face interne de la joue.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Pour confirmer le diagnostic, quel(s) est(sont) le(les) examen(s) à demander ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- La tomodensitométrie.</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- L’IRM.</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Le PET scan.</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- La biopsie de la lésion.</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- L’examen mycologique.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Quelle est la cause probable de la diplopie ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Une lésion du muscle releveur de la paupière supérieure.</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Une atteinte du nerf infra-orbitaire.</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Une incarcération du muscle droit médial.</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Une incarcération du muscle droit inférieur.</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Une paralysie du nerf facial (VII).</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Quel est le diagnostic le plus probable ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Une fracture orbito-nasale.</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Une fracture du plancher de l’orbite avec incarcération musculaire.</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Une fracture Lefort I.</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Une fracture orbito-zygomatique.</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Une fracture Lefort II.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Devant ce tableau clinique, Quel(s) est(sont) le(les) diagnostic(s) à évoquer ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Une cellulite cervico-faciale.</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Une tumeur mandibulaire.</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Une adénite.</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Une lithiase sous mandibulaire.</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Un accident d’éruption de la dent de sagesse.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) En l’absence de traitement, quelles sont les complications possibles chez ce patient ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- Une ostéite mandibulaire</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- Une métastase à distance</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- Une sous-mandibulite.</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- Un abcès du plancher buccal.</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- Un phlegmon amygdalien.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) Quelles sont les causes locales du trismus ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- Le cancer de la commissure intermaxillaire.</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- La péricoronarite de la dent de sagesse.</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Le phlegmon amygdalien.</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- La rétraction cicatricielle.</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- L’ankylose temporo-mandibulaire.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) Quels sont les signes de gravité d’une cellulite cervico-faciale ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- L’odynophagie.</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- La dysphonie.</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- La fistule cutanée.</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- La tuméfaction jugale qui ferme l’œil.</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- La tuméfaction sus-hyoïdienne.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) Quels sont les signes évoquant une tumeur maxillaire ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- Le déplacement des dents.</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- L’obstruction nasale.</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- L’image en géode sur la radio panoramique.</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- L’exophtalmie.</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- Les bruits articulaires.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) Quels sont les facteurs favorisant la luxation temporo-mandibulaire ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- L’âge jeune.</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- L’alimentation molle.</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- Les anomalies de l’articulé dentaire.</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- L’hyperlaxité ligamentaire.</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- La malformation osseuse mandibulaire.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+
+            
+            
+                 
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S5" "Radiologie" "Rd2022" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['B', 'D', 'E'],
+    q2: ['B'],
+    q3: ['B', 'D', 'E'],
+    q4: ['B', 'E'],
+    q5: ['B', 'D'],
+    q6: ['A', 'D', 'E'],
+    q7: ['A', 'D'],
+    q8: ['A', 'D'],
+    q9: ['A', 'C', 'E'],
+    q10: ['A', 'C', 'E'],
+    q11: ['B', 'C', 'E'],
+    q12: ['A', 'C', 'D', 'E'],
+    q13: ['A', 'C', 'D'],
+    q14: ['A', 'D', 'E'],
+    q15: ['A', 'C', 'E'],
+    q16: ['B', 'C', 'D', 'E'],
+    q17: ['A', 'B', 'C', 'E'],
+    q18: ['A', 'B', 'C', 'D'],
+    q19: ['E'],
+    q20: ['C'],
+    q21: ['B'],
+    q22: ['D'],
+    q23: ['D'],
+    q24: ['B'],
+    q25: ['D'],
+    q26: ['C', 'D'],
+    q27: ['A', 'B', 'C'],
+    q28: ['A', 'D', 'E'],
+    q29: ['A', 'B', 'C', 'D'],
+    q30: ['C', 'D', 'E'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersRd2022'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="ADC2018R">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Un patient âgé de 58 ans, consulte pour des douleurs pelviennes dans un contexte d'amaigrissement chiffré à 10 Kg en l'espace de 6 mois. L'anamnèse retrouve une notion de constipation avec 2 épisodes de rectorragies minimes. Quel(s) diagnostic(s) peut-on évoquer ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Une amibiase colique</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Une MICI (maladie inflammatoire chronique de l'intestin)</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Des hémorroïdes</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Un kyste hydatique de la queue du pancréas</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Un cancer colo-rectal</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Quel(s) examen(s) non invasif(s) peut-on proposer dans un premier temps pour avancer dans le diagnostic ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Une artériographie</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Un toucher rectal</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Une recto-sigmoidoscopie</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Un lavement baryté</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Une TDM abdomino-pelvienne</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Le ou les examens demandé(s) a/ont retrouvé une petite masse ulcérée de 2 cm de diamètre située à 5 cm de la marge anale. Quel est le diagnostic le plus probable ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Une amibiase colique</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Une MICI (maladie inflammatoire chronique de l'intestin)</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Des hémorroïdes</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Un kyste hydatique de la queue du pancréas</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Un cancer colo-rectal</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Quel(s) traitement(s) peut-on proposer ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Le métronidazole pendant 3 semaines (traitement de l'amibiase)</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Les immunosuppresseurs</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Cure des hémorroïdes</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Résection du dôme saillant du kyste hydatique du pancréas</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Radio-chimiothérapie + résection antérieure du rectum</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Un homme âgé de 65 ans, consulte pour des douleurs de l'hypochondre droit avec un ictère cutanéo-muqueux évoluant depuis 20 jours, dans un contexte d'altération de l'état général. Quel(s) diagnostic(s) peut-on évoquer à ce stade ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Un carcinome hépato-cellulaire</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Un cancer de la convergence biliaire</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Un cancer de la tête du pancréas</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Une lithiase de la voie biliaire principale</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Une tumeur péri-ampullaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) L'examen clinique retrouve une flèche hépatique à 16 cm et une vésicule biliaire palpable. Quel(s) diagnostic(s) peut-on retenir à ce stade ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Un carcinome hépato-cellulaire</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Un cancer de la convergence biliaire</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Un cancer de la tête du pancréas</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Une lithiase de la voie biliaire principale</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Une tumeur péri-ampullaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Quel(s) examen(s) peut-on demander pour avancer dans le diagnostic ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- L'échographie abdominale</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- La fibroscopie oeso-gastro-duodénale</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- La TDM abdominale</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- La Cholangiographie intra-veineuse</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- La pancréato-Bili-IRM</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Les examens complémentaires ont mis en évidence une dilatation des voies biliaires intra et extra-hépatiques. Le cadre duodénal est normal. Quel est le diagnostic que vous retenez ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Un carcinome hépatocellulaire</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Un cancer de la convergence biliaire</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Un cancer de la tête du pancréas</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Une lithiase de la voie biliaire principale</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Une tumeur péri-ampullaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Quel traitement allez-vous lui proposer ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Une duodéno-pancréatectomie céphalique</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Une anastomose bilio-digestive</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Une hépatectomie avec résection de la convergence biliaire</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Une cholecystectomie avec cholédocotomie et extraction des lithiases</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Une radiothérapie suivie d'une chimiothérapie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Un patient âgé de 45 ans, cholecystectomisé il y a 10 ans, est admis aux urgences pour des douleurs abdominales intenses évoluant depuis 48 heures. Quel(s) diagnostic(s) peut-on évoquer ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Un volvulus du sigmoïde</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Une appendicite aigue simple</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Une hernie ombilicale étranglée</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Un iléus biliaire</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Une occlusion sur bride</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) L'anamnèse de ce patient retrouve la notion de vomissements bilieux abondants, avec arrêt franc des matières et gaz. À l'examen, la température est de 37°C, l'abdomen est souple avec un discret météorisme prédominant en péri-ombilical. Les orifices herniaires sont libres. Quel(s) diagnostic(s) évoquez-vous ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Une appendicite aigue simple</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Une occlusion sur bride</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Un volvulus du sigmoïde</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Une hernie ombilicale étranglée</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Un iléus biliaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Quels sont les examens utiles pour le diagnostic ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- La radiographie de l'abdomen sans préparation</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- L'échographie abdominale</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- La tomodensitométrie abdominale</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- La bili IRM</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Le lavement baryté</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Quel(s) traitement(s) allez-vous proposer à ce patient ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Une entérotomie avec extraction du calcul</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Une appendicectomie</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Une section de la bride et libération de l'anse</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Une résection sigmoïdienne</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Une libération de l'anse et cure de l'hernie ombilicale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Un patient est admis en urgence pour une hémorragie ulcéreuse. La fibroscopie digestive haute a retrouvé un ulcère duodénal avec un vaisseau visible non hémorragique. De quel stade de la classification de Forrest s'agit-il ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- la</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- lb</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- lla</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Il b</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Il c</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Quelle sera votre conduite à tenir dans ce cas ? (Une ou plusieurs réponses)</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Hospitaliser le patient</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- L'opérer en urgence</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Le surveiller</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Eradiquer l'hélicobacter pylori</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Lui prescrire uniquement un traitement hémostatique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Dans l'angiocholite aigüe lithiasique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- L'apparition chronologique des signes est typiquement: ictère-fièvre-douleur</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- L'antibiothérapie à tropisme biliaire doit être débutée dès que le diagnostic est évoqué</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- L'évolution vers la thrombose de la veine porte est un facteur pronostic défavorable</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- La sphincterotomie endoscopique est une possibilité thérapeutique</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- L'apparition d'une insuffisance rénale est de bon pronostic</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Dans la cholecystite aigüe lithiasique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Une hyperleucocytose supérieure à 18000/mm3 est un signe de gravité</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- La présence d'air dans la paroi vésiculaire en échographie est un signe de gravité</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- L'antibiothérapie systémique doit être débutée en post opératoire</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- La cholecystectomie en urgence dans les 48h est une recommandation de la conférence de consensus de Tokyo dans tous les cas</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- La cholecystotomie est réservée aux formes peu sévères</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) En cas d'abcès hépatique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- La mortalité est proche de 100% en l'absence de traitement efficace</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Le germe le plus souvent en cause est un bacille Gram négatif</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Une cause doit systématiquement être recherchée</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Il n'y a pas de consensus sur la durée du traitement antibiotique</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- La chirurgie reste indiquée en cas d'échec des autres traitements</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Dans l'ischémie intestinale :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Le pronostic est meilleur en cas d'embolie artérielle mésentérique supérieure</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Après résection intestinale le syndrome de grêle court se définit par une longueur résiduelle de 3 mètres</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Selon la sévérité de l'ischémie, les lésions de la paroi intestinale régressent ou évoluent vers la sténose ou la nécrose</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- L'obstruction veineuse du système porte se complique rarement de nécrose intestinale</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Le scanner injecté permet d'évaluer les lésions de la paroi de l'intestin et l'étiologie vasculaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) S'agissant de l'appendicite aigüe :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Le scanner est obligatoire pour le diagnostic</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Au stade de plastron appendiculaire le traitement antibiotique prolongé sans appendicectomie d'emblée est recommandé</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- L'appendicite dans sa situation méso-cœliaque donne un tableau équivalent au syndrome de Fitz-Hugh-Curtis</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Un moignon appendiculaire trop long peut être responsable d'une récidive du tableau d'appendicite aigüe</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- La principale complication post-opératoire immédiate est une infection du site opératoire (ISO)</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Le cancer du cardia est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Un carcinome de type épidermoïde</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Favorisé par l'endo-brachy-oesophage</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- De meilleur pronostic que le cancer de l'antre gastrique</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- Favorisé par le méga-oesophage</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Utilement classé en 3 catégories en fonction de sa situation par rapport à la ligne Z</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Dans la thrombose veineuse aigüe mésentérique supérieure :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- La résection de l'intestin infarci est toujours indiquée en urgence</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Un traitement anticoagulant doit être instauré en urgence</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Une aéro-portie radiologique est un signe de gravité</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Un bilan de thrombophilie est nécessaire</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- La mortalité est inférieure à celle observée dans les ischémies artérielles</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Le cancer de l'estomac :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Représente le 1er cancer digestif au Maroc</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Le principal facteur de risque est l'infection à papillomavirus</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Le traitement endoscopique est toujours indiqué en première intention</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Le type histologique est un facteur pronostic</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- La gastrectomie des 4/5 donne le même résultat oncologique que la gastrectomie totale dans le cancer de l'antre gastrique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) S'agissant du cancer gastrique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- La topographie la plus fréquente est la région antro-pylorique</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- La variété à type de linite gastrique est caractérisée par la présence d'un stroma abondant avec des cellules en bague à chaton</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Il correspond à la transformation maligne d'une tumeur stromale</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Il complique un reflux gastro-oesophagien dans sa localisation antro-pylorique</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- L'exérèse chirurgicale est le seul traitement à visée curative</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) S'agissant du cancer épidermoïde de l'œsophage :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Il est habituellement situé entre 15 et 40 centimètres des arcades dentaires</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Dans sa topographie thoracique moyenne l'évolution naturelle se fait vers l'envahissement de la bronche souche gauche</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Le pronostic est meilleur dans la topographie cervicale</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- La radio-chimiothérapie est le seul traitement à visée curative</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- La recherche d'un carcinome bronchique associé est systématique dans le bilan</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Le syndrome de Mirizzi :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- Correspond à une compression de la vésicule biliaire par un calcul du cholédoque</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- Entraine une dilatation de la partie terminale du cholédoque</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- S'accompagne d'un ictère avec élévation de la bilirubine conjuguée et des phosphatases alcalines</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- Peut aboutir à une fistule cholecysto-cholédocienne</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- Est une complication de la cholecystite</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) Le plastron appendiculaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- Est une forme compliquée d'appendicite</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- Justifie un traitement antibiotique prolongé après l'appendicectomie</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Correspond au diagnostic différentiel de cancer du côlon droit chez le sujet âgé</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Peut évoluer vers une péritonite secondaire</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- Est la seule indication à une appendicectomie différée dans l'appendicite aigüe</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) Le carcinome hépato-cellulaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- Représente 90% des tumeurs primitives du foie</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- Se développe sur foie de cirrhose dans moins de 50% des cas</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- Son marqueur biologique est l'antigène carcino-embryonnaire</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- Peut se compliquer de rupture intra-péritonéale</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- Le dépistage doit être systématique en cas de cirrhose connue</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) Les métastases des cancers colo-rectaux (CCR) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- Surviennent dans 40 à 60% des CCR</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- Sont isolées dans 50% des cas</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- Leur découverte est synchrone du diagnostic du CCR dans 30% des cas</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- Leur destruction par radio-fréquence est efficace pour les lésions de moins de 3 centimètres</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- La survie à 5 ans est de l'ordre de 40 à 50% après résection</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) L'adénome hépatocytaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- Est développé aux dépens des cellules de Kupfer</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- Chez la femme jeune, la découverte d'un adénome hépatocytaire contre-indique les contraceptifs oraux</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- La rupture hémorragique peut être une complication révélatrice</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- Le risque de dégénérescence justifie la résection chirurgicale des adénomes de plus de 5 centimètres de diamètre chez l'homme</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- Le diagnostic peut nécessiter une biopsie per-cutanée sous échographie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S6" "Pathologie_de_l_appareil_digestif" "ADC2018R" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['A', 'B', 'E'],
+    q2: ['B', 'C'],
+    q3: ['E'],
+    q4: ['E'],
+    q5: ['A', 'B', 'C', 'E'],
+    q6: ['C', 'E'],
+    q7: ['A', 'B', 'C', 'E'],
+    q8: ['C'],
+    q9: ['A'],
+    q10: ['A', 'C', 'E'],
+    q11: ['B'],
+    q12: ['A', 'C'],
+    q13: ['C'],
+    q14: ['C'],
+    q15: ['A', 'C', 'D'],
+    q16: ['B', 'C', 'D'],
+    q17: ['A', 'B'],
+    q18: ['A', 'B', 'C', 'D', 'E'],
+    q19: ['A', 'B', 'C', 'D', 'E'],
+    q20: ['B', 'D', 'E'],
+    q21: ['B', 'E'],
+    q22: ['B', 'C', 'D', 'E'],
+    q23: ['D', 'E'],
+    q24: ['A', 'B', 'E'],
+    q25: ['A', 'B', 'E'],
+    q26: ['C', 'D', 'E'],
+    q27: ['A', 'C', 'D', 'E'],
+    q28: ['A', 'D', 'E'],
+    q29: ['A', 'B', 'C', 'D', 'E'],
+    q30: ['A', 'B', 'C', 'D', 'E'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersADC2018R'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

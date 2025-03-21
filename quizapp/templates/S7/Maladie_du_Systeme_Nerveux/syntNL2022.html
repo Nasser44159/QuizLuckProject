@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="NL2022">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Un patient de 78 ans, ayant comme ATCD une HTA avec diabète type 2 se présente pour une hémiplégie totale proportionnelle gauche sans troubles sensitifs depuis 3 heures :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Le territoire vasculaire suspecté est celui de l'artère cérébrale moyenne profonde droite</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- La TDM cérébrale faite chez cette patiente peut être normale</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- La thrombolyse peut être proposée pour cette patiente</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- En prévention secondaire, une anti agrégation doit être prescrite</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Un bilan lipidique n’est pas nécessaire dans son cas</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Une patiente de 32 ans, se présente en consultation pour des douleurs fronto-orbitaires pulsatiles avec nausées et phonophobie qui durent 24 heures. Elles se répètent plusieurs fois par mois depuis 03 ans.</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Vous suspectez une névralgie du trijumeau</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- La mastication peut déclencher la céphalée</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Une anomalie à l’examen neurologique doit conduire à une exploration radiologique</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Il s'agit d'une céphalée primaire si l'examen neurologique est normal</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Le traitement de première intention est la Carbamazépine</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Devant des céphalées en casque à type de pression sans autres signes associés, qui durent 05 à 07 jours et avec un examen neurologique sans anomalies. Quel est le premier diagnostic à évoquer devant ce tableau clinique ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Un processus intracérébral</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Une maladie de Horton</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Une migraine</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Une céphalée de tension</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Une thrombophlébite cérébrale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Chez un patient de 45 ans, sans antécédents pathologiques, altéré sur le plan général avec une notion d’anorexie, amaigrissement et sueurs nocturnes depuis 01 mois et se présentant pour céphalées fébriles, vomissements et photophobie sans troubles de la conscience ni convulsions ni déficit sensitivo-moteur à l’examen neurologique. Quel est le diagnostic à évoquer ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Tumeur cérébrale</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Méningite</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Sclérose en plaques</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Migraine</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Encéphalite</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Comment confirmer votre diagnostic positif et étiologique ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Bilan immunologique</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Une Radiographie pulmonaire</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Un électroencéphalogramme</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Une ponction lombaire</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Une sérologie TPHA-VDRL</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) En cas de tabès, on retrouve :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Réflexes ostéotendineux vifs</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Douleurs fulgurantes et des maux perforants plantaires</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Atteinte de la sensibilité vibratoire</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Signe d’Argyll-Robertson</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Une sérologie TPHA VDRL positive</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Les manifestations neurologiques au stade SIDA :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Leucoencéphalite multifocale progressive</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Méningite à cryptococoques</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Myélopathie vacuolaire</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Démence</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Polymyosite</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Chez un patient suivi pour HIV avec un taux de CD4 < 50/mm3 et qui présente un syndrome d'HTIC avec hémiplégie gauche, quels sont les diagnostics à évoquer ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Cryptococcose neuro-méningée</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Troubles neurocognitifs associés au VIH</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Encéphalite à Cytomégalovirus</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Syndrome inflammatoire de restauration immunitaire</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Lymphome primitif du système nerveux central</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Un patient de 50 ans, suivi pour diabète type 2 depuis 15 ans se présente en consultation de Neurologie suite à l’apparition depuis 01 année de douleurs à type de brûlures de la plante des pieds et depuis 03 mois, des fourmillements des membres supérieurs et troubles de la marche avec chutes fréquentes. A l’examen neurologique, vous trouvez une tétraparésie à 4/5 avec hypotonie, amyotrophie et abolition des réflexes ostéo tendineux ainsi qu’une hypoesthésie en gants et chaussettes. Quel est le premier diagnostic à évoquer ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Une compression médullaire lombo-sacrée</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Une sclérose latérale amyotrophique</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Une polyradiculonévrite chronique</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Une sclérose en plaques</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Une polyneuropathie sensitivo-motrice longueur-dépendante</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Suite cas clinique 4 : Quel(s) est (sont) les examens complémentaires à demander pour confirmer votre diagnostic :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Une IRM médullaire</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Un électroneuromyogramme</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Une ponction lombaire</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Une IRM cérébrale</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Aucun examen complémentaire n’est nécessaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Madame F, 34 ans, tabagique, consulte aux urgences pour l’apparition de paresthésies des deux pieds depuis 3 jours. Elle ressent aussi une faiblesse pour monter les escaliers depuis 24 heures avec une tendance à accrocher le pied droit à la montée des escaliers. Son examen clinique montre une ataxie, avec un déficit moteur proximodistal bilatéral des deux membres inférieurs. Ce tableau clinique fait évoquer (une ou plusieurs propositions) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Une sclérose latérale amyotrophique</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Une sclérose en plaque</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Une myasthénie</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Un syndrome de Guillain Barré</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Une myopathie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Les examens à effectuer en priorité sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Une IRM cérébrale</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Une ponction lombaire</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Un électromyogramme (ENMG)</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Un électroencéphalogramme (EEG)</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Un écho Doppler des troncs supra aortiques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Vous faites une ponction lombaire, à quel résultat vous attendez-vous ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Une hypoglycorachie</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Une hyperprotéinorachie</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Une PL normale, cela ne remet pas définitivement en cause le diagnostic</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Une absence de cellules</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Une hypercytose autour de 200</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Le diagnostic du syndrome de Guillain barré se confirme. Vous souhaitez débuter un traitement, quelles sont les possibilités ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Échanges plasmatiques</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Immunoglobulines</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Corticoïdes en bolus</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Aucun traitement n’est efficace</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Antibiothérapie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Mlle N, droitière, âgée de 18 ans, vous est adressée pour une chute avec perte de connaissance et secousses des 4 membres. Quels signes faut-il chercher à l’interrogatoire en faveur d’une crise généralisée tonico-clonique ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Bourdonnements dans les oreilles</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Amnésie de la phase post critique</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Morsure latérale de la langue</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Tremulations généralisées</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Contraction tonique généralisée précédant les secousses cloniques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) La patiente vous rapporte que la perte de connaissance a été précédée d’une sensation épigastrique ascendante. À son réveil, elle avait du mal à trouver ses mots, se plaignant de douleurs musculaires diffuses et d’une douleur au niveau de sa langue. Quelle est votre hypothèse diagnostique principale ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Syncope convulsivante</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Crise focale secondairement généralisée</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Accident ischémique transitoire</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Crise généralisée tonico-clonique</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Crise d’absence</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Vous retenez le diagnostic de quelle épilepsie ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Épilepsie temporale gauche</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Épilepsie temporale droite</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Épilepsie frontale gauche</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Épilepsie frontale droite</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Épilepsie occipitale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Un patient de 68 ans, droitier qui consulte pour un tremblement intermittent du membre supérieur droit. Quels éléments du tremblement vous orientent vers un tremblement parkinsonien ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Tremblement de repos</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Tremblement d’action</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Tremblement du chef</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Tremblement régulier à 6 Hz</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Tremblement proximal</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Quels éléments recherchez-vous à l’examen pour conforter votre hypothèse du syndrome parkinsonien ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Abolition des réflexes ostéotendineux</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Signe de Babinski</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Hyperkinésie</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Bradykinésie</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Akinésie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Vous discutez avec un examen clinique minutieux un syndrome parkinsonien dans le cadre d’une maladie de parkinson. Quel argument manque-t-il pour confirmer votre hypothèse de maladie de parkinson ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Chutes précoces fréquentes</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Ophtalmoplégie</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Troubles cognitifs</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Troubles dysautonomiques</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Réponse positive à la L Dopa</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) La myasthénie auto-immune se caractérise par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Touche souvent les adultes</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Est liée à un bloc postsynaptique</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Une Fatigabilité douloureuse chronique</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- L’examen neurologique peut être normal</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Son évolution est chronique et imprévisible</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Les médicaments antiépileptiques servent à réguler l’activité de certaines zones du cerveau afin :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- d’éviter le déclenchement de nouvelles crises d’épilepsie</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- d’atténuer les symptômes quand une crise se déclare</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- de supprimer définitivement les neurones du foyer épileptogène</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- de transformer une épilepsie partielle en épilepsie généralisée plus facile à maîtriser</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- de transformer une épilepsie généralisée en épilepsie partielle plus facile à maîtriser</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Indiquer parmi les suivants, le(s) mécanisme (s) d’action des antiépileptiques :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Blocage des canaux sodiques</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Blocage des canaux calciques</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Blocage des canaux chlore</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Ouverture des canaux potassiques</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Fermeture des canaux chlore</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) La carbamazépine :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- agit principalement sur les canaux calciques voltage dépendant ;</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- augmente la libération du glutamate</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- est douée des propriétés labilisantes des membranes neuronales</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- est métabolisée par le CYP 450 2D6</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- est un inducteur de l’activité du CYP 450 3A4</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Indiquer parmi les suivants la (les) proposition (s) exacte (s). L’action antiépileptique peut être obtenue par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- l’inhibition de la recapture du GABA (activation présynaptique)</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- l’inhibition de la GABA-transaminase, enzyme de dégradation du GABA.</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- par la potentialisation de l’action du GABA après sa fixation sur le récepteur GABAA (potentialisation post-synaptique).</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- l’inhibition de la libération de glutamate</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- par la stimulation des canaux calciques neuronaux voltage-dépendants</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S7" "Maladie_du_Systeme_Nerveux" "NL2022" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['A', 'B', 'C', 'D'],
+    q2: ['C', 'D'],
+    q3: ['D'],
+    q4: ['B'],
+    q5: ['B', 'D'],
+    q6: ['B', 'C', 'D', 'E'],
+    q7: ['A', 'B', 'C', 'D', 'E'],
+    q8: ['A', 'C', 'D', 'E'],
+    q9: ['E'],
+    q10: ['B'],
+    q11: ['D'],
+    q12: ['B', 'C'],
+    q13: ['B', 'C', 'D'],
+    q14: ['A', 'B'],
+    q15: ['B', 'C'],
+    q16: ['B'],
+    q17: ['A'],
+    q18: ['A', 'D'],
+    q19: ['D', 'E'],
+    q20: ['E'],
+    q21: ['A', 'B', 'D', 'E'],
+    q22: ['A', 'B'],
+    q23: ['A', 'B'],
+    q24: ['E'],
+    q25: ['A', 'B', 'C', 'D'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersNL2022'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script><script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

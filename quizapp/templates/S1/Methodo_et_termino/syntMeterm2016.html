@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+
+        <div class="quiz-title">
+            <h1>Methodologie et Terminologie 2016</h1>
+            <p></p>
+        </div>
+
+
+<form id="quiz-form">
+<input type="hidden" name="file_name" value="Meterm2016">
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Le suffixe ...ECTASIE signifie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Augmentation de taille</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Augmentation de volume</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Dilatation</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Hernie</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Le suffixe ...MEGALIE signifie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Augmentation de production</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Augmentation de taille</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Augmentation de volume</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Dilatation</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Le suffixe ...IATRE signifie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Patient</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Couleur</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Forme</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Médecin</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Le (s) terme (s) utilisé(s) pour désigner une production excessive de sueur au niveau des mains et des pieds :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Acrohyperhidrose</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Acroanhydrose</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Acrophylodrose</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Acrohrydrose</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Acroérythrose</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Le (s) terme (s) utilisé(s) pour désigner un signe ou symptôme, spécifique d'une maladie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Pathognomonique</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Spécifique</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Synonymique</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Symptomatique</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Le (s) terme (s) utilisé(s) pour désigner le vieillissement prématuré de la peau des mains et des pieds :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Acrocyanose</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Acrogérie</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Hippocratisme digital</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Acromégalie</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Le (s) terme (s) utilisé(s) pour désigner une respiration lente :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Hypopnée</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Apnée</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Tachypnée</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Bradypnée</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Oligopnée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Le (s) terme (s) utilisé(s) pour désigner un excès de gaz carbonique dans le sang :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Hyperazotémie</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Hypercapnie</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Hypercarbonémie</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Hypernatrémie</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Le (s) terme (s) utilisé(s) pour désigner l'inflammation de la vésicule et des voies biliaires :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Angiogysite</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Cholécystite</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Angiocholécystite</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Cystite</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Le (s) terme (s) utilisé(s) pour désigner la modification chirurgicale du pylore :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Pylorectomie</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Pylorastasiermie</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Pylorentrahaphie</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Pyloropénésie</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Le (s) terme (s) utilisé(s) pour désigner l'abouchement entre l'estomac et l'intestin grêle :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Gastrocolonastomie</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Strocoleclectomie</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Gastroentérostomie</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Gastrectomie</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Le (s) terme (s) utilisé(s) pour désigner l'étude visuelle de la vessie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Cystographie</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Cystométrie</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Cystoscopie</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Cystocèle</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Le (s) terme (s) utilisé(s) pour désigner l'inflammation des testicules :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Pyélite</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Orchite</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Cystite</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Vésiculite</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Le (s) terme (s) utilisé(s) pour désigner les pertes vaginales blanches chez la femme :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Leucopathie</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Leucocytopathie</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Leucorrhée</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Colporrhée</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Le (s) terme (s) utilisé(s) pour désigner Pertes de sang d'origine utérine au cours du mois :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Colpohystérorrhagie</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Métrorragie</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Ménométrorragie</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Hémoménorragie</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Le (s) terme (s) utilisé(s) pour désigner une affection caractérisée par des incrustations de calcium au niveau des cartilages articulaires :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Arthrocalcinose</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Hypercalcifarthrite</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Chondrocalcinose</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Calciarthrose</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Le (s) terme (s) utilisé(s) pour désigner une excroissance osseuse :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Ostéocalcinophyte</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Ostéophyte</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Ostéocroissance</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Ostéosyndesmophyte</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Le terme(s) utilisé(s) pour désigner une douleur aiguë du genou :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Gonadalgie</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Gonaldynie</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Gonalgie</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Gonadyne</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Le terme(s) utilisé(s) pour désigner des taches cutanées sans couleur, recouvertes de petites lamelles épidermiques :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Achromodesquamative</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Érythématodesquamative</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Chromodesquamative</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Érythrodesquamative</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Le terme(s) utilisé(s) pour désigner un développement exagéré des poils :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Hypertrichose</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Trichosthésie</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Polychrose</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Mégatrichose</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Le terme(s) utilisé(s) pour désigner une maladie se traduisant par une couleur rouge de la peau :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Érythrodermie</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Érythrose</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Vasodilatation</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- Cyanose</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Le terme(s) utilisé(s) pour désigner une inflammation de la tunique externe du cœur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Myocardite</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Endocardite</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Épicardite</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Péricardite</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Le terme(s) utilisé(s) pour désigner une maladie caractérisée par l'existence de globules rouges de tailles variables :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Anisocytose</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Poïkilocytose</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Leucocytose</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Leucopénie</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Le terme(s) utilisé(s) pour désigner une atteinte inflammatoire, de plusieurs racines nerveuses rachidiennes, et nerfs périphériques :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Polynévrite</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Polyradiculonévrite</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Polyradiculite</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Polyradiculonévropathie</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Le terme(s) utilisé(s) pour désigner une augmentation du taux de protéines dans le liquide céphalo-rachidien :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Hyperprotéinorachie</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Hyperprotéinémie</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Hyperprotéinurie</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Hyperprotéinoencéphalie</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Conditionnement. Est-il vrai que :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- Le réflexe conditionnel a été mis au jour par Skinner</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- Selon Watson les comportements peuvent s'expliquer hors de la conscience</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- L'on doit à Pavlov le conditionnement par renforcement et punition</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- Selon Ebbinghaus les faits ou les idées peuvent être associés, dans la pensée les uns aux autres, et aboutir à une forme d'apprentissage mise en mémoire</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- En bonne logique le véritable apprentissage est celui qui se passe toujours du conditionnement</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) L’ouverture à la connaissance permet l’acquisition d’une culture générale utile à la compréhension des phénomènes qui nous entourent. Pour être ouvert à la connaissance il faut être :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- Idéaliste</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- Intellectuel</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Curieux</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Conventionnel</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- Eclectique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) Mes performances intellectuelles à l’Université M6SS passent par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- Une maîtrise en réflexe de ma pratique de la langue de l’enseignement</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- Une confiance en moi que j’acquière par un travail personnel approfondi et constant</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) Probabilités – Statistiques – Analyse – Congruence, constituent des approches mathématiques différentes, chacune faisant appel de façon privilégiée à une forme cognitive définie au sein du schéma des formes cognitives (triKala). Dites s’il est vrai que :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- Les probabilités mettent en œuvre une réflexion de nature conductive</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- Les statistiques mettent en œuvre une réflexion de nature inductive</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- La congruence met en œuvre l’heuristique</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- L’analyse met en œuvre une réflexion de nature inductive</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- Les mathématiques appartenant au domaine de la logique, seule la forme cognitive logique est concernée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) On entend par méthodologie d’apprentissage : un ensemble de règles validées rendant cohérente une démarche de recherche orientée vers la découverte. La perspective doctorale est d’être en mesure de se situer au niveau heuristique. À mon avis pour atteindre ce stade heuristique il est préférable de privilégier la chronologie des étapes placées selon l’ordre des phases suivantes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- Déductive – Conductive – Inductive</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- Inductive – Conductive – Déductive</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- Conductive – Inductive – Déductive</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- Déductive – Inductive – Conductive</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- Aller directement vers l'heuristique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) Traditionnellement on relient qu'il y a trois objectifs pédagogiques fondamentaux :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- SAVOIR</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- SAVOIR ETRE (Vouloir)</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- SAVOIR FAIRE (Pouvoir)</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- SOUMMISSION</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- SANCTION</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) Alors que la théorie de la psychologie de la forme considérait que les perceptions des objets n'étaient que des représentations linéaires, Wittgenstein a développé, à partir de ce dessin du canard-lapin, la notion d’aspects lesquels sont déterminés par des pensées et des associations (commutations). On parlera plus tard de (Une seule réponse est vraie) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A- Paradigme</li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B- Impulsion</li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C- Scotomisation</li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D- Translation</li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E- Confusion</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) Sachant que les 3 objectifs pédagogiques fondamentaux sont le Savoir, le Vouloir et le Pouvoir (S.V.P.), et que les verbes entreprendre, appariérer, comprendre, approprier, appréhender, prendre et apprendre ont été placés dans le triklâ (schéma ci-après) de façon aléatoire, vous devez être en mesure de dire quelles sont les 2 propositions vraies (verbes placés dans les bonnes cases) indiquées en couples ci-dessous et qui figurent en bonne place dans schéma sémiotique de l'apprentissage ci-après :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A- Prendre et appariérer</li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B- Comprendre et s'approprier</li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C- Entreprendre et appréhender</li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D- Apprendre et prendre</li>
+            
+                    <li><input type="checkbox" id="q33e" name="q33" value="E"> E- Apprendre et comprendre</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) Est-il vrai que :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A- Pendant une pause organisée lors d’un apprentissage, le cerveau continue à travailler sur ce même apprentissage.</li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B- L’utilisation du Smartphone durant un cours est utile pour s’extraire du stress naturel inhérent à tout apprentissage.</li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C- La valeur estimée du montant d’une minute d’enseignement pour une classe de 25 étudiants est inférieure à 10 DIIS.</li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D- L’ouverture par la pratique des langues optimise la culture générale par conséquent l’accès au savoir, au savoir-faire, et au savoir être.</li>
+            
+                    <li><input type="checkbox" id="q34e" name="q34" value="E"> E- Le proverbe suivant s’applique à l’Apprentissage intelligent « Rien ne sert de courir, il faut partir à point ».</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) Les indices utiles de mémorisation estimés sont, respectivement, pour :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A- La lecture de : 10 %</li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B- Ce que l’on entend (cours oral) de : 40 %</li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C- Une diapositive commentée en Power Point de : 50 %</li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D- La pratique commentée en TWI de : 70 %</li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E- Les expériences de la vie de : 100 %</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+         
+
+        
+
+       
+    
+    
+    
+</div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S1" "Methodo_et_termino" "Meterm2016" %}';">Réessayer tout le Quiz</button>
+</div>
+
+<div id="details-section" class="details-section" style="display: none;">
+    <h3>Tableau des questions</h3>
+    <div class="question-links" id="question-links"></div>
+</div>
+
+
+
+
+<!-- Section pour afficher le tableau avec les numéros encerclés -->
+<div id="details-section" style="display:none;">
+    <h2>Questions :</h2>
+    <div id="question-links" class="question-links">
+        <!-- Le tableau de numéros va être généré ici -->
+    </div>
+</div>
+
+<script>
+const correctAnswers = {
+q1: ['C'],
+q2: ['B', 'C'],
+q3: ['D'],
+q4: ['A'],
+q5: ['A'],
+q6: ['C'],
+q7: ['D'],
+q8: ['B'],
+q9: ['E'],
+q10: ['D'],
+q11: ['C'],
+q12: ['C'],
+q13: ['B'],  
+q14: ['C'],  
+q15: ['B'],
+q16: ['C'],
+q17: ['B'],
+q18: ['C'],
+q19: ['A'],
+q20: ['A'],
+q21: ['A'],
+q22: ['D'],
+q23: ['A'],
+q24: ['B'],
+q25: ['A'],
+q26: ['B', 'D'],
+q27: ['C'],
+q28: ['A', 'B', 'C'],
+q29: ['A', 'B', 'C'],
+q30: ['C'],
+q31: ['A', 'B', 'C'],
+q32: ['A'],
+q33: ['A', 'D'],
+q34: ['A', 'D', 'E'],
+q35: ['A', 'D', 'C'],
+ };
+
+ // Variable globale pour stocker l'intervalle du timer
+let timerInterval;
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersMeterm2016'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

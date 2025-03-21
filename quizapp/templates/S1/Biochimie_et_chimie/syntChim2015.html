@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+        <div class="quiz-title">
+            <h1>Chimie 2015</h1>
+            <p></p>
+        </div>
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+
+<form id="quiz-form">
+<input type="hidden" name="file_name" value="Chim2015">
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Parmi les propositions suivantes, donner la ou les réponse(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Tous les isomères de cette formule brute possèdent un centre chiral</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Le nombre d'insaturation est de 1 pour cette formule brute</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Le nombre d'insaturation est de 0 pour cette formule brute</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Cette formule brute peut correspondre à un maximum de 5 isomères</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Cette formule brute peut correspondre à un maximum de 4 isomères</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Soit le 3-amino-5-bromopent-2-ène. Parmi les propositions suivantes, donner la ou les réponse(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Cette molécule admet une isomérie géométrique</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Le groupement –CH₂–CH₂Br est prioritaire par rapport au groupement –NH₂</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Cette molécule possède un axe de chiralité</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Cette molécule possède un centre chiral</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Cette molécule est Z</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Soit la molécule suivante : 1-amino-1-fluorométhanol. Parmi les propositions suivantes, donner la ou les réponse(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Dans la règle de Cahn Ingold et Prelog (CIP) OH > F > CH₂ > H</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Dans la règle de (CIP) F > OH > CH₂ > H</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Dans la règle de (CIP) CH₂ > F > OH > H</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Cette molécule est de configuration absolue R</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Cette molécule admet un axe de chiralité</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Soit la molécule suivante correspondant à l'acide 2,3-dihydroxybutanoïque. Parmi les propositions suivantes, donner la ou les réponse(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Cette molécule est chirale</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Cette molécule est de configuration 2S,3R</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Cette molécule est de configuration 2S,3S</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Cette molécule est de configuration 2R,3S</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Cette molécule est de configuration R*,S*</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Soit le 2R-aminopropanol en projective et 2 représentations de Fisher. Parmi les propositions suivantes, donner la ou les réponse(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- C'est la représentation de Fisher 3 qui correspond à la molécule 1</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Le stéréoisomère 1 est de configuration D</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Les stéréoisomères 2 et 3 sont des énantiomères</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Les stéréoisomères 1 et 2 sont des diastéréoisomères</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Le stéréoisomère 3 est de configuration L</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Soit la molécule 1 sous ses 2 configurations possibles : (aR et aS). Parmi les propositions suivantes, donner la ou les réponse(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- La configuration aS de la molécule 1 correspond au stéréoisomère 3</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- La configuration aS de la molécule 1 correspond au stéréoisomère 3</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Les stéréoisomères 2 et 3 sont des énantiomères</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- La chiralité de la molécule 1 est induite par un axe de chiralité</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- La chiralité de la molécule 1 est induite par un centre de chiralité</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Parmi les propositions suivantes, donner la ou les réponse(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Il s'agit d'une réaction de substitution nucléophile</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Il s'agit d'une réaction d'addition nucléophile</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Il s'agit d'une réaction d'addition électrophile</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Il s'agit d'une réaction de substitution électrophile</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Cette réaction obéit à la règle de Markovnikov</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Parmi les propositions suivantes, donner la ou les réponse(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- L'intermédiaire réactionnel correspond à un carbocation secondaire</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- L'intermédiaire réactionnel correspond à un carbocation tertiaire</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Le produit obtenu est le 1,2-dibromopropane</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Le produit obtenu est le 1-bromo-2-méthylpropane</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Le produit obtenu est le 2-bromo-2-méthylpropane</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Le Toluène (C₆H₅ – CH₃) réagit avec une mole de chlorure d'éthyle en présence de chlorure d'Aluminium pour donner majoritairement le composé 4. Parmi les propositions suivantes, donner la ou les réponse(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Il s'agit d'une réaction de substitution nucléophile</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Il s'agit d'une réaction de substitution électrophile</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Il s'agit d'une alkylation de Friedel et Crafts</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Il s'agit d'une addition de Hofmann</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Il s'agit d'une acylation de Friedel et Crafts</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Parmi les propositions suivantes, donner la ou les réponse(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- D'après les règles de Holleman, nous aurons une apparition des charges partielles négatives en position méta</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- L'orientation de la réaction obéit aux règles de Holleman</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Le réactif électrophile de la réaction est l'ion acylium</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Le réactif électrophile de la réaction est le chlorure d'aluminium</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Le réactif électrophile de la réaction est le toluène</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Parmi les propositions suivantes, donner la ou les réponse(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Le produit 4 obtenu est le 3-éthyltoluène</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Le produit 4 obtenu est le 4-éthyltoleuène</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Le produit 4 obtenu est le 1,2-dichlorotoluène</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Le produit 4 obtenu est le 3-chlorotoluène</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Le produit 4 obtenu est le 4-chlorotoluène</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Parmi les propositions suivantes, donner la ou les réponse(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Cette réaction obéit à un mécanisme d'addition nucléophile</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Cette réaction obéit à un mécanisme de substitution électrophile</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Cette réaction s'accompagne de l'élimination d'une molécule d'éthanol</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Cette réaction correspond à une estérification</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Parmi les propositions suivantes, donner la ou les réponse(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Le composé obtenu 5 est l'acétamide</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Le composé obtenu 5 est un amide disubstitué</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Le composé obtenu 5 est le N-éthyléthylamide</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Le composé obtenu 5 est l'acétaldéhyde</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Le bromure de benzyle (C₆H₅–CH₂Br) réagit avec l'éthylate de sodium pour donner le composé 6. Parmi les propositions suivantes, donner la ou les réponse(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- L'éthylate de sodium est le réactif électrophile dans cette réaction</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Cette réaction obéit à un mécanisme d'addition élimination</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Cette réaction obéit à un mécanisme de substitution nucléophile</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Cette réaction s'accompagne de l'élimination d'une molécule de bromure de sodium</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Cette réaction est une substitution électrophile</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Parmi les propositions suivantes, donner la ou les réponse(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Le composé obtenu 6 est un alcane</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Le composé obtenu 6 est un éther</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Le composé obtenu 6 est le foxyde de benyle et d'éthyle</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Le composé obtenu 6 est le foxyde d'éthyle</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Le composé obtenu 6 est le foxyde de benyle</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Parmi les propositions suivantes, cochez la (les) proposition(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- La matière est tout ce qui possède une masse et qui occupe de l'espace</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Un solide n’a ni volume ni forme définis</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- La matière existe sous trois états physiques différents</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Un liquide possède un volume et une forme définis</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- C'est l’énergie qui cause les changements que subit la matière</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Un élément chimique est représenté par ZX. Pour les éléments suivants, quelles sont les propositions exactes ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- 4He++ possède 4 protons, 2 électrons et 5 neutrons</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- 26Fe possède 26 protons, 2 électrons et (A - 26) neutrons</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- 16O possède 16 protons, Z électrons et 2 neutrons</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- 24He++ possède 26 protons, (Z + 2) électrons et A - 26 neutrons</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- 32S- possède 2 protons, (Z + 2) électrons et (32 + Z) neutrons</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Parmi les propositions suivantes, cochez la (les) proposition(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Deux électrons d'un même atome peuvent avoir 4 nombres quantiques identiques</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Il est nécessaire de connaître les 4 nombres quantiques associés à un électron pour connaître l'orbitale atomique dans laquelle il se trouve</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Aux orbitales définies par n = 4 et l = 3 correspondent 5 orbitales f</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Le nombre quantique m relatif à un électron défini par l peut prendre la valeur -3</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Le nombre quantique ml relatif à un électron d'une orbitale 4f peut prendre la valeur -4</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Parmi les propositions suivantes, cochez la (les) proposition(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- La forme d'une orbitale atomique dépend du nombre quantique principal n</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- La fonction d'onde associée à un électron est une quantité mesurable</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Le nombre d'électrons qui dépend du nombre quantique secondaire l</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Chaque case quantique correspond à une orbitale atomique</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Une orbitale atomique peut contenir de 2 à 6 électrons</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Parmi les propositions suivantes, cochez la (les) proposition(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Les isotopes d'un élément X ont le même N° atomique Z mais des nombres de masse différents.</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Les isotopes ne diffèrent que par leurs nombre de protons.</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Quand un atome absorbe un rayonnement de fréquence ν (absorption ou excitation), son énergie augmente de hν.</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Dans la structure électronique des atomes, la sous-couche 4f se remplit avant 5d.</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Les orbitales atomiques (p) présentent une symétrie sphérique par rapport au noyau.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Dans le spectre d'émission de l'atome d'hydrogène :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- La transition la plus énergétique correspond à la série de BALMER</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- La transition la moins énergétique de la série de PASCHEN correspond à la transition de n = 3 à n = 1</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Toutes les transitions appartenant à la série de PFUND correspondent à un retour de l'électron sur la couche correspondante à n = 4</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- Toutes les transitions de la série de BALMER appartiennent au domaine du visible</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Toutes les transitions de la série de BALMER appartiennent aux transitions vers la couche K (n = 1)</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Quelle est la configuration de l'azote (Z = 7) dans sa forme excitée ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- 1s² 2s² 2p² 2p¹</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- 1s² 2s² 2p¹ 2p¹</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- 1s² 2s² 2p²</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- 1s² 2s¹ 2p²</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- 1s¹ 2s² 2p²</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Parmi les propositions suivantes, cochez la (les) proposition(s) exacte(s) pour l'uranium 235U :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Cet atome est constitué de 235 nucléons, 92 protons et 92 électrons</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Cet atome est constitué de 92 neutrons, 235 protons et 235 électrons</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Cet atome est constitué de 235 neutrons, 92 protons et 92 électrons</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Cet atome est constitué de 143 neutrons, 235 nucléons et 92 protons</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Cet atome est constitué de 143 neutrons, 92 protons et 143 électrons</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Quelle est la formule électronique de l'étain Sn (Z = 50) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- 1s² 2s² 2p⁶ 3s² 3p⁶ 3d¹⁰ 4s² 4p⁶ 4d¹⁰ 5s² 5p²</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- 1s² 2s² 2p⁶ 3s² 3p⁶ 3d¹⁰ 4s² 4p⁶ 5s² 5d¹⁰ 5p²</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- 1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 4p⁶ 4d¹⁰ 5s² 5p²</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- 1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 4p⁶ 5s² 5d¹⁰ 6s² 6p²</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- 1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 4p⁶ 5s² 4d¹⁰ 5p²</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Donner le nombre de valence de ces éléments : a) O ; b) ZnCa²+ ; c) SeBa.</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- a) n_v = 6 ; b) n_v = 2 ; c) n_v = 6</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- a) n_v = 4 ; b) n_v = 2 ; c) n_v = 4</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- a) n_v = 8 ; b) n_v = 2 ; c) n_v = 8</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- a) n_v = 6 ; b) n_v = 0 ; c) n_v = 6</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- a) n_v = 4 ; b) n_v = 4 ; c) n_v = 2</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Quelle est la longueur d'onde de DE BROGLIE (en mètres) d'un électron se déplaçant à une vitesse de 7,55•10^7 m/s ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- λ = 9,7•10^-11 m</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- λ = 9,7•10^-12 m</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- λ = 9,7•10^-9 m</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- λ = 5,5•10^-9 m</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- λ = 7,5•10^-11 m</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) Quelle(s) configuration(s) viole(nt) la règle de Hund ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- [↑][↑][↑][ ][ ]</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- [↑][↓][↑][↓][↑]</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- [↑][↓][↓][↑][ ]</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- [↑][↓][↑][ ][ ]</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- [↑][↑][↑][↑][↑]</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) Cocher le bon classement par ordre croissant des rayons atomiques :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- Le rayon atomique diminue de gauche à droite et augmente du haut au bas</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- [Mg (Z=12)] < [K (Z=19)] < [F (Z=9)]</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- [F (Z=9)] < [Mg (Z=12)] < [K (Z=19)]</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- [Mg (Z=12)] < [F (Z=9)] < [K (Z=19)]</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- [K (Z=19)] < [Mg (Z=12)] < [F (Z=9)]</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) Parmi les propositions suivantes, cochez la (les) proposition(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- Dans le modèle de LEWIS, les liaisons chimiques ne sont pas localisées</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- Dans BH₃, les trois électrons de valence du bore sont utilisés et la règle de l'octet est satisfaite</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- Seules les électronegativités suivantes : H (2,1) ; C (2,5) ; N (3,0) ; O (3,5). Une liaison N-H est plus polaire qu'une liaison C-O</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- Une liaison C-N est aussi polaire qu'une liaison N-O</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- Dans O=PCl₃ le phosphore ([Ne] 3s² 3p¹) obéit à la règle de l'octet</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) Parmi les formules suivantes, indiquer la formule de LEWIS exacte :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- HNO₃</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- CO₂</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- HN₃C</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- PH₃</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- H₂S</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) Parmi les propositions suivantes, cochez la (les) proposition(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- Une orbitale moléculaire est le produit d'orbitales atomiques d'atomes différents</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- Une orbitale moléculaire anti-liante est toujours non occupée</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- Une orbitale moléculaire de type π résulte d'un recouvrement axial d'orbitales p perpendiculaires à l'axe internucléaire</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- Une orbitale hybride est la combinaison linéaire d'orbitales atomiques d'un même atome</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- L'oxygène moléculaire O₂ est une molécule diamagnétique dans laquelle tous les électrons sont appariés. O (Z=8)</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) Parmi ces molécules et leur VSEPR, lesquelles existent et ont la bonne représentation ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A- SH₂ : AX₂</li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B- BH₃ : AX₃</li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C- NH₄⁺ : AX₄</li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D- BF₄⁻ : AX₄</li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E- BeF₂ : AX₂</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) Le pH d'une solution d'un acide dont le pKa vaut 3,8 de concentration 0,1 mol.L⁻¹ vaut :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A- pH = 2,8</li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B- pH = 4,8</li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C- pH = 1,4</li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D- pH = 1,85</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) Parmi les propositions suivantes, donner la ou les réponse(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A- L'éthylate de sodium est le réactif électrophile dans cette réaction</li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B- Cette réaction obéit à un mécanisme d'addition élimination</li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C- Cette réaction obéit à un mécanisme de substitution nucléophile</li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D- Cette réaction s'accompagne de l'élimination d'une molécule d'iodure de sodium</li>
+            
+                    <li><input type="checkbox" id="q34e" name="q34" value="E"> E- Cette réaction est une substitution électrophile</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) Cocher les équations d'oxydoréduction, parmi les équations suivantes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A- 2H₂ + O₂ → 2H₂O</li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B- MnO₄⁻ + 5Cu⁺ + 8H⁺ → Mn²⁺ + 5Cu²⁺ + 12H₂O</li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C- FeO + Zn → ZnO + Fe</li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D- 2H₂ + O₂ + 4OH⁻ → 2H₂O + 4e⁻</li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E- 2H₂ + 2O₂ → H₂O + 2O</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+
+    <button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S1" "Biochimie_et_chimie" "Chim2015" %}';">Réessayer tout le Quiz</button>
+</div>
+
+</div>
+</div>
+
+<div id="details-section" class="details-section" style="display: none;">
+    <h3>Tableau des questions</h3>
+    <div class="question-links" id="question-links"></div>
+</div>
+
+
+
+
+<!-- Section pour afficher le tableau avec les numéros encerclés -->
+<div id="details-section" style="display:none;">
+    <h2>Questions :</h2>
+    <div id="question-links" class="question-links">
+        <!-- Le tableau de numéros va être généré ici -->
+    </div>
+</div>
+
+<script>
+const correctAnswers = {
+    q1: ['C', 'D'],
+    q2: ['A', 'E'],
+    q3: ['A', 'D'],
+    q4: ['A', 'D'],
+    q5: ['B', 'C', 'E'],
+    q6: ['B', 'C', 'D'],
+    q7: ['C', 'E'],
+    q8: ['B', 'E'],
+    q9: ['B', 'C'],
+    q10: ['B'],
+    q11: ['B'],
+    q12: ['C', 'D'],
+    q13: ['B', 'C'],
+    q14: ['B', 'D'],
+    q15: ['B', 'C'],
+    q16: ['C', 'A', 'E'],
+    q17: ['B', 'D'],
+    q18: ['D'],
+    q19: ['D'],
+    q20: ['A', 'C'],
+    q21: ['B', 'D'],
+    q22: ['E'],
+    q23: ['A', 'E'],
+    q24: ['D'],
+    q25: ['E'],
+    q26: ['C'],
+    q27: ['C'],
+    q28: ['A', 'B'],
+    q29: ['D'],
+    q30: ['D'],
+    q31: ['D'],
+    q32: ['D', 'E'],
+    q33: ['A'],
+    q34: ['B', 'D'],
+    q35: ['A', 'D', 'E']
+};
+
+let loadedAnswers = {}; // Stocke les réponses chargées
+
+// Fonction pour charger les réponses de l'utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersChim2015')); // Récupération des réponses
+
+    if (savedAnswers) {
+        console.log('Réponses récupérées de Chimie2023:', savedAnswers);
+        loadedAnswers = savedAnswers;
+
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const inputElement = document.querySelector(`input[name="${questionName}"]`);
+
+            if (inputElement) {
+                const questionDiv = inputElement.closest('.question-container');
+
+                if (questionDiv) {
+                    console.log(`Question ${questionName} chargée avec les réponses :`, answerData.selected);
+
+                    // Mise en vert des bonnes réponses
+                    correctAnswers[questionName]?.forEach(correctAnswer => {
+                        const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                        if (correctLi) {
+                            correctLi.style.color = 'green';
+                            correctLi.style.fontWeight = 'bold';
+                            correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                        }
+                    });
+
+                    // Affichage des réponses sélectionnées par l'utilisateur
+                    answerData.selected.forEach(selectedAnswer => {
+                        const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                        if (selectedLi) {
+                            selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                        }
+                    });
+
+                    // Désactiver les inputs après affichage
+                    const inputs = questionDiv.querySelectorAll('input');
+                    inputs.forEach(input => input.disabled = true);
+                } else {
+                    console.log(`Impossible de trouver le conteneur pour la question : ${questionName}`);
+                }
+            } else {
+                console.log(`Impossible de trouver l'input pour la question : ${questionName}`);
+            }
+        }
+    } else {
+        console.log('Aucune réponse récupérée de Chimie2023.');
+    }
+}
+
+// Fonction pour générer les cercles dynamiquement selon le nombre de questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    if (!circleContainer) {
+        console.warn("⚠️ Aucun conteneur de cercles trouvé.");
+        return;
+    }
+
+    // Supprimer les cercles existants avant d'en générer de nouveaux
+    circleContainer.innerHTML = '';
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Fonction pour mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (!circle) continue;
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    const scoreElement = document.getElementById('score');
+    if (scoreElement) {
+        scoreElement.textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+    } else {
+        console.warn("⚠️ L'élément #score est introuvable.");
+    }
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+<script src="{% static 'java/question-stats.js' %}" defer></script>

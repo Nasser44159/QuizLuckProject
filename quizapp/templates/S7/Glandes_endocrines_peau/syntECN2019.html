@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="ECN2019">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Les signes cliniques en faveur de ce diagnostic, à rechercher chez cette patiente sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Des douleurs osseuses</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Des douleurs abdominales</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Une fatigabilité musculaire</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Un syndrome polyuro polydipsique</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Des cheveux fins et secs</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Les effets hypercalcémiants de la parathormone (PTH) sont expliqués par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- La mobilisation du calcium osseux</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- L’augmentation de la réabsorption tubulaire du phosphore</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- La diminution de l’activation de la Vit D</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- L’augmentation de l’élimination tubulaire de calcium</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- La diminution de la sécrétion de calcitonine</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Les signes biologiques en faveur de ce diagnostic sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Hyperphosphaturémie</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Hypophosphorémie</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Hypercalcémie</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Hypophosphaturie</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Hyperphosphaturie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Les lésions osseuses à rechercher chez cette patiente sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Une déminéralisation diffuse</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Une chondrocalcinose</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Une ostéite fibrokystique</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Des géodes</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- aucune proposition</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Dans le cadre du bilan étiologique de cette hyperparathyroïdie primaire, quel examen d’imagerie demandez-vous en première intention ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Echographie cervicale</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- TDM cervico thoracique</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Scintigraphie MIBI</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Scintigraphie thyroïdienne</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- IRM cervico thoracique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) L’hyperparathyroïdie primaire peut être causée chez votre patiente par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Un adénome parathyroïdien</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Une hyperplasie diffuse des parathyroïdes</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Un adénome retro-œsophagien</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Un adénome médiastinal</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Aucune proposition</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Les autres causes d’hypercalcémie que vous avez éliminé chez votre patiente sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- La sarcoïdose</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- L’intoxication à la vitamine D</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Le traitement par lithium</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- La maladie de cushing</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Le myélome</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Vous instaurez la prise en charge thérapeutique suivante chez cette patiente :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Une radiothérapie</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Une chimiothérapie</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Une chirurgie</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Une IRA thérapie</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Un traitement médical</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Les signes biologiques en faveur de ce diagnostic sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Hyperphosphorémie</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Hypocalcémie</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Hypophosphorémie</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Hypercalcémie</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- aucune proposition</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Quel est le premier diagnostic à éliminer ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Adénome à prolactine</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Grossesse</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Iatrogénie</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Macro adénome hypophysaire compressif</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Cancer du sein</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Quels sont les médicaments qui peuvent entraîner une hyperprolactinémie ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Les anxiolytiques</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Les neuroleptiques</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Les antiémétiques</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Les antidépresseurs</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Les inhibiteurs de l’enzyme de conversion</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Au bilan, vous notez une hyperprolactinémie à 220 ng/L, à ce stade vous demandez l’exploration radiologique suivante :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Un TEP-scan</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Un scanner cérébral</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Un scanner hypophysaire</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Une IRM hypophysaire</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Une IRM cérébrale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) L’exploration radiologique réalisée retrouve un adénome de 8 mm de diamètre, vous retenez le diagnostic suivant :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Une hyperprolactinémie de déconnexion</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Un microprolactinome</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Un macroprolactinome</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Un incidentalome</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Une métastase</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Le traitement de première intention chez cette patiente est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- La chirurgie</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- La chimiothérapie</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- La radiothérapie</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Les agonistes dopaminergiques</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Les cortico-stéroïdes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Le dépistage du diabète gestationnel s’impose chez cette patiente devant :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- L'âge</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- L'ATCD d'hyperprolactinémie</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- L'hérédité diabétique chez la mère</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- La valeur de l'IMC</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- La notion d'infertilité</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Quel test de dépistage du diabète gestationnel demandez-vous à Mme Soumya ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Glycémie capillaire</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Glycémie à jeun</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Glycémie aléatoire</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Hyperglycémie provoquée orale à 75g de glucose</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- HbA1c</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Tenant compte de ces résultats, vous retenez chez cette patiente :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Un diabète gestationnel</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Une intolérance au glucose</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Une hyperglycémie modérée à jeun</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Un diabète de type 2</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Un bilan normal</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Le diabète de type 2 est une maladie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Aiguë</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Sub-aiguë</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Chronique</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- À caractère héréditaire</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Réversible</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Concernant le diabète de type 1, quelles sont les propositions justes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- touche seulement les enfants et les adolescents.</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- a une composante génétique</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- La prédisposition familiale est plus importante que dans le diabète de type 2.</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- peut s'associer à d'autres maladies auto-immunes</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- de diagnostic tardif</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) L’hypoglycémie chez le diabétique est favorisée par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- L'effort physique intense</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- La corticothérapie</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- L'hyperthyroïdie</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Le saut de repas</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- L'abus d'alcool</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Au cours du coma hyper osmolair, on peut observer :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Une déshydratation</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Une respiration de Kussmaul</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Des convulsions</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- Une hyperosmolarité plasmatique</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Une installation brutalement en quelques heures</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) La neuropathie autonome cardiaque chez le diabétique se manifeste par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Une hypotension orthostatique</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Une hypertension paroxystique</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Une bradycardie permanente</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Une tachycardie permanente</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Un caractère silencieux de l’angor</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) La rétinopathie diabétique est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Une complication microangiopathique du diabète</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Une complication macroangiopathique du diabète</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Présente au moment du diagnostic du diabète de type 1</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Agravée par l'HTA</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Peut entraîner une cécité</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) La surveillance biologique du diabète de type 2 comporte :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- HbA1c tous les 3 mois</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Créatininémie tous les 3 mois</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Bilan lipidique tous les 3 mois</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Micro-albuminurie des 24 heures une fois par an</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Ferritinémie une fois par an</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Vous interprétez le bilan hormonal de ce patient, il s’agit de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Un hypogonadisme hypergonadotrope</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Un hypogonadisme hypogonadotrope</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Un impubérisme d'origine centrale</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Un impubérisme d'origine périphérique</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Un bilan normal</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Quel examen par clinique à visée étiologique demander ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- Une IRM hypophysaire</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- Une TDM hypophysaire</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- Une échographie testiculaire</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- Un caryotype</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- Un caryotype spécifique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) Une HTA Associée à une dysmorphie faciale et à une augmentation de la taille des extrémités, vous évoque :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- Une maladie de Cushing</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- Une maladie de Basedow</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Une maladie d'Hashimoto</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Un syndrome de Conn</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- Une acromégalie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) En cas d'hyperthyroïdie, on observe :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- Une accélération du transit intestinal</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- Une accélération du transit des extrémités</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- Une accélération du rythme cardiaque</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- Une altération des réflexes</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- Une altération des ongles</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) L'hyperthyroïdie se caractérise par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- Une prise de poids malgré une réduction de l'appétit</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- Une perte de poids malgré un appétit conservé voire augmenté</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- Une TSH et des hormones thyroïdiennes T4L et T3L sériques augmentées</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- Une TSH et des hormones thyroïdiennes T4L et T3L diminuées</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- Une TSH diminuée et des hormones thyroïdiennes T4L et T3L augmentées</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) Une hyperthyroïdie périphérique peut être causée par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- Un adénome hypophysaire thyréotrope</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- Une thyroïdite</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- Un goitre multi nodulaire toxique</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- Une maladie de Basedow</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- Un adénome toxique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) Une hypothyroïdie périphérique peut être évoquée devant :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- Une hypocholestérolémie</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- Un syndrome du canal carpien</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- Une constipation</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- Une hypernatrémie</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- Une hypercalcémie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) Quel dosage hormonal demander pour la surveillance d’une hypothyroïdie périphérique traitée :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A- La TSHus</li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B- La T3 libre</li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C- La T4 libre</li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D- Le couple TSHus et T4libre</li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E- La IR</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) Dans un hypercorticisme d’origine surrénalienne, ...</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A- ACHT plasmatique augmente signe un excès de rétrocontrôle par le cortisol</li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B- ACHT plasmatique augmente signe une tumeur sécrétante de l’hypothalamus</li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C- ACHT plasmatique abaissée est un marqueur du rétrocontrôle du cortisol</li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D- ACHT plasmatique abaissée est un marqueur d’une insuffisance hypophysaire</li>
+            
+                    <li><input type="checkbox" id="q33e" name="q33" value="E"> E- ACHT plasmatique augmente signe une tumeur sécrétante de la surrénale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) L’obésité gynoïde se caractérise par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A- Une prévalence féminine</li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B- Une adiposité péri-pelvienne</li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C- Des complications métaboliques</li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D- Des complications mécaniques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) Entourer la ou les bonnes réponses concernant les antithyroïdiens de synthèse (ATS) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A- Le carbimazole est transformé en thiamine qui est le métabolite actif</li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B- Les dérivés Thio uraciles Présentent un faible passage transplacentaire</li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C- Peuvent entraîner une Agranulocytose</li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D- Leur action est antagonisée par les Sulfamides hypoglycémiants</li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E- Diminuent l’action des Anti Vitamines K</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-36" class="question-container">
+            <div class="question">
+                <p>36.) Les antithyroïdiens de synthèse (ATS) sont contre indiqués en cas de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q36a" name="q36" value="A"> A- Goitre simple</li>
+            
+                    <li><input type="checkbox" id="q36b" name="q36" value="B"> B- Cancer de la thyroïde TSH-Dépendant</li>
+            
+                    <li><input type="checkbox" id="q36c" name="q36" value="C"> C- Affection hématologique maligne</li>
+            
+                    <li><input type="checkbox" id="q36d" name="q36" value="D"> D- Association avec des médicaments potentiellement hématotoxiques</li>
+            
+                    <li><input type="checkbox" id="q36e" name="q36" value="E"> E- De maladie de Basedow</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-37" class="question-container">
+            <div class="question">
+                <p>37.) Les antithyroïdiens de synthèse (ATS) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q37a" name="q37" value="A"> A- Sont utilisés exclusivement par voie orale</li>
+            
+                    <li><input type="checkbox" id="q37b" name="q37" value="B"> B- Contiennent dans leur structure chimique un groupent thio-urée</li>
+            
+                    <li><input type="checkbox" id="q37c" name="q37" value="C"> C- Sont indiqués dans la forme grave de la maladie de Basedow</li>
+            
+                    <li><input type="checkbox" id="q37d" name="q37" value="D"> D- Sont à éviter au cours du premier trimestre de la grossesse</li>
+            
+                    <li><input type="checkbox" id="q37e" name="q37" value="E"> E- Se concentrent 100 fois plus dans le plasma qu’au niveau de la thyroïde</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-38" class="question-container">
+            <div class="question">
+                <p>38.) Entourez les affirmations vraies concernant les insulines</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q38a" name="q38" value="A"> A- Les insulines classiques ne reproduisent pas le profil physiologique de sécrétion de l’insuline endogène</li>
+            
+                    <li><input type="checkbox" id="q38b" name="q38" value="B"> B- La durée d’action des insulines classiques dépend de la dose et du site d’injection</li>
+            
+                    <li><input type="checkbox" id="q38c" name="q38" value="C"> C- Les insulines Analogues présentent une séquence d’acides aminés modifiée dans leur structure</li>
+            
+                    <li><input type="checkbox" id="q38d" name="q38" value="D"> D- La cinétique de dissociation des insulines Analogue est modifiée</li>
+            
+                    <li><input type="checkbox" id="q38e" name="q38" value="E"> E- L’affinité pour les récepteurs à l’insuline des insulines Analogue est diminuée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S7" "Glandes_endocrines_peau" "ECN2019" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['A', 'B', 'C', 'D'],
+    q2: ['A'],
+    q3: ['B', 'C', 'E'],
+    q4: ['A', 'B', 'C', 'D'],
+    q5: ['A'],
+    q6: ['A', 'B', 'C', 'D'],
+    q7: ['A', 'B', 'C', 'E'],
+    q8: ['C'],
+    q9: ['A', 'B', 'C'],
+    q10: ['B'],
+    q11: ['B', 'C', 'D'],
+    q12: ['D'],
+    q13: ['B'],
+    q14: ['D'],
+    q15: ['A', 'C', 'D'],
+    q16: ['B'],
+    q17: ['E'],
+    q18: ['C', 'D'],
+    q19: ['B', 'D'],
+    q20: ['A', 'D', 'E'],
+    q21: ['A', 'C', 'D'],
+    q22: ['A', 'D', 'E'],
+    q23: ['A', 'D', 'E'],
+    q24: ['A', 'D'],
+    q25: ['A'],
+    q26: ['D'],
+    q27: ['E'],
+    q28: ['A', 'B'],
+    q29: ['B', 'E'],
+    q30: ['B', 'C', 'D', 'E'],
+    q31: ['A', 'B', 'C'],
+    q32: ['A'],
+    q33: ['C'],
+    q34: ['A', 'B', 'E'],
+    q35: ['A', 'B', 'C', 'E'],
+    q36: ['A', 'B', 'C', 'D'],
+    q37: ['A', 'B', 'C', 'D'],
+    q38: ['A', 'B', 'C', 'D'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersECN2019'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

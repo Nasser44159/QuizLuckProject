@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+
+        <div class="quiz-title">
+            <h1>Biophysique 2017</h1>
+            <p></p>
+        </div>
+
+
+<form id="quiz-form">
+<input type="hidden" name="file_name" value="Bioph2017">
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Si un rayon lumineux se propage vers un milieu moins réfringent avec un angle d’incidence i avec la normale à la surface de séparation, sa trajectoire après la surface fait un angle r tel que :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- r < i</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- r > i</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- r = i</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- r = 90° - i</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Toutes les propositions sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Dans la figure suivante du dioptre sphérique concave de sommet S et de centre C.</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- A’B’ est une image réelle de l’objet réel AB</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- A’B’ est une image réelle de l’objet virtuel AB</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- A’B’ est une image virtuelle de l’objet virtuel AB</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- A’B’ est une image virtuelle de l’objet réel AB</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- AB et A’B’ n’ont aucun rapport entre eux.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Un objet est situé à 8 cm devant une lentille convergente de vergence 10 dioptries. Le grandissement obtenu avec cette lentille est de +5. Cochez-la ou les proposition(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- L’image obtenue est située à 3 cm à droite de cette lentille</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- L’image est 5 fois plus grande que l’objet</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- L’image est 5 fois plus petite que l’objet</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- L’image est virtuelle</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Toutes les propositions sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Cochez la ou les proposition (s) exacte(s). L’œil myope non presbyte est caractérisé par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Un PR plus proche de l’œil que celui d’un emmétrope</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Un PP plus éloigné de l’œil que celui d’un emmétrope</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Un PR réel situé à distance finie devant l’œil</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Un PR virtuel situé à distance finie derrière l’œil</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Toutes les propositions sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Cochez la ou les proposition(s) exacte(s). Un myope constate qu’il ne voit nettement qu’entre 10 cm et 100 cm. Pour voir nettement à l’infini, la personne doit porter :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Des verres convergents</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Des verres divergents</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Des verres de vergence +1 δ</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Des verres de vergence -1 δ</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Des verres de vergence -0,01 δ</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Un fluide non newtonien se déplace dans une conduite horizontale avec un débit constant. Comment varie la viscosité quand le fluide passe dans une partie dilatée de cette conduite ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- La viscosité augmente</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- La viscosité diminue</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- La viscosité reste constante car le débit est constant</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- La viscosité varie dans le même sens que la vitesse</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Toutes les propositions sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Cochez la ou les proposition(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- En écoulement permanent, pour un fluide parfait incompressible, le débit volumique est constant à travers un tube de courant</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Dans une conduite de section variable, l’effet venturi prédit que la pression d’un fluide parfait est la plus élevée où la section est la plus faible</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- D’après le théorème de Bernoulli dans un fluide parfait incompressible en écoulement permanent, la charge est constante tout au long d’une ligne de courant.</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Un fluide est dit non newtonien lorsque sa viscosité est indépendante du taux de cisaillement à température constante</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Le nombre de Reynolds caractérise la nature du fluide (réel ou parfait)</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Cochez la ou les proposition(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- La viscosité du sang augmente avec l’augmentation de l’hématocrite</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- La viscosité du sang diminue avec l’augmentation de l’hématocrite</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- En cas d’anémie la résistance à l’écoulement augmente</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- En cas de polyglobulie la résistance à l’écoulement augmente et l’effort sur le cœur augmente.</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Toutes les propositions sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) On considère une artère de rayon 1 mm. Le débit volumique dans cette artère vaut 2 litres par minute. On assimile le sang à un fluide newtonien de viscosité 5.10⁻³ Poiseuille et de masse volumique 1060 kg/m³. Cochez la ou les proposition(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- L’écoulement du sang est laminaire</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- L’écoulement du sang est instable</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- La vitesse moyenne du sang dans l’artère est de 10,61 m/s</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- La vitesse maximale du sang dans l’artère est de 10,61 m/s</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Toutes les propositions sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Dans les conditions d’application de la loi de Poiseuille, quelle est l’expression du débit volumique Qᵥ en fonction de la perte de charge ΔP, la viscosité η, le rayon R et de la longueur L du cylindre ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Qv=πR48ηLΔPQ_v = rac{\pi R^4}{8\eta L} \Delta PQv=8ηLπR4ΔP</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Qv=πR34ηLΔPQ_v = rac{\pi R^3}{4\eta L} \Delta PQv=4ηLπR3ΔP</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Qv=πR44ηLΔPQ_v = rac{\pi R^4}{4\eta L} \Delta PQv=4ηLπR4ΔP</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Qv=πR38ηLΔPQ_v = rac{\pi R^3}{8\eta L} \Delta PQv=8ηLπR3ΔP</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Toutes les propositions sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Qu'appelle-t-on l'interaction du bêta plus (β+) créée par effet de matérialisation en fin de parcours avec un électron au repos :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Collision</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Annihilation</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Freinage</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Capture électronique</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Réarrangement électronique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Déterminer le TEL d'un rayonnement qui entraîne 4300 ionisations par mm :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- 146200 eV/mm</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- 4300 eV/mm</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- 15 Kev/mm</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- 20 Kev/mm</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Toutes les réponses sont justes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Qu'appelle-t-on la durée pendant laquelle un détecteur ayant détecté un photon ne peut détecter le suivant ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Linéarité</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Comptage</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Temps mort</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Efficacité</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Résolution</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) La chambre d'ionisation est un : (plusieurs réponses justes)</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Détecteur à gaz</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Exploite le régime de collecte totale des charges produites dans le gaz</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Détecteur expliquant l'excitation</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Mesure l'énergie déposée dans le gaz</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Détecteur à scintillation solide</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) En radioprotection, pour arrêter les neutrons il faut utiliser un milieu riche en quel élément chimique ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Oxygène</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Hydrogène</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Carbone</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Azote</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Fluor</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Pour atténuer 95 % de la dose reçue, dans les mêmes conditions (temps d'exposition t et distance de la source d), quelle épaisseur x doit avoir votre écran si sa CDA est de 3 mm pour le rayonnement utilisé ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- 10 cm</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- 13.02 cm</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- 6 cm</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- 14 cm</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- 12.996 cm</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Parmi ces détecteurs, choisissez deux types de détecteurs exploitant l'ionisation :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Les détecteurs semi-conducteurs</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Le détecteur à scintillation solide</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Le détecteur à scintillation liquide</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Le détecteur Geiger Muller</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Toutes les propositions sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Quel est l'effet de la présence d'oxygène dans le milieu sur la radiosensibilité cellulaire ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Il diminue la radiosensibilité cellulaire</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Il augmente la radiosensibilité cellulaire</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Il n'a pas d'effet sur la radiosensibilité cellulaire</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Toutes les réponses (A, B, C) sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) À quelle phase du cycle cellulaire la radiosensibilité est maximale ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Pendant la phase S</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Pendant la phase G2 et M</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Pendant la phase G1</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- La radiosensibilité ne dépend pas des phases du cycle cellulaire</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Toutes les propositions sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Le timbre est une qualité physiologique du son : quelle est son « utilisé » ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Identifier l'origine des sons de même tonie et de même sonie</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Identifier la hauteur des sons de même sonie</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Identifier la sonie des sons de même tonie</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Différencier un son pur d'un bruit</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Toutes les propositions sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Choisissez parmi ces propositions les 3 règles utilisées en radioprotection pour réduire la dose reçue en présence d'une source de rayonnement :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- La justification</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Le temps</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- La limitation</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- La distance</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- L'interposition d'écran</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) L'imagerie Scintigraphique : plusieurs réponses justes</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Est une technique d'imagerie morphologique</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Est basée sur l'étude de la distribution et du devenir d'un radio-pharmaceutique dans l'organisme</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Utilise un radio-isotope émetteur d'un rayonnement gamma</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Utilise des émetteurs d'ondes ultrasonores</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Utilise un champ magnétique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Dans un amphithéâtre si le niveau sonore lorsqu'un seul étudiant parle est S = 20 dB, quel serait le niveau sonore S'en dB si 600 étudiants parlaient tous avec la même intensité (dB absolu) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- 48 dB</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- 28 dB</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- 20 dB</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- 120 dB</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- 10 dB</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) L'imagerie radiologique : plusieurs propositions justes</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Est une technique d'imagerie morphologique</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Utilise des ondes ultra sonores</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Utilise des rayons gamma</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Utilise des rayons X</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Regroupe l'imagerie radiologique et l'imagerie tomodensitométrique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) La tomographie par émission de positon : plusieurs propositions</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Est une technique d'imagerie morphologique</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Est une technique d'imagerie fonctionnelle</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Utilise des ondes ultra sonores</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Utilise des isotopes émetteurs de positon</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Utilise des ondes de radiofréquences</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Une fibre cardiaque en voie de dépolarisation crée au point M un potentiel électrique. On appelle :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- VM(Ω1) : potentiel électrique au point M sous l'angle solide Ω1</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- VM(Ω2) : potentiel électrique au point M sous l'angle solide Ω2</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- VM(Ω3) : potentiel électrique au point M sous l'angle solide Ω3</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- VM(Ω) : potentiel électrique au point M sous l'angle solide Ω</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- Ω=Ω1+Ω2+Ω3</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) Deux charges électriques placées sur l'axe X'X, aux points A et B. On donne : OA=r, et OB=2r. QA=+2q, et QB=−2q</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- Le potentiel électrique au point O est : VO=0</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- Le potentiel électrique au point O est : VO=k(2q)/r</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Le potentiel électrique au point O est : VO=k.q/r</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Les 2 charges forment un dipôle électrique</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- Toutes les propositions sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) Concernant l'ECG, si à un instant donné les potentiels électriques sont les suivants : DII=aVF=1,5mV ; choisir la ou les proposition(s) exacte(s).</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- VL=0,5mV</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- DI=0mV</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- DIII=1mV</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- aVR=−0,75mV</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- Toutes les propositions sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) L'équilibre acido-basique d'un patient est parfaitement normal. Ce patient est transporté rapidement d'un endroit où la pression partielle de l'oxygène est normale vers une région montagneuse (en haute altitude) où la pression partielle de l'oxygène est diminuée, ce qui entraîne une hyperventilation du patient. Initialement et avant toute compensation rénale :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- La PCO2 mesurée au niveau du sang artériel va diminuer</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- La PCO2 mesurée au niveau du sang artériel va augmenter</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- Le patient présente une acidose respiratoire</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- La [HCO3−] mesurée sur un prélèvement de sang artériel diminue</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- Toutes les propositions sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) Au cours d'une alcalose pure d'origine métabolique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- Le premier système tampon qui intervient pour lutter contre l'alcalose est le système [HCO3−]/[H2CO3]</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- Le premier système tampon qui intervient pour lutter contre l'alcalose est le système [HPO4−]/[H2PO4−]</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- Les poumons interviennent par hyperventilation pour ramener le pH à sa valeur normale</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- L'action des reins est de ramener le pH à sa valeur normale</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- Toutes les propositions sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+         
+
+        
+
+       
+    
+    
+    
+</div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S1" "Biophysique" "Bioph2017" %}';">Réessayer tout le Quiz</button>
+</div>
+
+<div id="details-section" class="details-section" style="display: none;">
+    <h3>Tableau des questions</h3>
+    <div class="question-links" id="question-links"></div>
+</div>
+
+
+
+
+<!-- Section pour afficher le tableau avec les numéros encerclés -->
+<div id="details-section" style="display:none;">
+    <h2>Questions :</h2>
+    <div id="question-links" class="question-links">
+        <!-- Le tableau de numéros va être généré ici -->
+    </div>
+</div>
+
+<script>
+const correctAnswers = {
+  q1: ['B'],
+  q2: ['C'],
+  q3: ['B', 'D'],
+  q4: ['A', 'C'],
+  q5: ['B', 'D'],
+  q6: ['A'],
+  q7: ['A', 'C'],
+  q8: ['A', 'D'],
+  q9: ['B', 'C'],
+  q10: ['C'],
+  q11: ['B'],
+  q12: ['A'],
+  q13: ['C'],
+  q14: ['A', 'B', 'D'],
+  q15: ['B'],
+  q16: ['E'],
+  q17: ['A', 'D'],
+  q18: ['B'],
+  q19: ['B'],
+  q20: ['A'],
+  q21: ['B', 'D', 'E'],
+  q22: ['B', 'C'],
+  q23: ['A'],
+  q24: ['A', 'D', 'E'],
+  q25: ['B', 'D'],
+  q26: ['C', 'E'],
+  q27: ['C'],
+  q28: ['B', 'D'],
+  q29: ['A', 'D'],
+  q30: ['A'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersBioph2017'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>

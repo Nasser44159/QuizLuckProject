@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Urologie</h1>
+            </div>
+            <form id="quiz-form">
+                <input type="hidden" id='exam_name' name="exam_name" value="URO2023">
+    {% csrf_token %}>
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) En dehors du cancer de la prostate, quels sont les circonstances qui peuvent donner une augmentation du taux du PSA?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Adénome de la prostate</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Prostatite aigue</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Orchite ourlienne</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Rétention aigue d’urine</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Biopsie prostatique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) L’IRM pré-biopsique de la prostate :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Augmente la possibilité de détecter le cancer de la prostate</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Aide à guider la biopsie prostatique</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Est toujours optionnel dans le bilan d’extension du cancer de la prostate</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Permet de préciser le volume tumoral</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Détecte l’envahissement capsulaire en cas de cancer de la prostate</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Le cancer de la prostate est dit à faible risque de D’AMICO si :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- PSA < à 10 ng/ml ou score de Gleason ≤ 6 ou stade clinique T1c ou T2a</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- PSA < à 10 ng/ml et score de Gleason ≤ 6 et stade clinique T1c ou T2a</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- PSA entre 10 et 20 ng/ml, ou score de Gleason = 7 ou stade clinique T2b</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- PSA entre 10 et 20 ng/ml, ou score de Gleason = 7 ou stade clinique T2b</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- PSA > 20 ng/ml ou score de Gleason de 8 à 10 ou stade clinique T2c</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Quels sont les facteurs de gravité de la colique néphrétique nécessitant une hospitalisation en urgence ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Une insuffisance rénale aigue obstructive</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Une hématurie macroscopique</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Une colique néphrétique fébrile</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Une colique néphrétique ne répondant pas au traitement médical bien conduit</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- En cas de signes digestifs associés</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Dans le suivi des malades traités pour calculs urinaires :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- La surveillance est assurée uniquement par des examens d'imagerie irradiants</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Le scanner est indispensable</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Le couple AUSP-échographie doit être effectué après chaque traitement urologique</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Le bilan métabolique n’est pas nécessaire pour le suivi</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- La surveillance biologique et radiologique est nécessaire, même en cas d’émission spontanée d’un calcul urétéral</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Parmi les facteurs suivants, quels sont ceux à risque du cancer du rein :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- L'obésité</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Le sexe féminin</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- L'hypertension artérielle</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Hémodialysé chronique</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- La maladie de Von Hippel-Lindau</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Les examens biologiques de première intention à demander devant une dysfonction érectile :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Glycémie à jeun</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Dosage du PSA</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Bilan lipidique</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Fonction rénale</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Dosage de la Testostérone totale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Au cours du bilan de l’andropause :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Une testostéronémie basse et LH/FSH élevé correspondent à un hypogonadisme testiculaire</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Une testostéronémie basse et LH/FSH normal ou bas correspondent à un hypogonadisme testiculaire</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Une testostéronémie basse et LH/FSH normal ou bas correspondent à un hypogonadisme hypogonadotrope</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Une élévation de la testostéronémie avec prolactinémie élevée peut être en rapport avec un adénome hypophysaire à prolactine</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Dosage de la testostérone totale doit être réalisé en première intention</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Le type histologique le plus fréquent dans les cancers du rein :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Carcinome urothélial</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Adénocarcinome</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Lymphome</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Carcinome à cellules claires</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Carcinome chromophobe</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Les deux mécanismes physiopathologiques les plus importants de l’incontinence urinaire d’effort chez la femme sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Une réduction de la capacité vésicale</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Une hypermobilité urétrale</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Un obstacle urétral</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Une atonie du détrusor</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Une insuffisance sphinctérienne</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Les facteurs aggravants l’incontinence urinaire d’effort sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- La constipation</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Le tabac</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- La bronchite chronique</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Les cystites récidivantes</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Une activité sportive intense</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Le syndrome de jonction pyélo-urétérale est une distension pyélocalicielle qui peut être due à :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Une fibrose de la jonction pyélo-urétérale</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Une anomalie fonctionnelle de la jonction urétéro-vésicale</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Une sténose de la jonction pyélo-urétérale</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Un croisement de l’artère polaire inférieure avec la jonction pyélo-urétérale</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Un reflux vésico-urétéral</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Dans le reflux vésico-urétéral, l’examen complémentaire clé pour le diagnostic et la classification de cette malformation est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- L’uroscanner</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- La cystoscopie</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- L’urographie intraveineuse</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- L’échographie urinaire</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- L’urétro-cystographie rétrograde</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Au cours des tumeurs kystiques du rein et selon la classification de bosniack :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Le type 1 est un kyste simple et ne nécessite aucun suivi radiologique</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Le type 2 est un kyste atypique et ne nécessite aucun suivi radiologique</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Le type 3 est un kyste atypique et nécessite une exploration chirurgicale</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Le type 4 est un cancer kystique nécessitant une exérèse chirurgicale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Devant une masse kystique à l’imagerie, quels sont les diagnostics à évoquer ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Un abcès rénal</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Un kyste rénal simple</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Un kyste hydatique du rein</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Un cancer kystique</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Un syndrome de jonction pyélo-urétéral</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) La torsion du cordon spermatique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Est une urgence chirurgicale</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Nécessite une echo-doppler testiculaire pour confirmer le diagnostic avant l’exploration chirurgicale</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- L’examen clinique est suffisant pour poser le diagnostic</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Le pic d’âge se situe entre 40 et 50 ans</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Peut se compliquer d’infertilité</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Un patient âgé de 62 ans, tabagique chronique (40 paquet année), présente des signes du bas appareil depuis 2 mois à type de dysurie, pollakiurie nocturne et impériosité mictionnelle, et se présente aux urgences pour hématurie totale depuis 3 jours. Quels sont les deux diagnostics les plus probables ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Tumeur rénale</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Lithiase rénale</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Tumeur de vessie</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Lithiase de vessie</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Adénome de la prostate</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Quel est l’examen paraclinique indispensable à demander pour faire le diagnostic ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Échographie de l’appareil urinaire</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Cystoscopie</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Dosage du PSA</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Uroscanner</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Urétéroscopie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Quels sont les complications de cette pathologie (hypertrophie prostatique) ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Cancérisation de la prostate</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Lithiase urinaire</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Infection urinaire</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Rétention aiguë d’urine</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Sténose de l’urètre</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Quels sont les indications du traitement chirurgical de l’hypertrophie bénigne de la prostate ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Pollakiurie nocturne qui dépasse 3 levées par nuits</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Débit urinaire maximal (Qmax) inférieur à 15 ml par seconde</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Insuffisance rénale aiguë obstructive</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Résidu post mictionnel supérieur à 100 ml</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Lithiase de vessie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Le patient a reçu un traitement médical à base d’alphabloquant. Quels sont les deux principaux éléments de surveillance post-thérapeutique parmi les propositions suivantes ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- L’échographie rénale et vésico-prostatique</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- La fonction rénale : urée créatininémie</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- L’évaluation de l’efficacité du traitement par l’interrogatoire (score IPSS)</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- L’examen cytobactériologique des urines (ECBU)</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- L’évaluation des effets secondaires du traitement par l’interrogatoire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Un patient âgé de 41 ans victime d’une chute d’un lieu élevé il y a 3 mois avec point d’impact périnéal, présente une dysurie depuis un mois compliqué d’une rétention aiguë d’urine. L’examen clinique montre un globe vésical douloureux. Devant ce tableau, quel est le diagnostic le plus probable ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Vessie neurologique</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Hypertrophie bénigne de la prostate</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Sclérose du col vésical</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Sténose de l’urètre</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Prostatite aiguë</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Quel est votre conduite en urgence ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Faire un examen clinique complet</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Faire un drainage urinaire par une sonde vésicale</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Faire un drainage suspubien (cystostomie)</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Faire une néphrostomie échoguidée</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Demander une échographie rénale et vésico-prostatique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Par la suite, quel est l’examen radiologique à demander pour confirmer le diagnostic ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Échographie vésicale</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Arbre urinaire sans préparation (AUSP)</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- IRM pelvienne</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Urétro-cystographie rétrograde (UCR)</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Scanner pelvien</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Le patient a reçu un traitement chirurgical pour sa pathologie. La surveillance se fait par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- L’examen clinique seul</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Une débitmétrie</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Mesure du résidu post mictionnel (RPM) à l’échographie</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Une UCR ou urétrocystoscopie en cas de diminution du débit urinaire</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Une UCR en cas d’augmentation du RPM</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S5" "Radiologie" "Rd2022" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+                
+            <script>
+const correctAnswers = {
+    q1: ['A', 'B', 'D', 'E'],
+    q2: ['A', 'B', 'D', 'E'],
+    q3: ['B'],
+    q4: ['A', 'C', 'D'],
+    q5: ['C', 'E'],
+    q6: ['A', 'C', 'D', 'E'],
+    q7: ['A', 'C', 'E'],
+    q8: ['A', 'C', 'E'],
+    q9: ['D'],
+    q10: ['B', 'E'],
+    q11: ['A', 'B', 'C', 'E'],
+    q12: ['A', 'C', 'D'],
+    q13: ['A', 'C', 'D'],
+    q14: ['E'],
+    q15: ['A', 'B', 'D', 'E'],
+    q16: ['A', 'B', 'C', 'D'],
+    q17: ['A', 'C', 'E'],
+    q18: ['C', 'E'],
+    q19: ['B'],
+    q20: ['B', 'C', 'D'],
+    q21: ['C', 'D', 'E'],
+    q22: ['C', 'E'],
+    q23: ['D'],
+    q24: ['C'],
+    q25: ['D'],
+    q26: ['B', 'C', 'D', 'E'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersRd2022'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

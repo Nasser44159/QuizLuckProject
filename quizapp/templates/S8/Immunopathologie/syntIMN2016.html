@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM  Immunologie</h1>
+            </div>
+            <form id="quiz-form">
+                <input type="hidden" id='exam_name' name="exam_name" value="IMN2016">
+    {% csrf_token %}>
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Une molécule d’haptène :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Est capable d’induire une réponse immunitaire</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Peut se fixer spontanément sur des protéines porteuses</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Est une molécule immunogène</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Est une molécule antigénique</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Se fixe sur le fragment Fc des anticorps</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Parmi les propositions suivantes, lesquelles sont justes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Les plasmocytes sont des lymphocytes B sensibilisés</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Le complément est un système enzymatique qui s’active en cascade</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- L’antigène se fixe sur l’épitope de l’antigène</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- L’IgM possède une pièce sécrétoire</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- L’IgA dimérique possède une pièce « J »</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Parmi les propositions suivantes, lesquelles sont justes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Le TcR reconnaît les antigènes protéiques</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Le BcR reconnaît l’antigène sous sa forme native</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- L’antigène peut être composé de plusieurs épitopes</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- L’Ac se fixe sur l’Ag par le fragment Fc</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- L’immunogénicité est la capacité d’un antigène d’induire une réponse immunitaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) En ce qui concerne la réaction d’agglutination :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Les deux réactifs sont inclus dans une gélose</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Elle peut être réalisée par l’utilisation de grains de latex sensibilisés</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Sa lecture est visible à l’œil nu</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- L’antigène se trouve sur la surface externe d’une particule</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Elle peut être utilisée pour le groupage sanguin</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) En ce qui concerne les immunoglobulines M :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Elles traversent le placenta</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Elles fixent l’antigène par le fragment Fab</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Elles ont le poids moléculaire le plus important des immunoglobulines</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Elles sont les plus abondantes des immunoglobulines sériques</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Elles possèdent une pièce sécrétoire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Un épitope correspond à :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Un fragment du complément</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Un déterminant antigénique</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Une structure reconnue par le fragment Fab des anticorps</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Une structure reconnue par le TcR</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Une structure reconnue par le BcR</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Un antigène est une substance :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Qui peut être naturelle ou synthétique</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Qui induit une réponse immunitaire</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Formée d’une chaîne lourde et d’une chaîne légère</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Capable de se lier à un épitope</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Capable de se lier au fragment Fab de l’anticorps</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Le fragment Fc des immunoglobulines :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Permet la fixation de C1q du complément</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Permet la fixation des IgE sur les antigènes parasitaires</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Permet la fixation des IgG sur les macrophages</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Est composé des parties constantes et variables des chaînes lourdes et légères</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Permet le passage transplacentaire des anticorps de classe IgG</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) En ce qui concerne les IgE :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Elles sont spécifiques de l’espèce</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Elles sont thermolabiles</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Elles se fixent sur les mastocytes et les basophiles</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Elles sont les premiers anticorps synthétisés après une primo-infection</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Elles sont efficaces contre les infections parasitaires</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Les 3 immunoglobulines les plus abondantes dans le sérum humain, sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Les IgM, les IgA et les IgE</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Les IgA, les IgG et les IgD</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Les IgM, les IgG et les IgA</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Les IgM, les IgG et les IgE</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Les IgG, les IgM et les IgD</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Parmi les réactions suivantes, lesquelles sont des réactions de précipitation :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- L’immunodiffusion</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Le groupage sanguin</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Les tests immunoenzymatiques</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Les tests radioimmunologiques</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Le test de Western blot</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Parmi les propriétés qui définissent un antigène on peut citer :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- L’antigénicité</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Le poids moléculaire</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- La structure chimique</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Le nombre d’épitopes</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- L’immunogénicité</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Les réactions croisées entre les molécules d’Ag et d’Ac sont dues à :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- L’activation du complément</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- La présence d’immunoglobulines de même classe</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- La présence d’épitopes communs à deux molécules d’Ag différentes</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- La présentation de l’antigène aux lymphocytes T</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- La concentration d’anticorps sécrétée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) En ce qui concerne l’immunoglobuline A :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Elle est la principale immunoglobuline dans les sécrétions</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- L’IgA monomérique possède deux fragments Fab et un fragment Fc</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- L’IgA dimérique possède une pièce de jonction</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Elle représente 80% des immunoglobulines sériques</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Elle a une structure pentamérique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Les anticorps majoritaires chez un bébé allaité âgé de 3 jours sont constitués par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Les IgA maternelles</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Les IgM maternelles</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Les IgG maternelles</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Les IgG synthétisées par le nouveau-né</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Les IgE maternelles</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) En ce qui concerne les immunoglobulines :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Elles se retrouvent essentiellement dans le sérum et les sécrétions</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Elles sont regroupées en 5 classes différentes</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Elles sont synthétisées par les lymphocytes T sensibilisés</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Leur structure de base est formée de 2 chaînes légères et de 2 chaînes lourdes</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Elles traversent toutes le placenta</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) En ce qui concerne le système du complément :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- La synthèse de ses composants est réalisée essentiellement dans le foie</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- C’est un système spécifique à la molécule d’antigène</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- C’est un ensemble de globulines circulantes normalement à l’état inactif</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Intervient dans la présentation de l’antigène aux lymphocytes T</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Permet la lyse des pathogènes par le complexe attaque membrane (MAC)</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Le fragment C3b du complément :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Possède des récepteurs sur les macrophages</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Est un produit commun des 3 voies d’activation du complément</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Est un produit du clivage du fragment 3 du complément</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Intervient dans l’opsonisation des bactéries par les macrophages</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Possède 2 fragments Fab et un fragment Fc</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Le fragment C1q du complément :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Intervient dans l’activation du complément par la voie alterne</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Se fixe sur le fragment Fc des immunoglobulines G</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Fait partie de l’unité de reconnaissance de la voie classique</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Intervient dans la présentation de l’antigène par les cellules dendritiques</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Est un produit commun des trois voies d’activation du complément</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Font partie du CMH classe II les molécules suivantes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- HLA-A</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- HLA-B</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- HLA-DQ</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- HLA-DR</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- HLA-DP</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Une deuxième immunisation par le même antigène induit :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Une augmentation du taux des IgG</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Une augmentation du taux des IgM</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Une augmentation du taux des lymphocytes B mémoires à IgG</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- Un déficit immunitaire cellulaire</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Une diminution du taux des IgG</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) L’immunité naturelle contre les agents infectieux fait intervenir :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Les polynucléaires</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Les lymphocytes T</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Les macrophages</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Les lymphocytes B</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Le complément</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Indiquez la ou les réponses exactes (s). Le thymus :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Est un organe lymphoïde périphérique</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Est un organe lymphoïde central</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Permet la différenciation des lymphocytes T et des lymphocytes B</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Contient des thymocytes</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Sa taille est augmentée chez l’enfant jusqu’à la puberté</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Parmi les organes lymphoïdes secondaires (périphériques) on distingue :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Les ganglions lymphatiques</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Le thymus</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- La rate</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Le système immunitaire associé aux muqueuses</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Le foie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Les lymphocytes exprimant à leur surface les molécules CD3 et CD4 :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Sont des lymphocytes T</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Sont lymphocytes cytotoxiques</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Reconnaissent les molécules du CMH de classe II</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Synthétisent des immunoglobulines</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Se transforment en plasmocytes après leur activation</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Les marqueurs suivants sont présents sur les lymphocytes B matures :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- Les molécules d’histocompatibilité de classe I</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- Les molécules d’histocompatibilité de classe II</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- La molécule CD19</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- Les immunoglobulines de surface</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- La molécule CD4</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) La molécule CD3 est un marqueur de surface spécifique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- Des lymphocytes T cytotoxiques exclusivement</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- Des lymphocytes B</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Des lymphocytes T</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Des cellules tueuses naturelles ou NK ('natural killer cells')</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- Des lymphocytes T auxiliaires exclusivement</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) La molécule d’adjuvant :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- Stimule la réponse immunitaire d’une manière non spécifique</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- Se fixe sur les molécules d’haptènes</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- Accélère le catabolisme de la molécule d’antigène</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- Entre dans la composition de certains vaccins</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- Augmente la demi-vie d’un antigène</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) Les principales cellules présentatrices d’antigène sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- Les polynucléaires basophiles</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- Les monocytes/macrophages</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- Les lymphocytes B</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- Les lymphocytes T</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- Les cellules dendritiques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) Les polynucléaires neutrophiles sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- Répartis dans les vaisseaux en deux secteurs : marginal et circulant</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- Sont spécifiques de l’antigène</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- Sécrètent des cytokines</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- Forment le pus après avoir éliminé le pathogène</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- Leur principale fonction est la phagocytose</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) Les cellules impliquées dans la réaction inflammatoire incluent :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- Les macrophages</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- Les polynucléaires</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- Les cellules endothéliales</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- Les chondrocytes</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- Les plaquettes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) Les signes cardinaux de la réponse inflammatoire sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A- Douleur</li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B- Raideur</li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C- Chaleur</li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D- Rougeur</li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E- Œdème</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) Les plasmocytes sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A- Des cellules phagocytaires</li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B- Des lymphocytes B activés par un antigène</li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C- Capables de synthétiser des anticorps</li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D- Des cellules cytotoxiques</li>
+            
+                    <li><input type="checkbox" id="q33e" name="q33" value="E"> E- Des lymphocytes T activés par l’antigène</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) L’immunoélectrophorèse est représentée une :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A- Réaction de précipitation en milieu gélifié</li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B- Réaction de précipitation en milieu liquide</li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C- Réaction d’agglutination</li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D- Electro-immunodiffusion</li>
+            
+                    <li><input type="checkbox" id="q34e" name="q34" value="E"> E- Réaction utilisant un marquage</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) Dans la réponse immunitaire, la coopération cellulaire a pour objectifs :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A- Le développement d’une réponse immunitaire adaptative</li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B- De rendre efficace la réponse immunitaire</li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C- D’assurer le contrôle de la réponse immunitaire</li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D- De rendre inefficace la réponse innée</li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E- D’inhiber la présentation des peptides par les cellules dendritiques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-36" class="question-container">
+            <div class="question">
+                <p>36.) Parmi les propositions suivantes, laquelle (lesquelles) est (sont) exacte(s) ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q36a" name="q36" value="A"> A- Les gènes du système HLA sont situés sur le chromosome 6</li>
+            
+                    <li><input type="checkbox" id="q36b" name="q36" value="B"> B- Un épitope est une structure reconnue par le TcR</li>
+            
+                    <li><input type="checkbox" id="q36c" name="q36" value="C"> C- L’immunoglobuline E existe sous forme dimérique</li>
+            
+                    <li><input type="checkbox" id="q36d" name="q36" value="D"> D- Un antigène natif est reconnu par le BCR</li>
+            
+                    <li><input type="checkbox" id="q36e" name="q36" value="E"> E- La protéine porteuse augmente le poids moléculaire de l’haptène</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-37" class="question-container">
+            <div class="question">
+                <p>37.) Parmi les étapes de la réponse immunitaire adaptative on distingue :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q37a" name="q37" value="A"> A- La présentation de l’antigène</li>
+            
+                    <li><input type="checkbox" id="q37b" name="q37" value="B"> B- L’activation des lymphocytes</li>
+            
+                    <li><input type="checkbox" id="q37c" name="q37" value="C"> C- La différenciation des lymphocytes</li>
+            
+                    <li><input type="checkbox" id="q37d" name="q37" value="D"> D- L’inhibition de la synthèse des cytokines</li>
+            
+                    <li><input type="checkbox" id="q37e" name="q37" value="E"> E- La prolifération des lymphocytes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-38" class="question-container">
+            <div class="question">
+                <p>38.) L’interaction entre un Lymphocyte T et une CPA fait interagir :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q38a" name="q38" value="A"> A- La molécule CD4 avec la molécule CD8</li>
+            
+                    <li><input type="checkbox" id="q38b" name="q38" value="B"> B- La molécule CD4 avec les peptides antigéniques</li>
+            
+                    <li><input type="checkbox" id="q38c" name="q38" value="C"> C- Le complexe HLA/peptide et le récepteur « TcR »</li>
+            
+                    <li><input type="checkbox" id="q38d" name="q38" value="D"> D- La molécule B7 du CPA et la molécule CD28 du LT</li>
+            
+                    <li><input type="checkbox" id="q38e" name="q38" value="E"> E- Les molécules d’adhésion et leurs ligands</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-39" class="question-container">
+            <div class="question">
+                <p>39.) Parmi les caractéristiques communes des cellules dendritiques on distingue :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q39a" name="q39" value="A"> A- La présence dans les tissus en contact avec le milieu extérieur</li>
+            
+                    <li><input type="checkbox" id="q39b" name="q39" value="B"> B- La capture des antigènes</li>
+            
+                    <li><input type="checkbox" id="q39c" name="q39" value="C"> C- La synthèse des anticorps</li>
+            
+                    <li><input type="checkbox" id="q39d" name="q39" value="D"> D- La migration vers les ganglions/rate</li>
+            
+                    <li><input type="checkbox" id="q39e" name="q39" value="E"> E- L’activation des lymphocytes T</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-40" class="question-container">
+            <div class="question">
+                <p>40.) Parmi les réactions des Ac visibles à l’œil nu on distingue :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q40a" name="q40" value="A"> A- La réaction de précipitation</li>
+            
+                    <li><input type="checkbox" id="q40b" name="q40" value="B"> B- Le test de groupage sanguin (agglutination)</li>
+            
+                    <li><input type="checkbox" id="q40c" name="q40" value="C"> C- La réaction immuno-enzymatique (ELISA)</li>
+            
+                    <li><input type="checkbox" id="q40d" name="q40" value="D"> D- La réaction radio-immunologique</li>
+            
+                    <li><input type="checkbox" id="q40e" name="q40" value="E"> E- La réaction d’immunofluorescence</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-41" class="question-container">
+            <div class="question">
+                <p>41.) Le test ELISA est un test :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q41a" name="q41" value="A"> A- Permettant la recherche de l’antigène</li>
+            
+                    <li><input type="checkbox" id="q41b" name="q41" value="B"> B- Utilisant une molécule fluorescente</li>
+            
+                    <li><input type="checkbox" id="q41c" name="q41" value="C"> C- De précipitation</li>
+            
+                    <li><input type="checkbox" id="q41d" name="q41" value="D"> D- Permettant la recherche de l’anticorps</li>
+            
+                    <li><input type="checkbox" id="q41e" name="q41" value="E"> E- Utilisant un marquage immunoenzymatique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-42" class="question-container">
+            <div class="question">
+                <p>42.) En ce qui concerne le SIDA :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q42a" name="q42" value="A"> A- L’agent responsable peut être transmis par du sang contaminé</li>
+            
+                    <li><input type="checkbox" id="q42b" name="q42" value="B"> B- L’agent responsable est une bactérie intracellulaire</li>
+            
+                    <li><input type="checkbox" id="q42c" name="q42" value="C"> C- Elle correspond à un déficit immunitaire acquis</li>
+            
+                    <li><input type="checkbox" id="q42d" name="q42" value="D"> D- L’agent responsable peut être transmis par voie sexuelle</li>
+            
+                    <li><input type="checkbox" id="q42e" name="q42" value="E"> E- Elle correspond à un déficit immunitaire héréditaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-43" class="question-container">
+            <div class="question">
+                <p>43.) Parmi les conséquences biologiques de l’activation du complément on distingue :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q43a" name="q43" value="A"> A- La lyse cellulaire</li>
+            
+                    <li><input type="checkbox" id="q43b" name="q43" value="B"> B- Le développement d’une réaction inflammatoire</li>
+            
+                    <li><input type="checkbox" id="q43c" name="q43" value="C"> C- L’opsonisation</li>
+            
+                    <li><input type="checkbox" id="q43d" name="q43" value="D"> D- L’élimination des complexes immuns</li>
+            
+                    <li><input type="checkbox" id="q43e" name="q43" value="E"> E- L’inhibition de la synthèse des anticorps</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-44" class="question-container">
+            <div class="question">
+                <p>44.) Parmi les objectifs de l’immunité anti-infectieuse on distingue :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q44a" name="q44" value="A"> A- L’élimination rapide des pathogènes</li>
+            
+                    <li><input type="checkbox" id="q44b" name="q44" value="B"> B- Empêcher l’entrée des agents infectieux</li>
+            
+                    <li><input type="checkbox" id="q44c" name="q44" value="C"> C- L’inhibition de la synthèse des anticorps</li>
+            
+                    <li><input type="checkbox" id="q44d" name="q44" value="D"> D- Le contrôle de la multiplication des agents infectieux</li>
+            
+                    <li><input type="checkbox" id="q44e" name="q44" value="E"> E- L’inhibition de la phagocytose</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-45" class="question-container">
+            <div class="question">
+                <p>45.) La présentation des peptides aux lymphocytes CD8+ peut être réalisée par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q45a" name="q45" value="A"> A- Les molécules du système HLA classe II</li>
+            
+                    <li><input type="checkbox" id="q45b" name="q45" value="B"> B- Les cellules présentatrices d’antigène (CPA)</li>
+            
+                    <li><input type="checkbox" id="q45c" name="q45" value="C"> C- Les molécules du système HLA classe I</li>
+            
+                    <li><input type="checkbox" id="q45d" name="q45" value="D"> D- Les cellules dendritiques</li>
+            
+                    <li><input type="checkbox" id="q45e" name="q45" value="E"> E- Les lymphocytes B</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-46" class="question-container">
+            <div class="question">
+                <p>46.) Concernant l’immunité innée anti-infectieuse :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q46a" name="q46" value="A"> A- Elle initie et oriente l’immunité adaptative</li>
+            
+                    <li><input type="checkbox" id="q46b" name="q46" value="B"> B- Elle agit immédiatement à l’entrée de l’agent infectieux dans l’organisme.</li>
+            
+                    <li><input type="checkbox" id="q46c" name="q46" value="C"> C- Le complément est l’un des principaux acteurs de l’immunité innée anti-virale</li>
+            
+                    <li><input type="checkbox" id="q46d" name="q46" value="D"> D- La cellule NK est l’un des principaux acteurs de l’immunité innée anti-virale</li>
+            
+                    <li><input type="checkbox" id="q46e" name="q46" value="E"> E- La cellule B est l’un des principaux acteurs de l’immunité innée anti-virale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-47" class="question-container">
+            <div class="question">
+                <p>47.) La classe respective des antigènes HLA est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q47a" name="q47" value="A"> A- Classe I pour HLA-A</li>
+            
+                    <li><input type="checkbox" id="q47b" name="q47" value="B"> B- Classe II pour HLA-A</li>
+            
+                    <li><input type="checkbox" id="q47c" name="q47" value="C"> C- Classe III pour HLA-C</li>
+            
+                    <li><input type="checkbox" id="q47d" name="q47" value="D"> D- Classe II pour HLA-DQ</li>
+            
+                    <li><input type="checkbox" id="q47e" name="q47" value="E"> E- Classe II pour HLA-DR</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-48" class="question-container">
+            <div class="question">
+                <p>48.) Les antigènes HLA :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q48a" name="q48" value="A"> A- Sont les mêmes chez tous les individus</li>
+            
+                    <li><input type="checkbox" id="q48b" name="q48" value="B"> B- Interviennent dans l’immunité spécifique</li>
+            
+                    <li><input type="checkbox" id="q48c" name="q48" value="C"> C- Interviennent dans le rejet des greffes incompatibles</li>
+            
+                    <li><input type="checkbox" id="q48d" name="q48" value="D"> D- Sont exprimés sur les cellules présentatrices d’antigène (CPA)</li>
+            
+                    <li><input type="checkbox" id="q48e" name="q48" value="E"> E- Sont codominants</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-49" class="question-container">
+            <div class="question">
+                <p>49.) Une protéine porteuse :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q49a" name="q49" value="A"> A- Est capable de se fixer par le fragment Fc sur des récepteurs cellulaires</li>
+            
+                    <li><input type="checkbox" id="q49b" name="q49" value="B"> B- Possède une chaîne légère et une chaîne lourde</li>
+            
+                    <li><input type="checkbox" id="q49c" name="q49" value="C"> C- Peut se fixer spontanément sur la molécule d’haptène</li>
+            
+                    <li><input type="checkbox" id="q49d" name="q49" value="D"> D- Augmente le poids moléculaire de l’haptène</li>
+            
+                    <li><input type="checkbox" id="q49e" name="q49" value="E"> E- Représente le fragment Fab de l’immunoglobuline</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-50" class="question-container">
+            <div class="question">
+                <p>50.) Parmi les propositions suivantes, lesquelles sont exactes ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q50a" name="q50" value="A"> A- La réponse anticorps primaire à un antigène est essentiellement de type IgM</li>
+            
+                    <li><input type="checkbox" id="q50b" name="q50" value="B"> B- La synthèse d’anticorps spécifiques diminue au cours des rappels antigéniques</li>
+            
+                    <li><input type="checkbox" id="q50c" name="q50" value="C"> C- Le nombre des lymphocytes B mémoires augmente au cours des rappels antigéniques</li>
+            
+                    <li><input type="checkbox" id="q50d" name="q50" value="D"> D- Le taux des IgG sériques dépasse celui des IgM au cours des rappels antigéniques</li>
+            
+                    <li><input type="checkbox" id="q50e" name="q50" value="E"> E- Le nombre des lymphocytes T mémoires augmente au cours des rappels antigéniques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+
+            
+                   
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S5" "Radiologie" "Rd2022" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['B', 'C'],
+    q2: ['A', 'B', 'C', 'E'],
+    q3: ['A', 'B', 'C', 'E'],
+    q4: ['B', 'C', 'D', 'E'],
+    q5: ['B', 'C'],
+    q6: ['B', 'C', 'D', 'E'],
+    q7: ['A', 'B', 'E'],
+    q8: ['A', 'C', 'E'],
+    q9: ['A', 'B', 'C', 'E'],
+    q10: ['C'],
+    q11: ['A'],
+    q12: ['A', 'E'],
+    q13: ['C'],
+    q14: ['A', 'B', 'C'],
+    q15: ['A', 'C'],
+    q16: ['A', 'B', 'D'],
+    q17: ['A', 'C', 'E'],
+    q18: ['A', 'B', 'C', 'D'],
+    q19: ['B', 'C'],
+    q20: ['C', 'D', 'E'],
+    q21: ['A', 'C'],
+    q22: ['A', 'C', 'E'],
+    q23: ['B', 'D', 'E'],
+    q24: ['A', 'C', 'D'],
+    q25: ['A', 'C'],
+    q26: ['A', 'B', 'C', 'D'],
+    q27: ['C'],
+    q28: ['A', 'D'],
+    q29: ['B', 'C', 'E'],
+    q30: ['A', 'C', 'D', 'E'],
+    q31: ['A', 'B', 'C', 'E'],
+    q32: ['A', 'C', 'D', 'E'],
+    q33: ['B', 'C'],
+    q34: ['A', 'D'],
+    q35: ['A', 'B', 'C'],
+    q36: ['A', 'B', 'D', 'E'],
+    q37: ['A', 'B', 'C', 'E'],
+    q38: ['C', 'D', 'E'],
+    q39: ['A', 'B', 'D', 'E'],
+    q40: ['A', 'B'],
+    q41: ['A', 'D', 'E'],
+    q42: ['A', 'C', 'D'],
+    q43: ['A', 'B', 'C', 'E'],
+    q44: ['A', 'B', 'D'],
+    q45: ['B', 'C', 'D', 'E'],
+    q46: ['A', 'B', 'C', 'D'],
+    q47: ['A', 'D', 'E'],
+    q48: ['B', 'C', 'D', 'E'],
+    q49: ['B', 'C'],
+    q50: ['A', 'C', 'D', 'E'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersRd2022'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

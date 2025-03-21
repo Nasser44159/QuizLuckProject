@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="NC2023">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Ce tableau clinique fait évoquer un processus expansif fréquent chez l’enfant au niveau du :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Quatrième ventricule</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Lobe frontal</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Lobe temporal</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Lobe pariétal</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Vermien</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Deux examens seront demandés, lesquels :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Une TDM du crâne.</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Une I.R.M. cérébrale.</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Une échographie transfontanellaire.</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Un Electroencéphalogramme</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Une TDM cervicale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Cet examen montre une lésion médiane rehaussée par le produit de contraste : deux diagnostics sont à évoquer :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Un astrocytome.</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Un méningiome.</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Un ganglioglioblastome.</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Un médulloblastome.</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Un épendymome.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Quel traitement à envisager :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Une biopsie chirurgicale.</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Une chirurgie d’exérèse complète seule.</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Une chirurgie d’exérèse associée à une chimiothérapie.</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Une chirurgie d’exérèse associée à la chimiothérapie et la radiothérapie</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Un traitement antalgique seul</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Une patiente de 60 ans ayant des céphalées chroniques se présente à la consultation dans un tableau de surdité unilatérale droite et une paralysie faciale droite :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Un fond d’œil</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Un scanner cervical.</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Une radiographie du crane</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Un scanner cérébral</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Un audiogramme</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) On cherche une lésion au niveau :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Pariétal droit</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Temporal droit</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Rolandique gauche</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Occipital gauche</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- De l’Angle ponto-cérébelleux droit</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Cet examen montre une lésion insérée à la base prenant le contraste, Deux diagnostics sont à évoquer :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Glioblastome</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Médulloblastome</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Œdème cérébral</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Méningiome</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Neurinome de l’acoustique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Avant de proposer un traitement et de décider, l’examen fondamental à demander est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Un Electroencéphalogramme</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Un scanner cérébral.</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Une radiographie du crane</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Une IRM cérébrale</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Un fond d’œil</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Le traitement est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Simple surveillance</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- A base de réanimation seule</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Chirurgie associée à la chimiothérapie</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Biopsie associée à la radiothérapie et à la chimiothérapie</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- chirurgie radicale et surveillance</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Le diagnostic de certitude est confirmé par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- L’électroencéphalogramme</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Une IRM cérébrale</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Un scanner cérébral</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- L’examen Histologique</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- L’artériographie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Dans la brachycéphalie la suture fermée est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Une coronale</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- La bregma</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- La sagittale</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Lambdoïde</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Les 2 coronales</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Le méningocèle :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Est de bon pronostic.</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- S’accompagne de paraplégie et de troubles sphinctériens.</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Le diagnostic est antenatal par une simple radiographie du bassin</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Le diagnostic est antenatal par une échographie</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Siège le plus souvent au niveau cervical</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) La douleur intéresse le territoire des racines :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- L2.</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- L3.</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- L4.</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- L5.</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- S1.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Il s’agit de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Un syndrome de compression médullaire.</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Un syndrome de la queue de cheval.</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Une sciatique hyperalgique.</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Une sciatique commune.</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Une coxarthrose</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) De tous ces examens, un seul est demandé en urgence est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Un électromyogramme.</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- La radiographie standard lombaire.</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- La V.S.</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- L’I.R.M lombaire</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- La scaccoradiuclographie.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Après cet examen Le traitement est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- A base d’antiinflammatoires seuls.</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- A base de kinésithérapie seule.</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Chirurgical en urgence.</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- A base d’anti-inflammatoires avec chirurgie différée.</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- L’abstersion.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Quelle est la cause la plus probable ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Une hernie discale simple L2 – L3.</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Un bourrelet discal L5 – S1.</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Une hernie discale L4 – L5 rompue et migrée.</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Une hernie discale migrée L5 – S1.</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Une protrusion discale L3 – L4.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Un blessé de 31 ans se présente aux urgences dans un tableau de tétraplégie flasque avec une détresse respiratoire et un priapisme, la lésion à rechercher est au niveau de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- C1 C2</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Cervical bas</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Dorsal</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- C4</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- L5 S1</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Le bilan radiologique montre une fracture du segment vertébral moyen qui est fait :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Du mur postérieur</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Du mur antérieur</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Des lames</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Des pédicules</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Des articulaires</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Le traitement est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Orthopédique</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Chirurgical : décompression et fixation</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Médical</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- À base de lombostat</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- À base de réanimation seule</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Vous recevez aux urgences un blessé de 7 ans victime d'un AVP avec perte de connaissance initiale, avec une hémiparésie gauche, une crise convulsive et une plaie du scalp. Faire en urgence :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Un fond d’œil</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Libérer les voies aériennes supérieures</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Un électroencéphalogramme</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- Une suture de la plaie</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Une IRM cérébrale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) L'examen à faire en urgence :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Un fond d’œil</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Un scanner cérébral</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Un électroencéphalogramme</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Un scanner cervical</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Une IRM cérébrale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Deux diagnostics sont probables :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Une contusion cérébrale droite</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Une commotion cérébrale</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Un hématome extra-dural droit</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Un hématome sous-dural chronique droit</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Un hématome sous-dural chronique gauche</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Le diagnostic est confirmé par cet Examen. Quelles sont vos deux propositions</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Un traitement aux corticoïdes</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Une suture et charge en réanimation</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Un volet osseux en charge avec évacuation de l'hématome</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Un traitement à base de furosémide</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Un volet osseux en charge et évacuation de l’hématome</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Quel est le mécanisme de l'hydrocéphalie par méningite :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Troubles production</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Obstacle</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Hyperproduction</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Troubles de la résorption</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Mécanisme mixte</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S7" "Maladie_du_Systeme_Nerveux" "NC2023" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['A', 'E'],
+    q2: ['A', 'B'],
+    q3: ['D', 'E'],
+    q4: ['D'],
+    q5: ['D', 'E'],
+    q6: ['E'],
+    q7: ['D', 'E'],
+    q8: ['D'],
+    q9: ['E'],
+    q10: ['D'],
+    q11: ['E'],
+    q12: ['A', 'D'],
+    q13: ['D'],
+    q14: ['B'],
+    q15: ['D'],
+    q16: ['C'],
+    q17: ['C'],
+    q18: ['D'],
+    q19: ['A', 'D', 'E'],
+    q20: ['B'],
+    q21: ['B', 'D'],
+    q22: ['B'],
+    q23: ['A', 'C'],
+    q24: ['D'],
+    q25: ['D'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersNC2023'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

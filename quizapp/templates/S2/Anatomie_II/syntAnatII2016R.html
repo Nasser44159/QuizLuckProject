@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="AnatII2016R">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Le muscle oblique interne ou petit oblique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Nait au niveau de la crête iliaque</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Est un muscle large</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Est le muscle le plus profond</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Commence au niveau des sept dernières côtes</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Est un muscle fléchisseur et rotateur du tronc dans le sens homolatéral</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Le muscle transverse de l'abdomen :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Est le muscle le plus profond</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Prend naissance au niveau de la crête iliaque</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Ses fibres inférieures forment le crémaster</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Permet l’extension du tronc</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Travaille en synergie avec son homologue</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Le muscle psoas :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Est un muscle antérieur de la région lombaire</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Prend origine sur le rachis lombaire + face interne des côtes</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Permet la flexion du tronc</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Il permet l’extension de la hanche</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Fait partie des muscles spinaux</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) La gaine du muscle grand droit au niveau du 1/3 inférieur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Couvre le muscle grand droit en avant et en arrière</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Couvre le muscle grand uniquement en arrière</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Couvre aussi le muscle pyramidal</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Forme la ligne blanche entre les deux muscles grand droit</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Aucune réponse n’est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Le muscle transverse épineux :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Est un muscle spinal</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) La loge rénale droite :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Est en rapport avec le deuxième duodénum</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- En rapport avec le corps du pancréas</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Croisée en avant par le colon transverse</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- En rapport en arrière avec le quadrilatère lombal de Grynfelt</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- En rapport en arrière avec la fosse iliaque interne</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Le rein :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Intervient dans l’équilibre du milieu intérieur</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Sa capsule correspond au feuillet pré et rétro-rénal</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Sa largeur est égale à son épaisseur</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Séparé de la glande surrénale par la graisse péri rénale</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- La graisse para rénale est plus développée en avant du rein</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Les tubes collecteurs au niveau du rein :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Contiennent l’urine primitive</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Font partie du néphron</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Convergent vers la papille</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Il y a autant de tubes collecteurs que de néphrons</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Contiennent l’urine définitive</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) La veine cave inférieure :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Est plus loin du rein droit par rapport au rein gauche</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Reçoit les veines sus hépatiques</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Reçoit la veine splénique</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Reçoit les veines mésentériques</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Reçoit la veine gonadique droite</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) L’aorte abdominale :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Fait suite à l’aorte thoracique au niveau de Th 10</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Donne l’artère iliaque primitive droite et gauche</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Donne l’artère testiculaire chez l’homme et l’ovarienne chez la femme</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Donne l’artère ombilicale</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Donne les artères sacrée moyenne et latérales au niveau de sa terminaison</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) La vascularisation du rein :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- L’artère rénale droite passe en avant de la veine rénale droite</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Les deux artères rénales ont les mêmes rapports</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- L’artère rénale gauche passe derrière la veine cave inférieure</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Il y a une anastomose entre les différentes artères inter-lobaires</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- La vascularisation de rein reçoit le 1/5 du débit cardiaque</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Le néphron :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Il existe autant de néphrons que de tubes collecteurs</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Est l’unité fonctionnelle du rein</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Sa capsule de Bowman permet la filtration du sang</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Son nombre augmente avec l’âge</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Se termine dans la pyramide rénale de Malpighi</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Les uretères iliaques :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Croisent les vaisseaux hypogastriques</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Mesurent 3 cm</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- L’uretère iliaque croise la face postérieure des vaisseaux iliaques</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Du côté droit l’uretère croise les vaisseaux iliaques primitifs</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Aucune réponse n’est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) La vessie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Est un organe rétro péritonéal</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Sa face supérieure ou calotte est mobile</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Sa capacité reste constante malgré l’obstacle</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Est un organe pelvi-sous péritonéal</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Sa face supérieure reçoit les uretères</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) L’urètre chez l’homme :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Traverse la prostate et le corps spongieux</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Passe dans le corps caverneux</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Est vulnérable (risque de rupture) au niveau membraneux</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Mobile sur sa totalité</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Siège de malformation</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) L’urètre prostatique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Est une partie entourée de sphincters</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Possède le veru montanum</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Est un carrefour uro-génital</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Entouré de corps érectiles</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Permet la conduction de l’urine seule</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Le trigone de la vessie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Est situé sur sa face supérieure</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Limité par les deux uretères + le col de la vessie</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- En rapport avec le rectum chez la femme</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- En rapport avec le vagin + le col chez la femme</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Non couvert en dedans par l’épithélium urinaire de la vessie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) L’œsophage :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Comporte trois rétrécissements</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Est en rapport en arrière avec l’espace rétro œsophagien ou rétro viscéral du cou</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Diaphragmatique est la portion traversant le diaphragme en avant au-dessus et à gauche de l’orifice aortique</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Comporte un rétrécissement œsophagien moyen ou cricoïdien</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Aucune proposition juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) L’œsophage :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Cervical est en rapport en avant avec la trachée et le nerf récurrent gauche</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Thoracique est en rapport avec les lobes latéraux du corps thyroïde</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Thoracique comporte une empreinte de la veine azygos</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- L’œsophage abdominal descend jusqu’au niveau du pylore</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Aucune proposition juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Concernant les rapports de l’œsophage :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- L’œsophage abdominal est en rapport en avant avec le péritoine et la face postérieure du foie</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Le pilier gauche du diaphragme et le nerf vague gauche représentent des rapports postérieurs de l’œsophage abdominal</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- L’œsophage diaphragmatique est accompagné des deux nerfs vagues</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- L’œsophage thoracique est en rapport avec les deux nerfs récurrents</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Aucune proposition juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Concernant l’estomac :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Est formé de quatre parties et deux ouvertures</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- La surface de la muqueuse montre des plis gastriques et sécrète du mucus</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Le cardia fait un angle aigu avec la grande courbure appelé angle duodéno-jéjunal</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- Le cardia contient un sphincter</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Aucune proposition juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Concernant les rapports de l’estomac :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- La face antérieure de l’estomac répond à la paroi abdominale antérieure</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Sa face postérieure est en rapport avec l’arrière cavité des épiploons ou bourse omentale</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- L’épiploon gastro-colique ou grand épiploon attache l’estomac au côlon transverse</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- La face postérieure de l’estomac est en rapport avec le cul de sac pleural costo-diaphragmatique gauche et poumon gauche</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Aucune proposition juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Concernant la vascularisation de l’estomac :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- L’artère gastrique gauche ou coronaire stomachique est une branche du tronc cœliaque</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- L’artère gastrique droite ou pylorique est une branche de l’artère hépatique propre</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- L’artère gastro-épiploïque droite forme le cercle de la petite courbure gastrique</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Le cercle de la grande courbure gastrique est une anastomose entre l’artère gastrique droite et l’artère gastrique gauche</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Aucune proposition juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Concernant l’intestin grêle :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Présente un premier segment mobile le duodénum, suivi d’un deuxième segment fixe, le jéjuno-iléon</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Sa partie terminale représentée par l’iléon</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Est vascularisé par l’artère mésentérique supérieure</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Sa longueur est cinq mètre</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Aucune proposition juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Concernant le duodénum :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Le premier segment de l’intestin grêle, fixé à la paroi abdominale postérieure</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Sa troisième portion reçoit les canaux pancréatiques et biliaires</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Encerclé la queue du pancréas à la manière d’un pneu à une jante</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- La deuxième portion est en rapport avec les vaisseaux mésentériques</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Aucune proposition juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Précisez la ou les propositions exactes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- Le duodénum est formé de quatre angles</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- Le bulbe duodénal est en rapport en bas avec le pancréas et ses deux tubercules</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- La face médiale du deuxième duodénum est en rapport avec la tête du pancréas ou s’ouvrent les canaux pancréatiques et le canal cholédoque</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- La face postérieure du bulbe duodénal est en rapport en avant avec la face inférieure du foie et la vésicule biliaire</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- Aucune proposition juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) Concernant la vascularisation de l’intestin grêle :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- Le duodénum est vascularisé par l’artère gastro-duodénale,</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- L’artère gastro-duodénale est une branche de l’artère hépatique commune,</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Les artères intestinales sortent du bord droit de l’artère mésentérique supérieure,</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Le retour veineux se fait par la veine mésentérique inférieure,</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- Aucune proposition juste,</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) Concernant le côlon :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- Le côlon contient trois bandelettes longitudinales ou ténias,</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- Le côlon descendant entre l’angle splénique et la crête iliaque gauche : segment fixe,</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- Le côlon transverse est mobile entre ses deux extrémités,</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- Le caecum est en rapport en avant avec la paroi abdominale,</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- Aucune proposition juste,</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) Concernant la vascularisation du côlon :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- L’artère colique droite et l’artère iléo-colique sont des branches de l’artère mésentérique supérieure,</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- L’artère colique droite et l’artère iléo-colique vascularisent le côlon gauche,</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- Le territoire de l’artère mésentérique supérieure : côlon gauche,</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- Il n’existe pas d’arcades vasculaires artérielles au niveau du côlon,</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- Aucune proposition juste,</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) Le foie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- Présente une grosse extrémité à droite et une extrémité effilée à gauche,</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- Le foie comporte trois bords et trois faces,</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- Est fixé au diaphragme par le ligament suspenseur du foie, ou ligament falciforme,</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- Comporte une face supérieure convexe appelée face viscérale,</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- Aucune proposition juste,</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) Concernant le foie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- Deux sillons parcourent le foie de haut en bas,</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- Le sillon vertical droit ou sillon de la veine cave supérieure,</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- Les sillons délimitent quatre lobes,</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- Le lobe carré est situé en arrière du sillon transverse,</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- Aucune proposition juste,</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) Le ligament sacro-tubéreux :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A- Est oblique,</li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B- Est long,</li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C- Est tendu entre le sacrum et la tubérosité ischiatique,</li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D- Limite le petit foramen ischiatique,</li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E- Longe le bord inférieur du muscle obturateur interne,</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) L’artère iliaque interne donne par son tronc postérieur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A- L’artère obturatrice,</li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B- L’artère glutéale supérieure,</li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C- L’artère pudendale,</li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D- L’artère sacrée latérale supérieure,</li>
+            
+                    <li><input type="checkbox" id="q33e" name="q33" value="E"> E- L’artère rectale moyenne,</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) Concernant l’orifice externe du pelvis, il comprend :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A- Le promontoire,</li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B- Les branches ischiopubiennes,</li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C- Le bord inférieur de la symphyse pubienne,</li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D- La ligne terminale,</li>
+            
+                    <li><input type="checkbox" id="q34e" name="q34" value="E"> E- L’épine du pubis,</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) Concernant la vascularisation du pelvis :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A- Les veines viscérales du pelvis s’anastomosent avec les veines pudendales au niveau du plexus veineux de Santorini,</li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B- Après la naissance, l’artère ombilicale devient l’artère vésicale inférieure,</li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C- La veine iliaque interne se continue par la veine iliaque commune,</li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D- Les lymphonoeuds iliaques externes sous-veineux sont aussi appelés lymphonoeuds obturateurs,</li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E- Les lymphonoeuds iliaques communs reçoivent la lymphe du pelvis vers les lymphonoeuds lombo-aortiques,</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-36" class="question-container">
+            <div class="question">
+                <p>36.) Concernant l’innervation pelvienne :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q36a" name="q36" value="A"> A- Le plexus nerveux hypogastrique supérieur se trouve devant la bifurcation aortique,</li>
+            
+                    <li><input type="checkbox" id="q36b" name="q36" value="B"> B- Le plexus nerveux hypogastrique supérieur donne le nerf présacré,</li>
+            
+                    <li><input type="checkbox" id="q36c" name="q36" value="C"> C- Le nerf présacré se divise en deux nerfs hypogastriques inférieurs droit et gauche,</li>
+            
+                    <li><input type="checkbox" id="q36d" name="q36" value="D"> D- Le plexus hypogastrique supérieur véhicule des fibres végétatives parasympathiques,</li>
+            
+                    <li><input type="checkbox" id="q36e" name="q36" value="E"> E- Le plexus hypogastrique supérieur reçoit des fibres nerveuses des racines l2, l3, l4,</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-37" class="question-container">
+            <div class="question">
+                <p>37.) Concernant l'innervation pelvienne :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q37a" name="q37" value="A"> A- Les nerfs végétatifs parasympathiques proviennent de la moelle spinale lombaire</li>
+            
+                    <li><input type="checkbox" id="q37b" name="q37" value="B"> B- Les nerfs végétatifs sympathiques sont issus des racines antérieures de S2/S3/S4</li>
+            
+                    <li><input type="checkbox" id="q37c" name="q37" value="C"> C- Le nerf pudendal est le nerf du périnée</li>
+            
+                    <li><input type="checkbox" id="q37d" name="q37" value="D"> D- Le nerf pudendal est un nerf somatique</li>
+            
+                    <li><input type="checkbox" id="q37e" name="q37" value="E"> E- Le nerf pudendal est formé par la racine antérieure des 1ère, 2ème, 3ème et 4ème nerfs sacrés</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-38" class="question-container">
+            <div class="question">
+                <p>38.) Concernant l'uretère pelvien :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q38a" name="q38" value="A"> A- Il a 2 portions, pariétale et viscérale</li>
+            
+                    <li><input type="checkbox" id="q38b" name="q38" value="B"> B- Il croise les vaisseaux iliaques par en avant</li>
+            
+                    <li><input type="checkbox" id="q38c" name="q38" value="C"> C- Il s'abouche par un trajet en biais dans la vessie</li>
+            
+                    <li><input type="checkbox" id="q38d" name="q38" value="D"> D- Les deux orifices des uretères s'abouchent dans la vessie au niveau du trigone vésical</li>
+            
+                    <li><input type="checkbox" id="q38e" name="q38" value="E"> E- Une barre interuréétérale unit les deux méats urétéraux</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-39" class="question-container">
+            <div class="question">
+                <p>39.) Concernant la vessie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q39a" name="q39" value="A"> A- Sa face supérieure est située derrière la symphyse pubienne</li>
+            
+                    <li><input type="checkbox" id="q39b" name="q39" value="B"> B- Sa face supérieure est recouverte par le fascia ombilico-prévésical</li>
+            
+                    <li><input type="checkbox" id="q39c" name="q39" value="C"> C- Sa face postérieure est située devant la prostate chez l'homme</li>
+            
+                    <li><input type="checkbox" id="q39d" name="q39" value="D"> D- Le col vésical correspond à l'ouverture de l'urètre</li>
+            
+                    <li><input type="checkbox" id="q39e" name="q39" value="E"> E- Le sommet de la vessie se continue par le ligament de l'ouraque</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-40" class="question-container">
+            <div class="question">
+                <p>40.) Concernant l'urètre :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q40a" name="q40" value="A"> A- L'urètre spongieux est entouré d'un corps érectile</li>
+            
+                    <li><input type="checkbox" id="q40b" name="q40" value="B"> B- L'urètre prostatique reçoit les conduits déférents</li>
+            
+                    <li><input type="checkbox" id="q40c" name="q40" value="C"> C- L'urètre féminin est entouré uniquement d'un sphincter lisse</li>
+            
+                    <li><input type="checkbox" id="q40d" name="q40" value="D"> D- L'urètre féminin est uniquement urinaire</li>
+            
+                    <li><input type="checkbox" id="q40e" name="q40" value="E"> E- Le sphincter strié de l'urètre masculin entoure sa partie membraneuse</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-41" class="question-container">
+            <div class="question">
+                <p>41.) Concernant le rectum :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q41a" name="q41" value="A"> A- Il présente trois plis transversaux correspondants à des valvules internes</li>
+            
+                    <li><input type="checkbox" id="q41b" name="q41" value="B"> B- Il est entouré d'une gaine rectale</li>
+            
+                    <li><input type="checkbox" id="q41c" name="q41" value="C"> C- Le plexus hypogastrique inférieur est au contact de cette gaine</li>
+            
+                    <li><input type="checkbox" id="q41d" name="q41" value="D"> D- Il est séparé du fascia présacré par un fascia rétrorectal</li>
+            
+                    <li><input type="checkbox" id="q41e" name="q41" value="E"> E- Le cul-de-sac du péritoine dit de Douglas se trouve sur sa face antérieure</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-42" class="question-container">
+            <div class="question">
+                <p>42.) Concernant la vascularisation du rectum :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q42a" name="q42" value="A"> A- L'artère rectale supérieure est la branche terminale de l'artère mésentérique inférieure</li>
+            
+                    <li><input type="checkbox" id="q42b" name="q42" value="B"> B- L'artère rectale supérieure se divise à la face postérieure du rectum en trois branches</li>
+            
+                    <li><input type="checkbox" id="q42c" name="q42" value="C"> C- L'artère rectale moyenne est une branche viscérale de l'artère iliaque interne</li>
+            
+                    <li><input type="checkbox" id="q42d" name="q42" value="D"> D- La veine rectale moyenne se draine dans le système veineux cave</li>
+            
+                    <li><input type="checkbox" id="q42e" name="q42" value="E"> E- Les lymphonoeuds du rectum se drainent dans les lymphonoeuds mésentériques inférieurs</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-43" class="question-container">
+            <div class="question">
+                <p>43.) Concernant les voies séminales :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q43a" name="q43" value="A"> A- Les conduits efférents traversent l'albuginée du testicule à son pôle inférieur</li>
+            
+                    <li><input type="checkbox" id="q43b" name="q43" value="B"> B- Le conduit déférent a une longueur totale de 10 cm</li>
+            
+                    <li><input type="checkbox" id="q43c" name="q43" value="C"> C- La portion abdominale du conduit déférent est intra-péritonéale</li>
+            
+                    <li><input type="checkbox" id="q43d" name="q43" value="D"> D- Les vésicules séminales sont une glande endocrine</li>
+            
+                    <li><input type="checkbox" id="q43e" name="q43" value="E"> E- La prostate contribue à former 20% du fluide séminal</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-44" class="question-container">
+            <div class="question">
+                <p>44.) Concernant le testicule :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q44a" name="q44" value="A"> A- Il est disposé obliquement vers le haut et l'avant</li>
+            
+                    <li><input type="checkbox" id="q44b" name="q44" value="B"> B- L'albuginée est la membrane fine et souple qui entoure le testicule</li>
+            
+                    <li><input type="checkbox" id="q44c" name="q44" value="C"> C- Les canaux séminifères droits drainent les spermatozoïdes des canaux séminifères contournés vers le rete testis</li>
+            
+                    <li><input type="checkbox" id="q44d" name="q44" value="D"> D- L'artère testiculaire naît de l'aorte abdominale en regard de l2 (deuxième vertèbre lombaire)</li>
+            
+                    <li><input type="checkbox" id="q44e" name="q44" value="E"> E- La veine testiculaire gauche se jette dans la veine iliaque interne gauche</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-45" class="question-container">
+            <div class="question">
+                <p>45.) Concernant la prostate :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q45a" name="q45" value="A"> A- Le canal des vésicules séminales rejoint le conduit déférent pour former le conduit éjaculateur dans la prostate</li>
+            
+                    <li><input type="checkbox" id="q45b" name="q45" value="B"> B- La prostate normale de l'homme adulte jeune pèse 150g</li>
+            
+                    <li><input type="checkbox" id="q45c" name="q45" value="C"> C- La prostate est située derrière la symphyse pubienne</li>
+            
+                    <li><input type="checkbox" id="q45d" name="q45" value="D"> D- La face postérieure de la prostate devance le canal anal</li>
+            
+                    <li><input type="checkbox" id="q45e" name="q45" value="E"> E- La face postérieure d'une prostate normale est lisse et régulière</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-46" class="question-container">
+            <div class="question">
+                <p>46.) Concernant l'urèthre :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q46a" name="q46" value="A"> A- L'urèthre prostatique est un carrefour urogénital chez l'homme</li>
+            
+                    <li><input type="checkbox" id="q46b" name="q46" value="B"> B- Le sphincter lisse de l'urèthre chez l'homme se trouve sous la muqueuse uréthrale</li>
+            
+                    <li><input type="checkbox" id="q46c" name="q46" value="C"> C- Le sphincter lisse empêche l'éjaculation vers la vessie</li>
+            
+                    <li><input type="checkbox" id="q46d" name="q46" value="D"> D- Le sphincter strié se trouve sous l'apex prostatique</li>
+            
+                    <li><input type="checkbox" id="q46e" name="q46" value="E"> E- Lors des opérations sur la prostate le sphincter lisse est préservé</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-47" class="question-container">
+            <div class="question">
+                <p>47.) Concernant les organes érectiles de l'homme :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q47a" name="q47" value="A"> A- L'albuginée du corps spongieux de l'urèthre est plus épaisse que celle des corps caverneux</li>
+            
+                    <li><input type="checkbox" id="q47b" name="q47" value="B"> B- Il n'y a qu'une artère dorsale profonde du pénis</li>
+            
+                    <li><input type="checkbox" id="q47c" name="q47" value="C"> C- Le muscle bulbospongieux est innervé par la branche superficielle du nerf pudendal</li>
+            
+                    <li><input type="checkbox" id="q47d" name="q47" value="D"> D- Les lymphatiques du gland se drainent vers les lymphonoeuds inguinaux</li>
+            
+                    <li><input type="checkbox" id="q47e" name="q47" value="E"> E- L'artère caverneuse est une branche de l'artère pudendale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-48" class="question-container">
+            <div class="question">
+                <p>48.) Concernant le ligament large :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q48a" name="q48" value="A"> A- Le mésosalpinx est la partie supérieure du ligament large</li>
+            
+                    <li><input type="checkbox" id="q48b" name="q48" value="B"> B- Le mésomètre est la partie du ligament large qui se raccorde aux bords latéraux de l'utérus</li>
+            
+                    <li><input type="checkbox" id="q48c" name="q48" value="C"> C- Le mésovarium s'insère à la face antérieure du ligament large</li>
+            
+                    <li><input type="checkbox" id="q48d" name="q48" value="D"> D- Le paramètre est la partie du ligament large qui répond au col de l'utérus</li>
+            
+                    <li><input type="checkbox" id="q48e" name="q48" value="E"> E- Le paravagin est le tissu celluleux situé entre les bords latéraux du vagin et la paroi pelvienne</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-49" class="question-container">
+            <div class="question">
+                <p>49.) Concernant le vagin :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q49a" name="q49" value="A"> A- Le vagin est dirigé en haut et en avant</li>
+            
+                    <li><input type="checkbox" id="q49b" name="q49" value="B"> B- Le vagin mesure 8 cm de long</li>
+            
+                    <li><input type="checkbox" id="q49c" name="q49" value="C"> C- La paroi antérieure du vagin est plus longue que la paroi postérieure</li>
+            
+                    <li><input type="checkbox" id="q49d" name="q49" value="D"> D- La face postérieure du vagin est séparée du rectum par le fascia recto-vaginal</li>
+            
+                    <li><input type="checkbox" id="q49e" name="q49" value="E"> E- La face antérieure du vagin répond à la face postérieure de la vessie et à l'urèthre</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-50" class="question-container">
+            <div class="question">
+                <p>50.) Concernant le périnée :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q50a" name="q50" value="A"> A- Le muscle levator ani est le plus superficiel des muscles du périnée</li>
+            
+                    <li><input type="checkbox" id="q50b" name="q50" value="B"> B- Le muscle levator ani constitue le diaphragme pelvien</li>
+            
+                    <li><input type="checkbox" id="q50c" name="q50" value="C"> C- Le muscle transverse se situe dans le périnée postérieur</li>
+            
+                    <li><input type="checkbox" id="q50d" name="q50" value="D"> D- La membrane périnéale est tendue entre les branches iliopubiennes</li>
+            
+                    <li><input type="checkbox" id="q50e" name="q50" value="E"> E- Les fosses ischio-anales se trouvent dans le périnée postérieur</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S2" "Anatomie_II" "AnatII2016R" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['A', 'B', 'E'],
+    q2: ['A', 'E'],
+    q3: ['A', 'B', 'D'],
+    q4: ['D'],
+    q5: ['A', 'B', 'C'],
+    q6: ['A', 'D'],
+    q7: ['A'],
+    q8: ['A', 'C', 'D'],
+    q9: ['B', 'E'],
+    q10: ['B', 'C'],
+    q11: ['E'],
+    q12: ['A', 'B', 'C', 'E'],
+    q13: ['B', 'C'],
+    q14: ['B', 'D'],
+    q15: ['A', 'B', 'C', 'E'],
+    q16: ['B', 'C'],
+    q17: ['B', 'D'],
+    q18: ['A', 'B', 'C'],
+    q19: ['A', 'C'],
+    q20: ['A', 'C'],
+    q21: ['A', 'B'],
+    q22: ['A', 'B', 'C'],
+    q23: ['A'],
+    q24: ['B', 'C', 'D'],
+    q25: ['A'],
+    q26: ['A', 'C', 'D'],
+    q27: ['A', 'B'],
+    q28: ['A', 'B', 'C', 'D'],
+    q29: ['A'],
+    q30: ['A', 'B', 'C'],
+    q31: ['A', 'C'],
+    q32: ['A', 'B', 'C', 'D'],
+    q33: ['B', 'D'],
+    q34: ['B', 'C'],
+    q35: ['A', 'C', 'D', 'E'],
+    q36: ['A', 'B', 'C'],
+    q37: ['A', 'C', 'D'],
+    q38: ['A', 'C', 'D', 'E'],
+    q39: ['D', 'E'],
+    q40: ['B', 'D', 'E'],
+    q41: ['B', 'C', 'D', 'E'],
+    q42: ['A', 'C', 'D', 'E'],
+    q43: ['D'],
+    q44: ['A', 'C', 'D'],
+    q45: ['A', 'C', 'E'],
+    q46: ['A', 'B', 'C', 'D'],
+    q47: ['C', 'D', 'E'],
+    q48: ['A', 'B'],
+    q49: ['B', 'D', 'E'],
+    q50: ['B', 'E'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersAnatII2016R'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+<script src="{% static 'java/question-stats.js' %}" defer></script>

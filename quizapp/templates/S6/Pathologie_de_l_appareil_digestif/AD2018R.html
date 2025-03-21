@@ -1,0 +1,1936 @@
+<!DOCTYPE html>
+{% load static %}
+
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'css/stylequiz.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+
+</head>
+<body>
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+
+    <div id="content">
+
+         <div class="quiz-title">
+            <h1>
+Maladies de l'appareil digestives 2018</h1>
+         </div>
+         <form id="quiz-form">
+    <input type="hidden" id='exam_name' name="exam_name" value="AD2018R">
+    {% csrf_token %}
+            <div class="question-container" id="question-1">
+               <div class="question">
+                  <p> 1.) Patient Mr Khalid, âgé de 56 ans, connu porteur d'une cirrhose post-hépatite C, hospitalisé pour hématémèse de moyenne abondance avec distension
+                     abdominale. L'examen clinique à l'admission retrouve un patient stable sur le plan hémodynamique avec une pâleur cutanéo-muqueuse. Quelles sont
+                     les deux étiologies les plus probables des hématémèses chez ce patient ? </p>
+                  <ul>
+                     <li>
+                        <input id="q1a" name="q1" type="checkbox" value="A" /> A- Cancer gastrique </li>
+                     <li>
+                        <input id="q1b" name="q1" type="checkbox" value="B" /> B- Rupture des varices œsophagiennes </li>
+                     <li>
+                        <input id="q1c" name="q1" type="checkbox" value="C" /> C- Rupture des varices gastriques </li>
+                     <li>
+                        <input id="q1d" name="q1" type="checkbox" value="D" /> D- Ulcère gastrique </li>
+                     <li>
+                        <input id="q1e" name="q1" type="checkbox" value="E" /> E- Ulcère duodénal </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q1')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q1')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="1"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_1" onclick="toggleCommentSection('AD2018R_1', event)"> 💬 <span class="badge" data-comment-id="AD2018R_1">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-2">
+               <div class="question">
+                  <p> 2.) Quel examen complémentaire demandez-vous pour rechercher l'étiologie des hématémèses ? </p>
+                  <ul>
+                     <li>
+                        <input id="q2a" name="q2" type="checkbox" value="A" /> A- Tomodensitométrie abdominale </li>
+                     <li>
+                        <input id="q2b" name="q2" type="checkbox" value="B" /> B- Transit œsogastroduodénal </li>
+                     <li>
+                        <input id="q2c" name="q2" type="checkbox" value="C" /> C- Échographie abdominale </li>
+                     <li>
+                        <input id="q2d" name="q2" type="checkbox" value="D" /> D- Fibroscopie digestive haute </li>
+                     <li>
+                        <input id="q2e" name="q2" type="checkbox" value="E" /> E- Ponction biopsie du foie </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q2')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q2')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="2"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_2" onclick="toggleCommentSection('AD2018R_2', event)"> 💬 <span class="badge" data-comment-id="AD2018R_2">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-3">
+               <div class="question">
+                  <p> 3.) Le reste de l'examen clinique objective une ascite de moyenne abondance. Quelles sont les autres étiologies de la décompensation à rechercher
+                     chez ce patient ? </p>
+                  <ul>
+                     <li>
+                        <input id="q3a" name="q3" type="checkbox" value="A" /> A- Un carcinome hépatocellulaire </li>
+                     <li>
+                        <input id="q3b" name="q3" type="checkbox" value="B" /> B- Une gastrite </li>
+                     <li>
+                        <input id="q3c" name="q3" type="checkbox" value="C" /> C- Une prise de médicaments hépatotoxiques </li>
+                     <li>
+                        <input id="q3d" name="q3" type="checkbox" value="D" /> D- Une infection pulmonaire </li>
+                     <li>
+                        <input id="q3e" name="q3" type="checkbox" value="E" /> E- Une infection urinaire </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q3')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q3')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="3"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_3" onclick="toggleCommentSection('AD2018R_3', event)"> 💬 <span class="badge" data-comment-id="AD2018R_3">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-4">
+               <div class="question">
+                  <p> 4.) Le traitement de l'ascite chez ce patient comporte : </p>
+                  <ul>
+                     <li>
+                        <input id="q4a" name="q4" type="checkbox" value="A" /> A- Les diurétiques </li>
+                     <li>
+                        <input id="q4b" name="q4" type="checkbox" value="B" /> B- Un régime pauvre en sel </li>
+                     <li>
+                        <input id="q4c" name="q4" type="checkbox" value="C" /> C- Une transplantation hépatique </li>
+                     <li>
+                        <input id="q4d" name="q4" type="checkbox" value="D" /> D- Le lactulose </li>
+                     <li>
+                        <input id="q4e" name="q4" type="checkbox" value="E" /> E- Les bêta-bloquants </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q4')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q4')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="4"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_4" onclick="toggleCommentSection('AD2018R_4', event)"> 💬 <span class="badge" data-comment-id="AD2018R_4">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-5">
+               <div class="question">
+                  <p> 5.) La surveillance du traitement de l'ascite chez ce patient comporte : </p>
+                  <ul>
+                     <li>
+                        <input id="q5a" name="q5" type="checkbox" value="A" /> A- La diurèse de 24 heures </li>
+                     <li>
+                        <input id="q5b" name="q5" type="checkbox" value="B" /> B- Le périmètre ombilical </li>
+                     <li>
+                        <input id="q5c" name="q5" type="checkbox" value="C" /> C- Le poids </li>
+                     <li>
+                        <input id="q5d" name="q5" type="checkbox" value="D" /> D- La natrémie </li>
+                     <li>
+                        <input id="q5e" name="q5" type="checkbox" value="E" /> E- La calcémie </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q5')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q5')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="5"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_5" onclick="toggleCommentSection('AD2018R_5', event)"> 💬 <span class="badge" data-comment-id="AD2018R_5">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-6">
+               <div class="question">
+                  <p> 6.) Les complications d'une diverticulite sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q6a" name="q6" type="checkbox" value="A" /> A- L'abcès colique </li>
+                     <li>
+                        <input id="q6b" name="q6" type="checkbox" value="B" /> B- Les fistules </li>
+                     <li>
+                        <input id="q6c" name="q6" type="checkbox" value="C" /> C- L'hémorragie </li>
+                     <li>
+                        <input id="q6d" name="q6" type="checkbox" value="D" /> D- Le cancer du côlon </li>
+                     <li>
+                        <input id="q6e" name="q6" type="checkbox" value="E" /> E- La péritonite </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q6')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q6')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="6"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_6" onclick="toggleCommentSection('AD2018R_6', event)"> 💬 <span class="badge" data-comment-id="AD2018R_6">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-7">
+               <div class="question">
+                  <p> 7.) Patient Mr Hicham, âgé de 40 ans, tabagique chronique, consulte pour des épigastralgies. L'examen clinique retrouve une sensibilité du creux
+                     épigastrique. À cette étape, les diagnostics à évoquer sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q7a" name="q7" type="checkbox" value="A" /> A- L'ulcère gastrique </li>
+                     <li>
+                        <input id="q7b" name="q7" type="checkbox" value="B" /> B- L'ulcère duodénal </li>
+                     <li>
+                        <input id="q7c" name="q7" type="checkbox" value="C" /> C- La gastrite </li>
+                     <li>
+                        <input id="q7d" name="q7" type="checkbox" value="D" /> D- Le cancer de l'estomac </li>
+                     <li>
+                        <input id="q7e" name="q7" type="checkbox" value="E" /> E- La pancréatite aiguë </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q7')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q7')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="7"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_7" onclick="toggleCommentSection('AD2018R_7', event)"> 💬 <span class="badge" data-comment-id="AD2018R_7">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-8">
+               <div class="question">
+                  <p> 8.) Le premier examen complémentaire à demander est : </p>
+                  <ul>
+                     <li>
+                        <input id="q8a" name="q8" type="checkbox" value="A" /> A- Le transit œsogastroduodénal </li>
+                     <li>
+                        <input id="q8b" name="q8" type="checkbox" value="B" /> B- L'échographie abdominale </li>
+                     <li>
+                        <input id="q8c" name="q8" type="checkbox" value="C" /> C- La fibroscopie digestive haute </li>
+                     <li>
+                        <input id="q8d" name="q8" type="checkbox" value="D" /> D- La tomodensitométrie abdominale </li>
+                     <li>
+                        <input id="q8e" name="q8" type="checkbox" value="E" /> E- Le dosage de la gastrinémie </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q8')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q8')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="8"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_8" onclick="toggleCommentSection('AD2018R_8', event)"> 💬 <span class="badge" data-comment-id="AD2018R_8">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-9">
+               <div class="question">
+                  <p> 9.) Le diagnostic retenu chez Mr Hicham est un ulcère gastrique. Les critères évocateurs de la malignité à rechercher sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q9a" name="q9" type="checkbox" value="A" /> A- Les bords irréguliers de l'ulcère </li>
+                     <li>
+                        <input id="q9b" name="q9" type="checkbox" value="B" /> B- L'existence d'une gastrite associée </li>
+                     <li>
+                        <input id="q9c" name="q9" type="checkbox" value="C" /> C- La taille de l'ulcère supérieure à 10 mm </li>
+                     <li>
+                        <input id="q9d" name="q9" type="checkbox" value="D" /> D- L'existence d'une infection à Helicobacter pylori </li>
+                     <li>
+                        <input id="q9e" name="q9" type="checkbox" value="E" /> E- La dureté des berges de l'ulcère </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q9')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q9')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="9"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_9" onclick="toggleCommentSection('AD2018R_9', event)"> 💬 <span class="badge" data-comment-id="AD2018R_9">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-10">
+               <div class="question">
+                  <p> 10.) Patient Mr Hicham présente un ulcère gastrique Helicobacter pylori positif. Le traitement comporte : </p>
+                  <ul>
+                     <li>
+                        <input id="q10a" name="q10" type="checkbox" value="A" /> A- Un inhibiteur de la pompe à protons (IPP) double dose pendant 14 jours </li>
+                     <li>
+                        <input id="q10b" name="q10" type="checkbox" value="B" /> B- Amoxicilline 1 gramme deux fois par jour pendant 14 jours </li>
+                     <li>
+                        <input id="q10c" name="q10" type="checkbox" value="C" /> C- Métronidazole 500 mg deux fois par jour pendant 14 jours </li>
+                     <li>
+                        <input id="q10d" name="q10" type="checkbox" value="D" /> D- Clarithromycine 1 gramme deux fois par jour pendant 14 jours </li>
+                     <li>
+                        <input id="q10e" name="q10" type="checkbox" value="E" /> E- Poursuivre l'IPP simple dose pendant 3 à 7 semaines </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q10')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q10')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="10"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_10" onclick="toggleCommentSection('AD2018R_10', event)"> 💬 <span class="badge" data-comment-id="AD2018R_10">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-11">
+               <div class="question">
+                  <p> 11.) Patiente Mme Hafida, âgée de 45 ans, consulte pour une augmentation progressive du volume de l'abdomen. L'examen clinique retrouve une matité
+                     diffuse abdominale. Les diagnostics à évoquer à cette étape sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q11a" name="q11" type="checkbox" value="A" /> A- La cirrhose décompensée </li>
+                     <li>
+                        <input id="q11b" name="q11" type="checkbox" value="B" /> B- La carcinose péritonéale </li>
+                     <li>
+                        <input id="q11c" name="q11" type="checkbox" value="C" /> C- La tuberculose péritonéale </li>
+                     <li>
+                        <input id="q11d" name="q11" type="checkbox" value="D" /> D- Le syndrome de Demons-Meigs </li>
+                     <li>
+                        <input id="q11e" name="q11" type="checkbox" value="E" /> E- La tuberculose intestinale </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q11')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q11')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="11"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_11" onclick="toggleCommentSection('AD2018R_11', event)"> 💬 <span class="badge" data-comment-id="AD2018R_11">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-12">
+               <div class="question">
+                  <p> 12.) La ponction d'ascite montre un liquide jaune citrin, exsudatif. Les deux diagnostics à retenir sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q12a" name="q12" type="checkbox" value="A" /> A- La cirrhose décompensée </li>
+                     <li>
+                        <input id="q12b" name="q12" type="checkbox" value="B" /> B- La carcinose péritonéale </li>
+                     <li>
+                        <input id="q12c" name="q12" type="checkbox" value="C" /> C- La tuberculose péritonéale </li>
+                     <li>
+                        <input id="q12d" name="q12" type="checkbox" value="D" /> D- Le syndrome de Demons-Meigs </li>
+                     <li>
+                        <input id="q12e" name="q12" type="checkbox" value="E" /> E- La tuberculose intestinale </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q12')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q12')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="12"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_12" onclick="toggleCommentSection('AD2018R_12', event)"> 💬 <span class="badge" data-comment-id="AD2018R_12">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-13">
+               <div class="question">
+                  <p> 13.) L'étude cytologique du liquide d'ascite montre une prédominance lymphocytaire. Le dosage de l'Adénosine désaminase dans le liquide d'ascite
+                     est à 45 U/L. Le diagnostic le plus probable est : </p>
+                  <ul>
+                     <li>
+                        <input id="q13a" name="q13" type="checkbox" value="A" /> A- La cirrhose décompensée </li>
+                     <li>
+                        <input id="q13b" name="q13" type="checkbox" value="B" /> B- La carcinose péritonéale </li>
+                     <li>
+                        <input id="q13c" name="q13" type="checkbox" value="C" /> C- La tuberculose péritonéale </li>
+                     <li>
+                        <input id="q13d" name="q13" type="checkbox" value="D" /> D- Le syndrome de Demons-Meigs </li>
+                     <li>
+                        <input id="q13e" name="q13" type="checkbox" value="E" /> E- La tuberculose intestinale </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q13')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q13')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="13"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_13" onclick="toggleCommentSection('AD2018R_13', event)"> 💬 <span class="badge" data-comment-id="AD2018R_13">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-14">
+               <div class="question">
+                  <p> 14.) La prise en charge thérapeutique comporte : </p>
+                  <ul>
+                     <li>
+                        <input id="q14a" name="q14" type="checkbox" value="A" /> A- Les diurétiques </li>
+                     <li>
+                        <input id="q14b" name="q14" type="checkbox" value="B" /> B- Le traitement antibacillaire </li>
+                     <li>
+                        <input id="q14c" name="q14" type="checkbox" value="C" /> C- Les bêta-bloquants </li>
+                     <li>
+                        <input id="q14d" name="q14" type="checkbox" value="D" /> D- La chirurgie </li>
+                     <li>
+                        <input id="q14e" name="q14" type="checkbox" value="E" /> E- Les inhibiteurs calciques </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q14')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q14')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="14"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_14" onclick="toggleCommentSection('AD2018R_14', event)"> 💬 <span class="badge" data-comment-id="AD2018R_14">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-15">
+               <div class="question">
+                  <p> 15.) La localisation la plus fréquente de la tuberculose intestinale est : </p>
+                  <ul>
+                     <li>
+                        <input id="q15a" name="q15" type="checkbox" value="A" /> A- Le duodénum </li>
+                     <li>
+                        <input id="q15b" name="q15" type="checkbox" value="B" /> B- L'appendice </li>
+                     <li>
+                        <input id="q15c" name="q15" type="checkbox" value="C" /> C- Le rectum </li>
+                     <li>
+                        <input id="q15d" name="q15" type="checkbox" value="D" /> D- L'anus </li>
+                     <li>
+                        <input id="q15e" name="q15" type="checkbox" value="E" /> E- La région iléo-caecale </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q15')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q15')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="15"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_15" onclick="toggleCommentSection('AD2018R_15', event)"> 💬 <span class="badge" data-comment-id="AD2018R_15">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-16">
+               <div class="question">
+                  <p> 16.) La forme dysentérique aiguë de l'amibiase intestinale se manifeste par : </p>
+                  <ul>
+                     <li>
+                        <input id="q16a" name="q16" type="checkbox" value="A" /> A- Les épreintes </li>
+                     <li>
+                        <input id="q16b" name="q16" type="checkbox" value="B" /> B- Les faux besoins </li>
+                     <li>
+                        <input id="q16c" name="q16" type="checkbox" value="C" /> C- Les diarrhées glairo-sanglantes </li>
+                     <li>
+                        <input id="q16d" name="q16" type="checkbox" value="D" /> D- Les ténesmes </li>
+                     <li>
+                        <input id="q16e" name="q16" type="checkbox" value="E" /> E- Un état de choc </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q16')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q16')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="16"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_16" onclick="toggleCommentSection('AD2018R_16', event)"> 💬 <span class="badge" data-comment-id="AD2018R_16">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-17">
+               <div class="question">
+                  <p> 17.) Le diagnostic positif de l'amibiase intestinale repose sur : </p>
+                  <ul>
+                     <li>
+                        <input id="q17a" name="q17" type="checkbox" value="A" /> A- La coloscopie </li>
+                     <li>
+                        <input id="q17b" name="q17" type="checkbox" value="B" /> B- L'échographie abdominale </li>
+                     <li>
+                        <input id="q17c" name="q17" type="checkbox" value="C" /> C- La rectosigmoidoscopie </li>
+                     <li>
+                        <input id="q17d" name="q17" type="checkbox" value="D" /> D- La tomodensitométrie abdominale </li>
+                     <li>
+                        <input id="q17e" name="q17" type="checkbox" value="E" /> E- L'examen parasitologique des selles </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q17')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q17')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="17"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_17" onclick="toggleCommentSection('AD2018R_17', event)"> 💬 <span class="badge" data-comment-id="AD2018R_17">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-18">
+               <div class="question">
+                  <p> 18.) La forme classique de l'amibiase hépatique se caractérise par : </p>
+                  <ul>
+                     <li>
+                        <input id="q18a" name="q18" type="checkbox" value="A" /> A- Un début progressif </li>
+                     <li>
+                        <input id="q18b" name="q18" type="checkbox" value="B" /> B- Une douleur de l'hypochondre droit </li>
+                     <li>
+                        <input id="q18c" name="q18" type="checkbox" value="C" /> C- Une fièvre à 39°-40° </li>
+                     <li>
+                        <input id="q18d" name="q18" type="checkbox" value="D" /> D- Un état général conservé </li>
+                     <li>
+                        <input id="q18e" name="q18" type="checkbox" value="E" /> E- Une hépatomégalie </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q18')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q18')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="18"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_18" onclick="toggleCommentSection('AD2018R_18', event)"> 💬 <span class="badge" data-comment-id="AD2018R_18">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-19">
+               <div class="question">
+                  <p> 19.) Le test à réaliser en pratique pour contrôler l'éradication de l'Helicobacter pylori après traitement est : </p>
+                  <ul>
+                     <li>
+                        <input id="q19a" name="q19" type="checkbox" value="A" /> A- La sérologie </li>
+                     <li>
+                        <input id="q19b" name="q19" type="checkbox" value="B" /> B- Le test rapide à l'uréase </li>
+                     <li>
+                        <input id="q19c" name="q19" type="checkbox" value="C" /> C- La culture </li>
+                     <li>
+                        <input id="q19d" name="q19" type="checkbox" value="D" /> D- L'étude anatomopathologique des biopsies gastriques </li>
+                     <li>
+                        <input id="q19e" name="q19" type="checkbox" value="E" /> E- Le test respiratoire à l'urée marquée </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q19')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q19')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="19"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_19" onclick="toggleCommentSection('AD2018R_19', event)"> 💬 <span class="badge" data-comment-id="AD2018R_19">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-20">
+               <div class="question">
+                  <p> 20.) Les diagnostics différentiels de la fissure anale sont représentés par : </p>
+                  <ul>
+                     <li>
+                        <input id="q20a" name="q20" type="checkbox" value="A" /> A- La maladie de Crohn </li>
+                     <li>
+                        <input id="q20b" name="q20" type="checkbox" value="B" /> B- Le cancer de l'anus </li>
+                     <li>
+                        <input id="q20c" name="q20" type="checkbox" value="C" /> C- La rectocolite hémorragique </li>
+                     <li>
+                        <input id="q20d" name="q20" type="checkbox" value="D" /> D- La tuberculose anale </li>
+                     <li>
+                        <input id="q20e" name="q20" type="checkbox" value="E" /> E- Les infections sexuellement transmissibles (IST) </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q20')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q20')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="20"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_20" onclick="toggleCommentSection('AD2018R_20', event)"> 💬 <span class="badge" data-comment-id="AD2018R_20">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-21">
+               <div class="question">
+                  <p> 21.) Parmi les complications suivantes, lesquelles peuvent survenir au cours de l'évolution d'une maladie de Crohn ? </p>
+                  <ul>
+                     <li>
+                        <input id="q21a" name="q21" type="checkbox" value="A" /> A- Une occlusion intestinale </li>
+                     <li>
+                        <input id="q21b" name="q21" type="checkbox" value="B" /> B- Un cancer de l'estomac </li>
+                     <li>
+                        <input id="q21c" name="q21" type="checkbox" value="C" /> C- Une sténose iléale </li>
+                     <li>
+                        <input id="q21d" name="q21" type="checkbox" value="D" /> D- Une hémorragie digestive </li>
+                     <li>
+                        <input id="q21e" name="q21" type="checkbox" value="E" /> E- Une colectasie </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q21')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q21')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="21"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_21" onclick="toggleCommentSection('AD2018R_21', event)"> 💬 <span class="badge" data-comment-id="AD2018R_21">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-22">
+               <div class="question">
+                  <p> 22.) Un patient âgé de 52 ans se présente pour un pyrosis isolé intermittent évoluant depuis 2 ans. L'examen clinique est normal. Les examens utiles
+                     pour le diagnostic sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q22a" name="q22" type="checkbox" value="A" /> A- Un chimisme gastrique </li>
+                     <li>
+                        <input id="q22b" name="q22" type="checkbox" value="B" /> B- Une manométrie œsophagienne </li>
+                     <li>
+                        <input id="q22c" name="q22" type="checkbox" value="C" /> C- Une fibroscopie œsogastroduodénale </li>
+                     <li>
+                        <input id="q22d" name="q22" type="checkbox" value="D" /> D- Une échographie abdominale </li>
+                     <li>
+                        <input id="q22e" name="q22" type="checkbox" value="E" /> E- Un transit baryté œsogastroduodénal </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q22')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q22')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="22"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_22" onclick="toggleCommentSection('AD2018R_22', event)"> 💬 <span class="badge" data-comment-id="AD2018R_22">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-23">
+               <div class="question">
+                  <p> 23.) Le reflux gastro-œsophagien peut être favorisé par : </p>
+                  <ul>
+                     <li>
+                        <input id="q23a" name="q23" type="checkbox" value="A" /> A- La surcharge pondérale </li>
+                     <li>
+                        <input id="q23b" name="q23" type="checkbox" value="B" /> B- La prise d'œstro-progestatifs </li>
+                     <li>
+                        <input id="q23c" name="q23" type="checkbox" value="C" /> C- L'âge </li>
+                     <li>
+                        <input id="q23d" name="q23" type="checkbox" value="D" /> D- La prise de laxatifs </li>
+                     <li>
+                        <input id="q23e" name="q23" type="checkbox" value="E" /> E- Le tabagisme chronique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q23')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q23')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="23"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_23" onclick="toggleCommentSection('AD2018R_23', event)"> 💬 <span class="badge" data-comment-id="AD2018R_23">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-24">
+               <div class="question">
+                  <p> 24.) Parmi les affirmations suivantes, lesquelles peuvent être attribuées à la gastrite chronique atrophique ? </p>
+                  <ul>
+                     <li>
+                        <input id="q24a" name="q24" type="checkbox" value="A" /> A- Le diagnostic est endoscopique </li>
+                     <li>
+                        <input id="q24b" name="q24" type="checkbox" value="B" /> B- Elle peut être associée à l'Helicobacter pylori </li>
+                     <li>
+                        <input id="q24c" name="q24" type="checkbox" value="C" /> C- Elle est souvent asymptomatique </li>
+                     <li>
+                        <input id="q24d" name="q24" type="checkbox" value="D" /> D- Elle nécessite une surveillance endoscopique </li>
+                     <li>
+                        <input id="q24e" name="q24" type="checkbox" value="E" /> E- Elle se complique de cancer gastrique dans tous les cas </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q24')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q24')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="24"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_24" onclick="toggleCommentSection('AD2018R_24', event)"> 💬 <span class="badge" data-comment-id="AD2018R_24">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-25">
+               <div class="question">
+                  <p> 25.) Un patient âgé de 30 ans se présente à votre consultation pour un Ag HBs positif découvert à l'occasion d'un bilan d'embauche. L'anamnèse
+                     ne relève pas d'antécédent pathologique particulier. L'examen clinique est normal. Quel bilan demandez-vous chez ce patient ? </p>
+                  <ul>
+                     <li>
+                        <input id="q25a" name="q25" type="checkbox" value="A" /> A- Un dosage des transaminases </li>
+                     <li>
+                        <input id="q25b" name="q25" type="checkbox" value="B" /> B- Une fibroscopie œsogastroduodénale </li>
+                     <li>
+                        <input id="q25c" name="q25" type="checkbox" value="C" /> C- Un dosage de la charge virale du virus B </li>
+                     <li>
+                        <input id="q25d" name="q25" type="checkbox" value="D" /> D- Une échographie hépato-biliaire </li>
+                     <li>
+                        <input id="q25e" name="q25" type="checkbox" value="E" /> E- Une recherche de l'Ag HBe et de l'Ac anti HBe </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q25')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q25')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="25"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_25" onclick="toggleCommentSection('AD2018R_25', event)"> 💬 <span class="badge" data-comment-id="AD2018R_25">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-26">
+               <div class="question">
+                  <p> 26.) Une patiente âgée de 52 ans se plaint d'une constipation chronique. Elle n'a pas d'antécédents pathologiques particuliers ni personnels ni
+                     familiaux. L'examen clinique et le toucher rectal sont normaux. Avant de retenir le diagnostic de trouble fonctionnel intestinal, vous faites
+                     le ou les examens suivant(s) : </p>
+                  <ul>
+                     <li>
+                        <input id="q26a" name="q26" type="checkbox" value="A" /> A- Une rectoscopie </li>
+                     <li>
+                        <input id="q26b" name="q26" type="checkbox" value="B" /> B- Une fibroscopie œsogastro-duodénale </li>
+                     <li>
+                        <input id="q26c" name="q26" type="checkbox" value="C" /> C- Une coloscopie </li>
+                     <li>
+                        <input id="q26d" name="q26" type="checkbox" value="D" /> D- Un dosage de la TSH </li>
+                     <li>
+                        <input id="q26e" name="q26" type="checkbox" value="E" /> E- Une recherche d'Ag de l'Helicobacter pylori dans les selles </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q26')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q26')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="26"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_26" onclick="toggleCommentSection('AD2018R_26', event)"> 💬 <span class="badge" data-comment-id="AD2018R_26">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-27">
+               <div class="question">
+                  <p> 27.) L'hépatite virale chronique C : </p>
+                  <ul>
+                     <li>
+                        <input id="q27a" name="q27" type="checkbox" value="A" /> A- Évolue fréquemment vers la chronicité </li>
+                     <li>
+                        <input id="q27b" name="q27" type="checkbox" value="B" /> B- Peut se compliquer de cirrhose et de carcinome hépato-cellulaire </li>
+                     <li>
+                        <input id="q27c" name="q27" type="checkbox" value="C" /> C- Est une maladie sexuellement transmissible </li>
+                     <li>
+                        <input id="q27d" name="q27" type="checkbox" value="D" /> D- Ne peut être traitée que dans les formes précoces </li>
+                     <li>
+                        <input id="q27e" name="q27" type="checkbox" value="E" /> E- Peut être prévenue par la vaccination </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q27')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q27')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="27"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_27" onclick="toggleCommentSection('AD2018R_27', event)"> 💬 <span class="badge" data-comment-id="AD2018R_27">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-28">
+               <div class="question">
+                  <p> 28.) En cas de portage inactif du virus B, vous préconisez les mesures suivantes : </p>
+                  <ul>
+                     <li>
+                        <input id="q28a" name="q28" type="checkbox" value="A" /> A- Vous indiquez une ponction-biopsie hépatique </li>
+                     <li>
+                        <input id="q28b" name="q28" type="checkbox" value="B" /> B- Vous préconisez la vaccination anti-VHB de l'entourage </li>
+                     <li>
+                        <input id="q28c" name="q28" type="checkbox" value="C" /> C- Vous indiquez une échographie abdominale et un dosage de l'alpha-foetoprotéine tous les 3 mois pour le dépistage du carcinome hépatocellulaire
+                        </li>
+                     <li>
+                        <input id="q28d" name="q28" type="checkbox" value="D" /> D- Vous faites un dosage de la charge virale une fois par an </li>
+                     <li>
+                        <input id="q28e" name="q28" type="checkbox" value="E" /> E- Vous demandez un test d'appréciation de la fibrose hépatique une fois par an </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q28')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q28')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="28"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_28" onclick="toggleCommentSection('AD2018R_28', event)"> 💬 <span class="badge" data-comment-id="AD2018R_28">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-29">
+               <div class="question">
+                  <p> 29.) Une patiente âgée de 26 ans, se présente pour une asthénie et un subictère installés une semaine auparavant. L'examen clinique est normal.
+                     Le bilan est le suivant : Ag HBs positif ; ALAT = 1040 UI/L (N : 33-45 UI/L) ; Ag HBC IgM positif ; Ac VHA IgG positif ; Ag HBe positif ; Ac
+                     anti HBs négatif. Votre diagnostic est le suivant : </p>
+                  <ul>
+                     <li>
+                        <input id="q29a" name="q29" type="checkbox" value="A" /> A- Une hépatite chronique B </li>
+                     <li>
+                        <input id="q29b" name="q29" type="checkbox" value="B" /> B- Une hépatite aiguë B </li>
+                     <li>
+                        <input id="q29c" name="q29" type="checkbox" value="C" /> C- Un portage chronique du virus B </li>
+                     <li>
+                        <input id="q29d" name="q29" type="checkbox" value="D" /> D- Une hépatite aiguë A </li>
+                     <li>
+                        <input id="q29e" name="q29" type="checkbox" value="E" /> E- Une hépatite aiguë B associée à une hépatite aiguë A </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q29')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q29')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="29"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_29" onclick="toggleCommentSection('AD2018R_29', event)"> 💬 <span class="badge" data-comment-id="AD2018R_29">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-30">
+               <div class="question">
+                  <p> 30.) La prise en charge thérapeutique d'une hépatite virale aiguë repose sur la ou les mesure(s) suivante(s) : </p>
+                  <ul>
+                     <li>
+                        <input id="q30a" name="q30" type="checkbox" value="A" /> A- Un traitement antibiotique </li>
+                     <li>
+                        <input id="q30b" name="q30" type="checkbox" value="B" /> B- Un traitement anti-viral </li>
+                     <li>
+                        <input id="q30c" name="q30" type="checkbox" value="C" /> C- Un traitement anti-inflammatoire </li>
+                     <li>
+                        <input id="q30d" name="q30" type="checkbox" value="D" /> D- Le repos </li>
+                     <li>
+                        <input id="q30e" name="q30" type="checkbox" value="E" /> E- Un régime hyposodé et hypolipidique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q30')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q30')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="30"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_30" onclick="toggleCommentSection('AD2018R_30', event)"> 💬 <span class="badge" data-comment-id="AD2018R_30">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-31">
+               <div class="question">
+                  <p> 31.) Au cours d'une hépatite virale aiguë, l'évaluation de la gravité de l'atteinte hépatique est basée sur le ou les élément(s) suivant(s) : </p>
+                  <ul>
+                     <li>
+                        <input id="q31a" name="q31" type="checkbox" value="A" /> A- L'intensité de l'asthénie </li>
+                     <li>
+                        <input id="q31b" name="q31" type="checkbox" value="B" /> B- L'importance de la cytolyse </li>
+                     <li>
+                        <input id="q31c" name="q31" type="checkbox" value="C" /> C- La présence de signes neurologiques </li>
+                     <li>
+                        <input id="q31d" name="q31" type="checkbox" value="D" /> D- Le dosage du taux de prothrombine et du facteur V </li>
+                     <li>
+                        <input id="q31e" name="q31" type="checkbox" value="E" /> E- L'importance de la cholestase </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q31')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q31')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="31"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_31" onclick="toggleCommentSection('AD2018R_31', event)"> 💬 <span class="badge" data-comment-id="AD2018R_31">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-32">
+               <div class="question">
+                  <p> 32.) Au cours des maladies inflammatoires chroniques intestinales (MICI), quels sont les éléments qui permettent la distinction entre maladie de
+                     Crohn et RCH (rectocolite ulcéro-hémorragique) : </p>
+                  <ul>
+                     <li>
+                        <input id="q32a" name="q32" type="checkbox" value="A" /> A- L'atteinte colique </li>
+                     <li>
+                        <input id="q32b" name="q32" type="checkbox" value="B" /> B- La présence de fistules </li>
+                     <li>
+                        <input id="q32c" name="q32" type="checkbox" value="C" /> C- La présence d'un granulome épithélio-gigantocellulaire sans nécrose caséeuse </li>
+                     <li>
+                        <input id="q32d" name="q32" type="checkbox" value="D" /> D- Les douleurs articulaires </li>
+                     <li>
+                        <input id="q32e" name="q32" type="checkbox" value="E" /> E- La présence de multiples ulcérations coliques </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q32')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q32')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="32"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_32" onclick="toggleCommentSection('AD2018R_32', event)"> 💬 <span class="badge" data-comment-id="AD2018R_32">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-33">
+               <div class="question">
+                  <p> 33.) La rectocolite ulcéro-hémorragique : </p>
+                  <ul>
+                     <li>
+                        <input id="q33a" name="q33" type="checkbox" value="A" /> A- Est caractérisée par une diarrhée glairo-sanglante </li>
+                     <li>
+                        <input id="q33b" name="q33" type="checkbox" value="B" /> B- Peut se compliquer de cancer colique </li>
+                     <li>
+                        <input id="q33c" name="q33" type="checkbox" value="C" /> C- Atteint exceptionnellement l'iléon </li>
+                     <li>
+                        <input id="q33d" name="q33" type="checkbox" value="D" /> D- Peut se compliquer de microrectite </li>
+                     <li>
+                        <input id="q33e" name="q33" type="checkbox" value="E" /> E- Peut être guérie par coloproctectomie totale </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q33')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q33')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="33"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_33" onclick="toggleCommentSection('AD2018R_33', event)"> 💬 <span class="badge" data-comment-id="AD2018R_33">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-34">
+               <div class="question">
+                  <p> 34.) Quelles sont parmi les affections suivantes celles qui peuvent être provoquées par l'Helicobacter pylori ? </p>
+                  <ul>
+                     <li>
+                        <input id="q34a" name="q34" type="checkbox" value="A" /> A- L'adénocarcinome gastrique </li>
+                     <li>
+                        <input id="q34b" name="q34" type="checkbox" value="B" /> B- Le lymphome malin hodgkinien </li>
+                     <li>
+                        <input id="q34c" name="q34" type="checkbox" value="C" /> C- La gastrite chronique atrophique </li>
+                     <li>
+                        <input id="q34d" name="q34" type="checkbox" value="D" /> D- Le reflux gastro-œsophagien </li>
+                     <li>
+                        <input id="q34e" name="q34" type="checkbox" value="E" /> E- L'ulcère gastrique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q34')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q34')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="34"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_34" onclick="toggleCommentSection('AD2018R_34', event)"> 💬 <span class="badge" data-comment-id="AD2018R_34">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-35">
+               <div class="question">
+                  <p> 35.) Le diagnostic de certitude d'une pancréatite chronique repose sur le ou les examen(s) suivant(s) : </p>
+                  <ul>
+                     <li>
+                        <input id="q35a" name="q35" type="checkbox" value="A" /> A- L'échographie abdominale </li>
+                     <li>
+                        <input id="q35b" name="q35" type="checkbox" value="B" /> B- La lipasémie </li>
+                     <li>
+                        <input id="q35c" name="q35" type="checkbox" value="C" /> C- L'amylasémie </li>
+                     <li>
+                        <input id="q35d" name="q35" type="checkbox" value="D" /> D- La tomodensitométrie </li>
+                     <li>
+                        <input id="q35e" name="q35" type="checkbox" value="E" /> E- L'IRM pancréatique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q35')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q35')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="35"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_35" onclick="toggleCommentSection('AD2018R_35', event)"> 💬 <span class="badge" data-comment-id="AD2018R_35">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-36">
+               <div class="question">
+                  <p> 36.) L'hépatite virale E : </p>
+                  <ul>
+                     <li>
+                        <input id="q36a" name="q36" type="checkbox" value="A" /> A- Peut être prévenue par la vaccination </li>
+                     <li>
+                        <input id="q36b" name="q36" type="checkbox" value="B" /> B- N'évolue pas vers la chronicité </li>
+                     <li>
+                        <input id="q36c" name="q36" type="checkbox" value="C" /> C- Peut se compliquer de forme fulminante </li>
+                     <li>
+                        <input id="q36d" name="q36" type="checkbox" value="D" /> D- Donne des formes graves chez la femme enceinte </li>
+                     <li>
+                        <input id="q36e" name="q36" type="checkbox" value="E" /> E- Se transmet selon le mode oro-fécal </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q36')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q36')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="36"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_36" onclick="toggleCommentSection('AD2018R_36', event)"> 💬 <span class="badge" data-comment-id="AD2018R_36">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-37">
+               <div class="question">
+                  <p> 37.) La prise en charge thérapeutique du reflux gastro-œsophagien repose sur la ou les mesure(s) suivante(s) : </p>
+                  <ul>
+                     <li>
+                        <input id="q37a" name="q37" type="checkbox" value="A" /> A- Les anti-histaminiques de type H2 </li>
+                     <li>
+                        <input id="q37b" name="q37" type="checkbox" value="B" /> B- Les inhibiteurs de la pompe à protons </li>
+                     <li>
+                        <input id="q37c" name="q37" type="checkbox" value="C" /> C- La réduction pondérale </li>
+                     <li>
+                        <input id="q37d" name="q37" type="checkbox" value="D" /> D- L'éradication de l'Helicobacter pylori </li>
+                     <li>
+                        <input id="q37e" name="q37" type="checkbox" value="E" /> E- La surélévation de la tête du lit </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q37')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q37')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="37"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_37" onclick="toggleCommentSection('AD2018R_37', event)"> 💬 <span class="badge" data-comment-id="AD2018R_37">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-38">
+               <div class="question">
+                  <p> 38.) Un reflux gastro-œsophagien chronique peut se compliquer de : </p>
+                  <ul>
+                     <li>
+                        <input id="q38a" name="q38" type="checkbox" value="A" /> A- Cancer de l'œsophage </li>
+                     <li>
+                        <input id="q38b" name="q38" type="checkbox" value="B" /> B- Œsophagite peptique </li>
+                     <li>
+                        <input id="q38c" name="q38" type="checkbox" value="C" /> C- Achalasie </li>
+                     <li>
+                        <input id="q38d" name="q38" type="checkbox" value="D" /> D- Endobrachyœsophage </li>
+                     <li>
+                        <input id="q38e" name="q38" type="checkbox" value="E" /> E- Sténose de l'œsophage </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q38')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q38')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="38"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_38" onclick="toggleCommentSection('AD2018R_38', event)"> 💬 <span class="badge" data-comment-id="AD2018R_38">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-39">
+               <div class="question">
+                  <p> 39.) Parmi les affirmations suivantes, la ou lesquelles concernent l'hépatite virale Delta ? </p>
+                  <ul>
+                     <li>
+                        <input id="q39a" name="q39" type="checkbox" value="A" /> A- Elle évolue rarement vers la chronicité </li>
+                     <li>
+                        <input id="q39b" name="q39" type="checkbox" value="B" /> B- Elle se transmet selon le mode oro-fécal </li>
+                     <li>
+                        <input id="q39c" name="q39" type="checkbox" value="C" /> C- Elle nécessite la présence du virus B </li>
+                     <li>
+                        <input id="q39d" name="q39" type="checkbox" value="D" /> D- Elle peut se compliquer de cirrhose </li>
+                     <li>
+                        <input id="q39e" name="q39" type="checkbox" value="E" /> E- Elle peut se compliquer de cancer du foie </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q39')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q39')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="39"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_39" onclick="toggleCommentSection('AD2018R_39', event)"> 💬 <span class="badge" data-comment-id="AD2018R_39">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-40">
+               <div class="question">
+                  <p> 40.) Un patient âgé de 30 ans consulte pour une constipation installée depuis 3 mois (transit = 1 selle/4 jours) avec ballonnement abdominal et
+                     douleurs abdominales. L'examen clinique est normal. Le toucher rectal est normal. Vous décidez de prescrire un traitement symptomatique. Quelles
+                     mesures préconisez-vous ? </p>
+                  <ul>
+                     <li>
+                        <input id="q40a" name="q40" type="checkbox" value="A" /> A- Des antispasmodiques </li>
+                     <li>
+                        <input id="q40b" name="q40" type="checkbox" value="B" /> B- Des mucilages </li>
+                     <li>
+                        <input id="q40c" name="q40" type="checkbox" value="C" /> C- Un régime hypocalorique </li>
+                     <li>
+                        <input id="q40d" name="q40" type="checkbox" value="D" /> D- Des boissons abondantes </li>
+                     <li>
+                        <input id="q40e" name="q40" type="checkbox" value="E" /> E- Un pansement intestinal </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q40')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q40')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="40"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_40" onclick="toggleCommentSection('AD2018R_40', event)"> 💬 <span class="badge" data-comment-id="AD2018R_40">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-41">
+               <div class="question">
+                  <p> 41.) Les Antagonistes des récepteurs H2 (type cimétidine) : </p>
+                  <ul>
+                     <li>
+                        <input id="q41a" name="q41" type="checkbox" value="A" /> A- Sont susceptibles de créer des hallucinations </li>
+                     <li>
+                        <input id="q41b" name="q41" type="checkbox" value="B" /> B- Peuvent prolonger la demi-vie de certains médicaments métabolisés (Exemple la Warfarine) </li>
+                     <li>
+                        <input id="q41c" name="q41" type="checkbox" value="C" /> C- Présentent une action anticholinergique </li>
+                     <li>
+                        <input id="q41d" name="q41" type="checkbox" value="D" /> D- S'administrent exclusivement en 2 fois par jour </li>
+                     <li>
+                        <input id="q41e" name="q41" type="checkbox" value="E" /> E- Présentent un effet rapide, bref, d'intensité modérée </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q41')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q41')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="41"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_41" onclick="toggleCommentSection('AD2018R_41', event)"> 💬 <span class="badge" data-comment-id="AD2018R_41">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-42">
+               <div class="question">
+                  <p> 42.) Les Inhibiteurs irréversibles de la pompe à protons : </p>
+                  <ul>
+                     <li>
+                        <input id="q42a" name="q42" type="checkbox" value="A" /> A- Doivent être pris à jeun (1 heure avant le premier repas de la journée) </li>
+                     <li>
+                        <input id="q42b" name="q42" type="checkbox" value="B" /> B- Sont de puissants inducteurs enzymatiques </li>
+                     <li>
+                        <input id="q42c" name="q42" type="checkbox" value="C" /> C- Exercent une inhibition complète après 3-4 jours </li>
+                     <li>
+                        <input id="q42d" name="q42" type="checkbox" value="D" /> D- Ils présentent un métabolisme hépatique = métabolites inactifs </li>
+                     <li>
+                        <input id="q42e" name="q42" type="checkbox" value="E" /> E- Ne nécessitent pas d'ajustement de posologie en cas d'insuffisance rénale </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q42')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q42')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="42"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_42" onclick="toggleCommentSection('AD2018R_42', event)"> 💬 <span class="badge" data-comment-id="AD2018R_42">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-43">
+               <div class="question">
+                  <p> 43.) Les antiacides topiques : </p>
+                  <ul>
+                     <li>
+                        <input id="q43a" name="q43" type="checkbox" value="A" /> A- Agissent par un mécanisme basé sur le pouvoir tampon </li>
+                     <li>
+                        <input id="q43b" name="q43" type="checkbox" value="B" /> B- Bloquent les récepteurs H2 </li>
+                     <li>
+                        <input id="q43c" name="q43" type="checkbox" value="C" /> C- Protègent la muqueuse gastrique par pouvoir couvrant et parfois par modification du mucus gastrique </li>
+                     <li>
+                        <input id="q43d" name="q43" type="checkbox" value="D" /> D- Sont souvent associés à l'acide alginique (alginate) </li>
+                     <li>
+                        <input id="q43e" name="q43" type="checkbox" value="E" /> E- Doivent être administrés avant les repas : effet neutralisant 2 heures </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q43')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q43')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="43"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_43" onclick="toggleCommentSection('AD2018R_43', event)"> 💬 <span class="badge" data-comment-id="AD2018R_43">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-44">
+               <div class="question">
+                  <p> 44.) Cocher les bonnes réponses concernant les antiacides topiques : </p>
+                  <ul>
+                     <li>
+                        <input id="q44a" name="q44" type="checkbox" value="A" /> A- Les bicarbonates de sodium (NaHCO3) peuvent entraîner des rétentions liquidiennes (IC, HTA, IR) </li>
+                     <li>
+                        <input id="q44b" name="q44" type="checkbox" value="B" /> B- Les bicarbonates de calcium (CaCO3) : à doses excessives en présence d'aliments peuvent être responsables d'alcalose métabolique </li>
+                     <li>
+                        <input id="q44c" name="q44" type="checkbox" value="C" /> C- Les sels d'Aluminium Al(OH)3 peuvent engendrer des éructations </li>
+                     <li>
+                        <input id="q44d" name="q44" type="checkbox" value="D" /> D- Les antiacides modifient l'absorption d'autres médicaments (tels que les tétracyclines, les fluoroquinolones et les sels de fer) </li>
+                     <li>
+                        <input id="q44e" name="q44" type="checkbox" value="E" /> E- Les sels d'Aluminium Al(OH)3 entraînent des hypercalcémies </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q44')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q44')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="44"> ❤ </button>
+                  <button class="comment-button" data-question-id="AD2018R_44" onclick="toggleCommentSection('AD2018R_44', event)"> 💬 <span class="badge" data-comment-id="AD2018R_44">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="button-container">
+               <button class="submit-quiz-button" onclick="submitQuiz()" type="button"> Soumettre tout le Quiz </button>
+               <button class="favorite-button" id="voir-favoris-btn" onclick="voirFavoris()"> Voir Favoris </button>
+               <!-- Nouveau bouton -->
+            </div>
+            <div class="blur-background" id="blur-background"> </div>
+            <div class="result-popup" id="result-popup">
+               <h3>
+Résultat du Quiz
+</h3>
+               <div id="result"> </div>
+               <button class="close-button" id="close-result" onclick="closeResult(event)"> Fermer </button>
+               <button class="detail-button" id="voir-detail-btn" onclick="afficherDetails(event)" style="display: none;"> Voir Détail </button>
+               <button class="reset-quiz-button" onclick="resetAll()" type="button"> Réessayer tout le Quiz </button>
+            </div>
+            <div class="details-section" id="details-section" style="display: none;">
+               <h3>
+Tableau des questions
+</h3>
+               <div class="question-links" id="question-links"> </div>
+            </div>
+            <div id="timer-container"> <span id="timer">
+60:00
+</span> </div>
+<div class="comments-section" id="comments-section">
+    <h3>Commentaires</h3>
+    <textarea id="new-comment" placeholder="Écrire un commentaire..."></textarea>
+    <button type="button" onclick="addComment(event)">Ajouter</button>
+    <div id="comment-alert" class="alert" style="display: none;"></div>
+    <div id="comments-list"></div>
+</div>
+
+    <div id="comments-list"></div>
+</div>
+
+<!-- Boutons flottants -->
+<div id="floating-buttons" class="floating-buttons" style="position: fixed; bottom: 50px; right: 50px; z-index: 1000;">
+    <!-- Bouton pour afficher le cours -->
+    <button id="show-course-btn" class="floating-btn" type="button" 
+            onclick="window.open('https://drive.google.com/drive/folders/1Xd_FaJbPk4FJv3G5-96L7G0UlQnUZuSf', '_blank');">📚</button>
+    <!-- Bouton pour afficher le contact -->
+<button id="open-contact-modal" class="floating-btn" type="button">
+    ✉️
+</button>
+
+</div>
+
+
+
+
+
+<div class="message-container" id="message-container" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#f9f9f9; padding:40px; box-shadow:0 4px 12px rgba(0,0,0,0.15); border-radius:12px; z-index:1001; width:600px; max-width:90%; font-family:Arial, sans-serif;">
+    <div style="text-align:center; margin-bottom:30px;">
+        <h2 style="margin:0; font-size:24px; font-weight:bold; color:#333;">Posez vos observations <span>📝</span></h2>
+        <p style="margin:10px 0 0; font-size:16px; color:#666;">Nous sommes à votre écoute</p>
+    </div>
+    <div class="mb-3" style="margin-bottom:30px;">
+        <p style="font-size:16px; color:#333; margin:0;">En tant Que :</p>
+        <div style="margin-top:10px;">
+            <input type="radio" id="username" name="mode" value="username" style="margin-right:8px;">
+            <label for="username" style="font-size:16px; color:#333; cursor:pointer;">{{ user_full_name}}</label>
+            <br>
+            <input type="radio" id="anonymous" name="mode" value="anonymous" checked style="margin-right:8px; margin-top:10px;">
+            <label for="anonymous" style="font-size:16px; color:#333; cursor:pointer;">Anonyme</label>
+        </div>
+    </div>
+    <div class="mb-3">
+        <label for="message" class="form-label" style="font-size:18px; font-weight:bold; color:#333; margin-bottom:10px; display:block;">Votre message :</label>
+        <textarea class="form-control" id="message" rows="6" placeholder="Precisez l'examen si c'est en rapport avec une question..." style="width:100%; font-size:16px; padding:15px; border:1px solid #ccc; border-radius:8px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.1); background:#fff;"></textarea>
+    </div>
+<span class="close-btn" id="close-btn" style="cursor:pointer; position:absolute; top:15px; right:15px; font-size:51px; color:#ff0000; font-weight:bold;">&times;</span>
+<!-- Bouton Envoyer stylé -->
+<div style="text-align:center; margin-top:30px;">
+    <button type="button" class="btn btn-primary" id="send-message" style="background-color:#007bff; color:white; border:none; padding:12px 30px; border-radius:8px; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 4px 8px rgba(0, 0, 0, 0.2); transition:all 0.3s ease;">
+        Envoyer
+    </button>
+</div>
+</div>
+
+
+
+
+<div id="blur-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;"></div>
+
+
+
+<script src="{% static 'java/contact.js' %}"></script>
+            </div>
+            <script>
+            // Réponses correctes pour les questions
+            const correctAnswers = {
+               q1: ['B', 'C'],
+               q2: ['D'],
+               q3: ['A', 'C', 'D', 'E'],
+               q4: ['A', 'B'],
+               q5: ['A', 'B', 'C', 'D'],
+               q6: ['A', 'B', 'C', 'E'],
+               q7: ['A', 'B', 'C', 'D', 'E'],
+               q8: ['C'],
+               q9: ['A', 'C', 'E'],
+               q10: ['A', 'B', 'C', 'E'],
+               q11: ['A', 'B', 'C', 'D'],
+               q12: ['B', 'C'],
+               q13: ['C'],
+               q14: ['B'],
+               q15: ['E'],
+               q16: ['A', 'B', 'C', 'D'],
+               q17: ['A', 'C', 'E'],
+               q18: ['B', 'C', 'E'],
+               q19: ['E'],
+               q20: ['A', 'B', 'D', 'E'],
+               q21: ['A', 'C', 'D', 'E'],
+               q22: ['C'],
+               q23: ['A', 'B', 'C', 'E'],
+               q24: ['B', 'C', 'D'],
+               q25: ['A', 'C', 'D', 'E'],
+               q26: ['C', 'D'],
+               q27: ['A', 'B'],
+               q28: ['C', 'D', 'E'],
+               q29: ['B'],
+               q30: ['D'],
+               q31: ['C', 'D'],
+               q32: ['B', 'C'],
+               q33: ['A', 'B', 'D', 'E'],
+               q34: ['A', 'C', 'E'],
+               q35: ['D', 'E'],
+               q36: ['B', 'C', 'D', 'E'],
+               q37: ['A', 'B', 'C', 'E'],
+               q38: ['A', 'B', 'D', 'E'],
+               q39: ['C', 'D', 'E'],
+               q40: ['A', 'B', 'D'],
+               q41: ['A', 'B', 'E'],
+               q42: ['A', 'C', 'D', 'E'],
+               q43: ['A', 'C', 'D'],
+               q44: ['A', 'B', 'D'],
+            };
+            // Contenu du fichier JavaScript
+            // Variable globale pour stocker l'intervalle du timer
+            let timerInterval;
+            const userAnswers = {}; // Object pour stocker les réponses de l'utilisateur
+            // Fonction pour démarrer le timer
+            function startTimer(duration, display) {
+               let timer = duration,
+                  minutes, seconds;
+               timerInterval = setInterval(() => {
+                  minutes = parseInt(timer / 60, 10);
+                  seconds = parseInt(timer % 60, 10);
+                  minutes = minutes < 10 ? "0" + minutes : minutes;
+                  seconds = seconds < 10 ? "0" + seconds : seconds;
+                  display.textContent = minutes + ":" + seconds;
+                  // Vérifie si le temps est écoulé
+                  if (--timer < 0) {
+                     clearInterval(timerInterval);
+                     showEndMessage();
+                  }
+               }, 1000);
+            }
+            // Fonction pour afficher le message de fin de test
+            function showEndMessage() {
+               const blurBackground = document.createElement('div');
+               blurBackground.id = 'test-end-blur';
+               blurBackground.style.position = 'fixed';
+               blurBackground.style.top = '0';
+               blurBackground.style.left = '0';
+               blurBackground.style.width = '100%';
+               blurBackground.style.height = '100%';
+               blurBackground.style.background = 'rgba(0, 0, 0, 0.5)';
+               blurBackground.style.zIndex = '100';
+               blurBackground.style.display = 'flex';
+               blurBackground.style.alignItems = 'center';
+               blurBackground.style.justifyContent = 'center';
+               const endMessage = document.createElement('div');
+               endMessage.id = 'test-end-message';
+               endMessage.style.padding = '40px';
+               endMessage.style.background = '#ffffff';
+               endMessage.style.borderRadius = '8px';
+               endMessage.style.textAlign = 'center';
+               endMessage.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+               endMessage.innerHTML = '<h2>Test terminé</h2><p>Le temps imparti est écoulé.</p><button onclick="location.reload()">Recommencer</button>';
+               blurBackground.appendChild(endMessage);
+               document.body.appendChild(blurBackground);
+               // Optionnel : masquer le conteneur de timer
+               const timerContainer = document.getElementById('timer-container');
+               timerContainer.classList.add('hide');
+            }
+ // Fonction pour réinitialiser une seule question
+            function resetQuestion(questionName) {
+               const form = document.getElementById('quiz-form');
+               const questionDiv = document.querySelector(`input[name="${questionName}"]`).closest('.question-container');
+               // Décocher toutes les cases de cette question
+               const inputs = Array.from(form.elements[questionName]);
+               inputs.forEach(input => {
+                  input.checked = false;
+               });
+               // Supprimer les styles correct/incorrect et remettre les couleurs par défaut
+               questionDiv.classList.remove('correct', 'incorrect');
+               questionDiv.querySelectorAll('li').forEach(li => {
+                  li.style.color = ''; // Réinitialiser la couleur
+                  li.style.fontWeight = ''; // Réinitialiser le texte en gras
+                  li.style.textShadow = ''; // Réinitialiser l'ombre du texte
+                  li.style.backgroundColor = ''; // Réinitialiser le fond
+                  li.style.border = ''; // Réinitialiser la bordure
+               });
+               // Supprimer les informations enregistrées sur la réponse de cette question
+               delete userAnswers[questionName];
+            }
+            // Fonction pour soumettre le quiz et afficher le résultat
+            
+// Fonction pour soumettre le quiz et afficher le résultat
+async function submitQuiz() {
+    console.log("Début de la soumission du quiz.");
+
+    const form = document.getElementById('quiz-form');
+    if (!form) {
+        console.error("Erreur : Formulaire introuvable.");
+        alert("Formulaire introuvable. Veuillez réessayer.");
+        return;
+    }
+
+    let score = 0;
+
+    // Évaluer les réponses utilisateur
+    for (const question of Object.keys(correctAnswers)) {
+        correctQuestion(question); // Fonction pour corriger chaque question
+        const userAnswer = userAnswers[question]?.isCorrect;
+        if (userAnswer) {
+            score++;
+        }
+    }
+
+    console.log("Score brut calculé (frontend) :", score);
+    console.log("Réponses utilisateur envoyées :", userAnswers);
+
+    // Lancer les confettis et afficher le message de félicitations si le score est parfait (50 sur 50)
+    lancerConfettisEtMessage(score);
+
+    // Mise à jour du résultat dans la boîte de dialogue
+    const resultDiv = document.getElementById('result'); // Assure-toi que tu as un div avec l'id 'result' dans ton HTML
+
+    if (score === 0) { resultDiv.innerHTML = `<p>Vous avez aucune réponse juste, bozo !</p>`; } else if  (score === 9) {
+        // Liste des messages de félicitations
+        const messages = [
+"Félicitations ! Votre compréhension du système digestif est exceptionnelle !",
+"Bravo ! Vous excellez dans l'analyse des pathologies gastro-intestinales.",
+"Incroyable ! Votre aptitude à diagnostiquer les maladies digestives est impressionnante.",
+"Parfait ! Vous êtes sur le chemin pour devenir un(e) expert(e) en gastro-entérologie.",
+"Votre rigueur dans l'étude des troubles digestifs est admirable.",
+"Impressionnant ! Vous appliquez les concepts gastro-intestinaux avec précision.",
+"Bravo ! Votre aptitude à relier les symptômes aux maladies digestives est exceptionnelle.",
+"Extraordinaire ! Votre compréhension des maladies inflammatoires de l'intestin est inspirante.",
+"Félicitations ! Vous démontrez une maîtrise impressionnante des diagnostics digestifs.",
+"Votre capacité à évaluer les troubles fonctionnels est remarquable.",
+"Impressionnant ! Vous explorez les approches thérapeutiques avec rigueur.",
+"Bravo ! Votre passion pour l'étude du système digestif est évidente.",
+"Votre expertise en maladies hépatiques et biliaires est un véritable atout.",
+"Parfait ! Vous démontrez une aptitude exceptionnelle pour la prise en charge des maladies digestives.",
+"Félicitations ! Vous êtes prêt(e) à devenir un(e) spécialiste en gastro-entérologie.",
+"Votre précision dans l'interprétation des examens digestifs est exemplaire.",
+"Bravo ! Vous appliquez les connaissances en gastro-entérologie avec rigueur et efficacité.",
+"Incroyable ! Vous identifiez les troubles digestifs complexes avec une facilité admirable.",
+"Félicitations ! Votre curiosité pour le système digestif est une source d'inspiration.",
+"Votre capacité à interpréter les résultats cliniques gastro-intestinaux est impressionnante.",
+
+        ];
+        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+        resultDiv.innerHTML = `<p>${randomMessage}</p>`;
+    } else {
+        resultDiv.innerHTML = `Vous avez obtenu ${score} bonnes réponses sur ${Object.keys(correctAnswers).length}.`;
+    }
+
+    // Afficher la boîte de résultat avec animation
+    const resultPopup = document.getElementById('result-popup');
+    const blurBackground = document.getElementById('blur-background');
+
+    blurBackground.style.display = 'block';
+    resultPopup.style.display = 'block';
+
+    setTimeout(() => {
+        blurBackground.classList.add('show'); // Ajoute l'animation de fondu sur le fond flouté
+        resultPopup.classList.add('show'); // Ajoute l'animation de zoom sur la boîte de résultat
+    }, 100); // Légère pause pour plus de fluidité
+
+    document.getElementById('voir-detail-btn').style.display = 'inline-block';
+
+    // Envoi des données au backend
+    try {
+        console.log("Préparation de l'enregistrement au backend...");
+
+        const response = await fetch("/soumettre-quiz/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}" // Inclure le token CSRF
+            },
+            body: JSON.stringify({
+                exam_name: "AD2018R", // Remplacez par le nom réel de l'examen
+                score: score,
+                userAnswers: userAnswers
+            })
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+            console.log("Score enregistré avec succès :", result);
+        } else {
+            console.error("Erreur du serveur :", result.message);
+            alert(`Erreur : ${result.message}`);
+        }
+    } catch (error) {
+        console.error("Erreur lors de l'envoi des données :", error);
+        alert("Une erreur s'est produite lors de la soumission. Veuillez réessayer.");
+    }
+}
+
+            function resetAll() {
+               const form = document.getElementById('quiz-form');
+               // Réinitialiser toutes les questions
+               for (const question of Object.keys(correctAnswers)) {
+                  const questionDiv = document.querySelector(`input[name="${question}"]`).closest('.question-container');
+                  form.elements[question].forEach(input => {
+                     input.checked = false; // Décocher toutes les cases
+                  });
+                  // Supprimer les styles correct/incorrect sans toucher au style des bonnes réponses
+                  questionDiv.classList.remove('correct', 'incorrect');
+                  questionDiv.querySelectorAll('li').forEach(li => {
+                     li.style.color = ''; // Réinitialiser la couleur du texte
+                     li.style.fontWeight = ''; // Supprimer les styles ajoutés
+                     li.style.textShadow = ''; // Réinitialiser l'ombre du texte
+                     li.style.backgroundColor = ''; // Remettre le fond par défaut
+                     li.style.border = ''; // Réinitialiser la bordure
+                  });
+               }
+               // Réinitialiser l'affichage du timer
+               const timerDuration = 60 * 60; // Remettre à 60 minutes (ou 10 secondes pour le test)
+               const display = document.querySelector('#timer');
+               startTimer(timerDuration, display); // Redémarrer le timer
+               // Masquer la boîte de résultat
+               const resultPopup = document.getElementById('result-popup');
+               const blurBackground = document.getElementById('blur-background');
+               resultPopup.classList.remove('show');
+               blurBackground.classList.remove('show');
+               setTimeout(() => {
+                  resultPopup.style.display = 'none';
+                  blurBackground.style.display = 'none';
+               }, 500);
+               // Remonter en haut de la page
+               window.scrollTo({
+                  top: 0,
+                  behavior: 'smooth'
+               });
+               document.getElementById('voir-detail-btn').style.display = 'none'; // Masquer le bouton "Voir Détail"
+            }
+            // Fonction pour fermer la popup et garder les couleurs des bonnes/mauvaises réponses
+            function closeResult(event) {
+               event.preventDefault(); // Empêche le comportement par défaut du bouton
+               const resultPopup = document.getElementById('result-popup');
+               const blurBackground = document.getElementById('blur-background');
+               // Masquer la boîte de résultat
+               resultPopup.classList.remove('show');
+               blurBackground.classList.remove('show');
+               setTimeout(() => {
+                  resultPopup.style.display = 'none';
+                  blurBackground.style.display = 'none';
+               }, 500);
+               // Décocher toutes les cases sans changer la couleur des bonnes/mauvaises réponses
+               const form = document.getElementById('quiz-form');
+               for (const question of Object.keys(correctAnswers)) {
+                  form.elements[question].forEach(input => {
+                     input.checked = false; // Décocher toutes les cases
+                  });
+               }
+            }
+            // Fonction pour afficher les détails et rediriger vers SyntAD2018R
+            function afficherDetails(event) {
+               event.preventDefault(); // Empêche le comportement par défaut du bouton
+               saveUserAnswers(); // Enregistrer les réponses avant de quitter la page
+               window.location.href = '{% url 'dynamic_view' 'S6' 'Pathologie_de_l_appareil_digestif' 'syntAD2018R' %}'; // Redirection vers SyntAD2018R
+            }
+            // Fonction pour défiler jusqu'à la question
+            function scrollToQuestion(questionNumber) {
+               const questionDiv = document.querySelector(`.question-container:nth-of-type(${questionNumber})`);
+               if (questionDiv) {
+                  questionDiv.scrollIntoView({
+                     behavior: 'smooth'
+                  });
+               }
+            }
+
+            function saveUserAnswers() {
+               // Change la clé pour la version 2018R
+               localStorage.setItem('userAnswersAD2018R', JSON.stringify(userAnswers));
+            }
+            // Fonction pour afficher les confettis et ajouter le message de félicitations dans la popup de résultats
+            function lancerConfettisEtMessage(score) {
+    if (score === 9) {
+                  // Lancer les confettis
+                  confetti({
+                     particleCount: 200,
+                     spread: 70,
+                     origin: {
+                        y: 0.6
+                     },
+                     colors: ['#bb0000', '#ffffff'], // Couleurs de confettis
+                  });
+                  // Ajouter un message de félicitations à la boîte de résultat
+                  const resultDiv = document.getElementById('result');
+                  const felicitationMessage = `<p>Félicitations! Vous avez obtenu ${score} bonnes réponses. Vous serez un grand médecin !</p>`;
+                  // Ajouter le message à la fin du résultat
+                  resultDiv.innerHTML += felicitationMessage;
+               }
+            }
+            // Partie favori pour Anatomie2020
+            // Tableau pour stocker les questions favorites, récupéré depuis le localStorage (Anatomie2018R)
+            let favoriteQuestionsAD2018R = JSON.parse(localStorage.getItem('favoriteQuestionsAD2018R')) || [];
+            console.log('Favorite questions loaded from localStorage:', favoriteQuestionsAD2018R);
+
+            function toggleFavorite(event, questionNumber) {
+               event.preventDefault(); // Empêche le rafraîchissement de la page
+               const button = document.querySelector(`.favorite-button[data-question="${questionNumber}"]`);
+               const questionContent = document.querySelector(`#question-${questionNumber}`).innerHTML; // Récupère le contenu HTML de la question
+               // Vérifie si la question est déjà dans les favoris
+               const isFavorited = favoriteQuestionsAD2018R.includes(questionNumber);
+               if (isFavorited) {
+                  // Si elle est déjà favorisée, on la retire des favoris
+                  favoriteQuestionsAD2018R = favoriteQuestionsAD2018R.filter(q => q !== questionNumber);
+                  button.classList.remove('favorited'); // Retire la classe favori
+                  localStorage.removeItem(`favoriteContent2018R-${questionNumber}`); // Supprime le contenu de la question
+               } else {
+                  // Si elle n'est pas favorisée, on l'ajoute
+                  favoriteQuestionsAD2018R.push(questionNumber);
+                  button.classList.add('favorited'); // Ajoute la classe favori
+                  localStorage.setItem(`favoriteContent2018R-${questionNumber}`, questionContent); // Stocke le contenu de la question dans le localStorage
+               }
+               // Sauvegarde uniquement les favoris
+               saveFavoriteState2018R(); // <== Remplacez par saveFavoriteState2018R
+               // Mise à jour du bouton "Voir Favori" sans rafraîchir la page
+               showFavoriteButton();
+            }
+
+            function saveFavoriteState2018R() {
+               localStorage.setItem('favoriteQuestionsAD2018R', JSON.stringify(favoriteQuestionsAD2018R)); // Sauvegarde les questions favorites
+            }
+
+            function initializeFavoriteButtons() {
+               const allFavoriteButtons = document.querySelectorAll('.favorite-button');
+               allFavoriteButtons.forEach(button => {
+                  const questionNumber = parseInt(button.getAttribute('data-question'), 10);
+                  // Vérifie si cette question est dans les favoris et applique la classe
+                  if (favoriteQuestionsAD2018R.includes(questionNumber)) {
+                     button.classList.add('favorited'); // Ajoute l'état favori
+                  } else {
+                     button.classList.remove('favorited'); // Retire l'état favori
+                  }
+                  // Ajoute un événement de clic pour chaque bouton et empêche le rafraîchissement
+                  button.addEventListener('click', (event) => toggleFavorite(event, questionNumber));
+               });
+            }
+
+            function showFavoriteButton() {
+               const voirFavorisBtn = document.getElementById('voir-favoris-btn');
+               if (favoriteQuestionsAD2018R.length > 0) {
+                  voirFavorisBtn.style.display = 'inline-block'; // Affiche le bouton si des questions sont favorisées
+               } else {
+                  voirFavorisBtn.style.display = 'none'; // Cache le bouton si aucun favori
+               }
+            }
+            // Appelle cette fonction après avoir ajouté ou retiré des favoris
+            window.onload = function() {
+               console.log('Page loaded, initializing favorite buttons for 2018R.');
+               initializeFavoriteButtons(); // Charger les boutons de favoris
+               showFavoriteButton(); // Afficher le bouton "Voir Favori" si des favoris existent
+               const timerDuration = 60 * 60; // 60 minutes
+               const display = document.querySelector('#timer');
+               startTimer(timerDuration, display);
+               // Récupère toutes les listes (li) qui contiennent des propositions
+               const propositions = document.querySelectorAll('li');
+               propositions.forEach(function(proposition) {
+                  // Trouve la checkbox dans chaque liste
+                  const checkbox = proposition.querySelector('input[type="checkbox"]');
+                  if (checkbox) {
+                     // Créer un label
+                     const label = document.createElement('label');
+                     // Donner un id à la checkbox si elle n'en a pas
+                     if (!checkbox.id) {
+                        checkbox.id = checkbox.name + '-' + checkbox.value; // Ex: q1-A
+                     }
+                     // Déplacer le texte de la proposition dans le label
+                     label.htmlFor = checkbox.id; // Le 'for' du label correspond à l'id de la checkbox
+                     label.appendChild(checkbox); // Déplacer la checkbox dans le label
+                     label.appendChild(document.createTextNode(proposition.textContent.trim())); // Ajouter le texte de la proposition
+                     // Remplacer le contenu original par le nouveau label
+                     proposition.innerHTML = ''; // Vider le contenu de l'élément <li>
+                     proposition.appendChild(label); // Ajouter le label modifié
+                  }
+               });
+            };
+            try {
+               localStorage.setItem('testKey', 'testValue');
+               const testValue = localStorage.getItem('testKey');
+               if (testValue !== 'testValue') {
+                  console.error('localStorage is not functioning as expected.');
+               }
+            } catch (error) {
+               console.error('localStorage error:', error);
+            }
+
+            function voirFavoris() {
+               console.log('Redirection vers la page des favoris');
+               window.location.href = "{% url 'render_favorite' 'S6' 'Favori24' %}";
+            }
+
+
+            </script>
+            <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js">
+
+
+            </script>
+         </form>
+      </div>
+      
+   </body>
+
+</html>      <script>
+// Fonction pour corriger une question
+function correctQuestion(questionName) {
+    const form = document.getElementById('quiz-form');
+    const questionDiv = document.querySelector(`input[name="${questionName}"]`).closest('.question-container');
+    const selected = Array.from(form.elements[questionName]).filter(input => input.checked).map(input => input.value);
+
+    // Calculer si la réponse est correcte
+    const isCorrect = JSON.stringify(correctAnswers[questionName].sort()) === JSON.stringify(selected.sort());
+
+    // Enregistre si la réponse est correcte ou incorrecte
+    userAnswers[questionName] = {
+        selected: selected,
+        isCorrect: isCorrect
+    };
+
+    // Supprimer les styles précédents
+    questionDiv.classList.remove('correct', 'incorrect');
+    questionDiv.querySelectorAll('li').forEach(li => li.style.color = '');
+
+    // Applique les couleurs selon la validité des réponses
+    questionDiv.querySelectorAll('li').forEach(li => {
+        const isChoiceCorrect = correctAnswers[questionName].includes(li.querySelector('input').value);
+        const isSelected = selected.includes(li.querySelector('input').value);
+
+        if (isChoiceCorrect) {
+            // Appliquer le style vert aux bonnes réponses
+            li.style.color = 'green';
+            li.style.fontWeight = 'bold';
+            li.style.textShadow = '1px 1px 2px rgba(0, 128, 0, 0.7)';
+        }
+
+        if (isSelected && !isChoiceCorrect) {
+            // Appliquer le style rouge pour les mauvaises réponses sélectionnées
+            li.style.color = 'red';
+        }
+    });
+
+    console.log(`Début de la correction pour la question ${questionName}`);
+    console.log(`Réponses sélectionnées pour ${questionName}: ${selected.join(', ')}`);
+    console.log(`Résultat pour ${questionName}: ${isCorrect ? 'Correct' : 'Incorrect'}`);
+
+    // Déterminer le nom de l'examen et l'ID complet de la question
+    const examNameElement = document.getElementById('exam_name');
+    const examName = examNameElement.value; // Nom de l'examen (par exemple, Anatomie2023)
+    const fullChoiceIds = selected.map(choice => `${examName}_${questionName.substring(1)}_${choice.toLowerCase()}`);
+    console.log(`IDs complets générés pour les choix : ${fullChoiceIds.join(', ')}`);
+
+    // Envoyer les données au serveur
+    fetch('/track_attempts/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            question_name: questionName,
+            full_choice_ids: fullChoiceIds
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log(`Données reçues du serveur : ${JSON.stringify(data)}`);
+            handleAlert(data.alert, questionDiv);
+            updateStatisticalAlerts(data, questionDiv);
+        })
+        .catch(error => console.error('Erreur lors de l’envoi des données:', error));
+}
+
+// Fonction pour gérer les alertes
+function handleAlert(alertData, questionDiv) {
+    const existingAlert = questionDiv.querySelector('.alert-indicator');
+    if (existingAlert) {
+        existingAlert.remove();
+    }
+
+    if (alertData) {
+        const alertIndicator = document.createElement('div');
+        alertIndicator.className = 'alert-indicator';
+        alertIndicator.style.backgroundColor = alertData.color || '#f8d7da';
+        alertIndicator.style.padding = '10px';
+        alertIndicator.style.marginTop = '10px';
+        alertIndicator.style.borderRadius = '5px';
+        alertIndicator.style.fontWeight = 'bold';
+        alertIndicator.style.color = '#721c24';
+        alertIndicator.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.1)';
+        alertIndicator.textContent = alertData.message;
+
+        questionDiv.appendChild(alertIndicator);
+        saveAlertToLocalStorage(questionDiv.getAttribute('data-question-id'), alertData);
+    } else {
+        removeAlertFromLocalStorage(questionDiv.getAttribute('data-question-id'));
+    }
+}
+
+// Charger les alertes persistantes
+function loadAlertsFromLocalStorage() {
+    const storedAlerts = JSON.parse(localStorage.getItem('alerts')) || {};
+    Object.keys(storedAlerts).forEach(questionId => {
+        const questionDiv = document.querySelector(`.question-container[data-question-id="${questionId}"]`);
+        if (questionDiv) {
+            handleAlert(storedAlerts[questionId], questionDiv);
+        }
+    });
+}
+
+// Sauvegarder les alertes dans localStorage
+function saveAlertToLocalStorage(questionId, alertData) {
+    const storedAlerts = JSON.parse(localStorage.getItem('alerts')) || {};
+    storedAlerts[questionId] = alertData;
+    localStorage.setItem('alerts', JSON.stringify(storedAlerts));
+}
+
+// Supprimer une alerte de localStorage
+function removeAlertFromLocalStorage(questionId) {
+    const storedAlerts = JSON.parse(localStorage.getItem('alerts')) || {};
+    delete storedAlerts[questionId];
+    localStorage.setItem('alerts', JSON.stringify(storedAlerts));
+}
+
+// Mise à jour des alertes statistiques
+function updateStatisticalAlerts(data, questionDiv) {
+    const existingStatisticalAlerts = questionDiv.querySelectorAll('.statistical-alert');
+    existingStatisticalAlerts.forEach(alert => alert.remove());
+
+    if (data.failure_rate > 0.6) {
+        const failureRateAlert = document.createElement('div');
+        failureRateAlert.className = 'statistical-alert';
+        failureRateAlert.style.backgroundColor = '#add8e6';
+        failureRateAlert.style.padding = '10px';
+        failureRateAlert.style.marginTop = '10px';
+        failureRateAlert.style.borderRadius = '5px';
+        failureRateAlert.style.fontWeight = 'bold';
+        failureRateAlert.style.color = '#004085';
+        failureRateAlert.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.1)';
+        failureRateAlert.textContent = `🔵 Votre taux d'échec est de ${(data.failure_rate * 100).toFixed(0)}%. Revoir cette question est conseillé.`;
+
+        questionDiv.appendChild(failureRateAlert);
+    }
+}
+
+// Charger les alertes au démarrage
+document.addEventListener('DOMContentLoaded', () => {
+    loadAlertsFromLocalStorage();
+});
+
+</script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+    <script src="{% static 'java/comment.js' %}"></script>

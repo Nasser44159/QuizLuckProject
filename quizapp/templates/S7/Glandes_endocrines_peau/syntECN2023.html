@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="ECN2023">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Vous recevez en consultation Mr M.A âgé de 36 ans, qui se présente en consultation pour une sensation de gêne cervicale. L’examen clinique, retrouve :
+  - Un patient en bon état général, Pouls : 75bpm, TA=120/70bpm
+  - L’examen cervical retrouve, une thyroïde palpable avec un nodule de consistance dure et fixe d’environ 2.5cmx1.5cm.
+Au bilan : TSHus= 2.12uUI/ml
+Vous suspectez un nodule malin chez votre patient, devant les arguments suivants :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- L’âge</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Le sexe masculin</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- La taille supérieure à 2cm</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Le caractère isolé du nodule</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- La consistance dure et le caractère fixé de votre nodule</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Quel est l’examen complémentaire à réaliser en premier, chez votre patient ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Une scintigraphie thyroïdienne</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Une cytoponction thyroïdienne</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Une microbiopsie thyroïdienne</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Une échographie cervicale</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Dosage de la T4 et T3 libres</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Quels sont les signes de malignité échographiques que présente votre patient ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- La forme non ovale</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- L’absence de macro-calcifications</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Les contours irréguliers</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- La présence de microcalcifications</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Le caractère fortement hypœchogène</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Vous recevez en consultation une patiente de 28 ans, sans antécédents particuliers qui consulte devant la symptomatologie suivante : Amaigrissement avec appétit conservé, palpitations et thermophobie. L’examen retrouve :
+  - Tremblements fins des extrémités
+  - Poids 56kg pour 112bpm
+  - Examen cervical : goitre homogène et élastique avec un thrill vasculaire et un souffle systolique
+  - Exophtalmie
+Quel diagnostic retenez-vous ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Une maladie de basedow</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Un hypothyroïdie d’hashimoto</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Une maladie de basedow est suspectée, mais la confirmation nécessite la réalisation d’une scintigraphie thyroïdienne</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Une maladie de basedow est suspectée, mais la confirmation nécessite un dosage des anticorps anti RTSH</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Une thyroïdite subaiguë</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Quelle prise en charge préconisez-vous pour votre patiente ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Une substitution sous L-thyroxine</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Un traitement antithyroïdien de synthèse</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Une IRA thérapie en 1ère intention</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Une surveillance mensuelle de la TSHus</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Une thyroïdectomie en 1ère intention</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Patiente de 33 ans diabétique et hypertendue depuis 3 mois sous traitement, se présente pour prise en charge de son diabète. L’interrogatoire retrouve : asthénie, prise de poids et une aménorrhée secondaire. L’examen clinique retrouve :
+  - TA= 150/80mmHg, GCL=1.32g/l, fréquence cardiaque = 96bpm
+  - Facies lunaire, obésité facio-tronculaire, membres frêles
+  - Vergétures abdominales pourpres, peau fine avec multiples ecchymoses
+  - Au bilan : HBA1C 8.9%, HDL= 0.29g/l, LDL=1.20g/l, CT =2.55g/l, TG 2.66g/l, signe du tabouret positif
+Vous suspectez un syndrome de cushing, devant les signes suivants :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Le diabète.</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Le faciès facio-tronculaire</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- La tachycardie</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- L’hypercorticisme</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- La faiblesse musculaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Afin de confirmer votre diagnostic vous réalisez les examens suivants :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Un test de freinage immédiat à la dexaméthasone</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Un test de freinage minute à la dexaméthasone</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Un cortisol libre urinaire de 24h</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Un cortisolémie de 16h</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Dans le cadre du bilan étiologique du syndrome de cushing, quel est le premier examen à réaliser :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Une IRM hypophysaire</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Un test de freinage fort</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Un dosage de l’ACTH</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Un cycle du cortisol</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Une TDM surrénalienne</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Mr Ahmed est diabétique type 2 depuis 4 ans. HTA depuis 5 ans. Se présente chez vous pour un bilan lipidique perturbé :
+  - Cholestérol total: 1.50 g/l; LDL: 0.54 g/l; HDL: 0.56 g/l; Triglycérides: 4.5 g/l
+Quel(s) anomalie(s) lipidique présente Mr Ahmed ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Hypercholestérolémie familiale</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Hypercholestérolémie essentielle</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Dyslipidémie mixte</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- HypoHDLémie</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Hypertriglycéridémie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Quels sont les signes cliniques à chercher devant ce type de dyslipidémie ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Hépatomégalie stéatosique</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Xanthomatose éruptive</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Arc cornéen</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Xanthomes cutanés</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Lipémie rétinienne</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Quel est le premier choix thérapeutique chez Mr Ahmed :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Statines</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Fibrates</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Ezetimibe</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Dérivés de l’acide nicotinique</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Huile de poisson</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Patiente âgée de 18 ans, se présente à la consultation pour une aménorrhée primaire. L’examen clinique retrouve une patiente en bon état général, absence de caractères sexuels secondaires S1P1 de TANNER, un retard staturo-pondéral T=-1.36 cm (= -4 DS) P =38 kg (-3DS). Pas de syndrome dysmorphique caractéristique.
+Devant ce tableau clinique, quelles sont les diagnostics que vous évoquez ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Hypogonadisme hypogonadotrophique</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Hypogonadisme hypergonadotrophique</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Retard pubertaire simple</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Un SOPK</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Un déficit en hormone de croissance</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Devant ce tableau clinique quel bilan hormonal allez-vous demander, en premier ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Age osseux</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- FSH</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- LH</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Estradiol</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Le bilan révèle un hypogonadisme hypogonadotrophique ceci signifie que :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Le taux de FSH / LH est normal et le taux d’estradiol est diminué</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Le taux de FSH / LH est abaissé et le taux d’estradiol est diminué</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Le taux de FSH/LH est élevé et le taux d’estradiol est diminué</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- L’origine du dysfonctionnement est hypothalamo-hypophysaire</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- L’origine du dysfonctionnement est ovarienne</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Quelles explorations allez-vous demander après ce résultat ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- TDM cérébrale</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Echographie pelvienne</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Dosage de la cortisolémie de 08 h</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Dosage de la TSH et de la T4l</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- IRM hypophysaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Dans la prise en charge de cette patiente quelle(s) est(sont) l'(les) étape(s) suivante(s) ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Démarrer une anxiothérapie</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Démarrer un traitement à base d’hydrocortisone</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Faire une exploration ophtalmologique</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Traitement chirurgical de la tumeur</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Commencer le traitement par L-thyroxine</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Cas clinique n°6 : Mr Mohammed M, 80 ans, se présente aux urgences pour trouble de conscience. DT2 connu depuis l'âge de 60 ans. L'examen du patient trouve un glasgow à 12/15, une glycémie capillaire supérieure à 6g/l, l'absence de corps cétoniques dans les urines. Des signes de déshydratation sévère : TA : 90/55. Le diagnostic de coma hyperosmolaire est à évoquer dans ce contexte. Quels sont les facteurs de risque de ce coma ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- L’âge</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- DT2</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Les troubles cognitifs</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Le traitement par insuline</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Le type de corticothérapie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) L’exploration biologique retrouve chez votre patient : Glycémie à 9 g/l, Natrémie = 152 mmol/l, Kaliémie = 4 mmol/l, créatinine à 18 mg/l soit DFG :39 ml/mn, urée=1,84g/l, Ht=52% HBC= 18,2 mg/l (N=7 ,39). L’osmolarité plasmatique est à 337 mosm/l, CRP :100 mg/l (normal : inférieur à 6 mg/l). Le diagnostic biologique à confirmer est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Une acidocétose diabétique</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Le bilan confirme le coma hyperosmolaire</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- L’osmolarité plasmatique est normale</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- La décompensation du diabète est secondaire à une infection</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- La décompensation du diabète est dû à un IDM</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Le traitement du coma hyperosmolaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Abaisser la glycémie le plus rapidement possible par une insulinothérapie en SAP à 5 UI/h</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Restaurer la volémie par un apport SS9% de 750-1000 ml/h au cours des premières 4 heures</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Correction des troubles ioniques associés et réduction de l’hyperosmolarité</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Mettre sous antibiothérapie probabiliste</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Prévention des complications thromboemboliques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Comment prévenir la récidive chez votre patient ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Complication inévitable chez le sujet âgé</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Surveillance régulière du patient : glycémie, dilurèse</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Éducation thérapeutique et prise en charges des maladies intercurrentes</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Éducation du patient et de son entourage</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Informer et accompagner sur les épisodes favorisants un état d’hyperosmolarité</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Cas clinique n°7 : Patiente de 38 ans, sans antécédents personnels particuliers, primigeste, primipare actuellement enceinte de 25 SA. Consulte pour un diabète gestationnel découvert sur un bilan réalisé pour dépistage systématique. A l’examen : IMC 34 kg/m2, TA=14/09. Quels sont les facteurs de risque de diabète gestationnel chez cette patiente qui justifie le dépistage du DG ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- L’âge</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Le diabète est systématique, ne nécessite pas de facteurs de risque pour le réalisé</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- La primiparité</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- La tension artérielle élevée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Le dépistage se fait :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Par une GAJ au premier trimestre</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Une valeur inférieure à 1,26 g/l élimine le diabète gestationnel.</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- HGPO entre 20-22 SA</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Une valeur à 1.70 g/l à l’HGPO est normale</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Une valeur inférieure à 1.53 g/l à la deuxième heure de l’HGPO est normale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Indiquer parmi les suivants, la (les) proposition (s) exacte (s)</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Le gliclazide diminue la glycémie en stimulant la sécrétion d’insuline par les cellules alpha des îlots de Langerhans</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- En présence du glucose, le gliclazide restaure le pic précoce d’insulinosécrétion</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Le récepteur du GLP-1 est la cible d’une hormone endogène (incrétines) qui potentialise de façon glucose-dépendante la sécrétion d’insuline par les cellules bêta du pancréas.</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Le Liraglutide est une structure modifiée pour permettre d’agir plus longtemps en le rendant insensible à l’action des DPPIV.</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Les inhibiteurs de la dipeptidylpeptidase-4 (DPP-4) augmentent les taux des hormones incrétines actives</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Les médicaments insulinosecréteurs sont représentés par : cocher la ou les réponses exactes</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Les sulfamides hypoglycémiants</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Les agonistes des récepteurs du GLP-1</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Les inhibiteurs de DPP IV</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Le gliclazide</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Aucune des propositions n’est exacte</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Pendant la grossesse, l’insuline constitue le seul traitement du diabète (1) car l’insuline ne traverse pas la barrière placentaire (2) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Les 2 propositions sont vraies avec relation de cause à effet</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Les 2 propositions sont vraies sans relation de cause à effet</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Proposition n° 1 est vraie, la proposition n° 2 est fausse</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- La proposition n° 1 est fausse, la proposition n° 2 est vraie</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Les 2 propositions sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S7" "Glandes_endocrines_peau" "ECN2023" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['B', 'D', 'E'],
+    q2: ['D'],
+    q3: ['A', 'C', 'D', 'E'],
+    q4: ['A'],
+    q5: ['B'],
+    q6: ['A', 'B', 'D', 'E'],
+    q7: ['B', 'D'],
+    q8: ['C'],
+    q9: ['E'],
+    q10: ['A', 'B', 'E'],
+    q11: ['B'],
+    q12: ['A', 'B', 'E'],
+    q13: ['B', 'C', 'D'],
+    q14: ['A', 'B', 'D'],
+    q15: ['C', 'D', 'E'],
+    q16: ['B', 'C', 'D', 'E'],
+    q17: ['A', 'B', 'C', 'E'],
+    q18: ['B', 'D'],
+    q19: ['B', 'C', 'E'],
+    q20: ['B', 'C', 'D', 'E'],
+    q21: ['B', 'C'],
+    q22: ['A', 'E'],
+    q23: ['B', 'C', 'D', 'E'],
+    q24: ['A', 'B', 'C', 'D'],
+    q25: ['A'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersECN2023'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

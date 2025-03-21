@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+    
+            <div class="quiz-title">
+                <h1>Sante publique et Biostatistique 2017</h1>
+                <p></p>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="Sp2017R">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Le SEGMA (Service de l'État géré de Manière Autonome) se caractérise par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- L'existence d'une personnalité morale (PM)</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- L'existence d'une autonomie financière (AF)</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- L'existence des deux (PM et AF)</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- L'absence des deux (PM et AF)</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- L'existence au moins de l'une des deux</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Ne font pas partie des structures d'appui aux hôpitaux :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Le centre national et les centres régionaux de transfusion sanguine</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- L'institut national d'hygiène (INH)</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- L'institut Pasteur</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Le centre National de léprologie (CNL)</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Le centre national antipoison et de pharmacovigilance</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Parmi les caractéristiques des soins de santé primaires (SSP) selon ALMAATA :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Sont des soins traditionnels</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Soins basés sur des méthodes scientifiquement valables</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Soins non accessibles universellement</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Soins non acceptables socialement</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Soins avec approche participative</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) La réalité du financement au Maroc se caractérise par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- L'implication massive des ménages (53,6%)</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- L'implication exclusive de l'assurance maladie obligatoire</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- La couverture totale par l'État (impôt)</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- L'implication fragmentée de l'assurance maladie obligatoire</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- La non implication des ménages</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Ne font pas partie des structures d'appui du RESSP :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Le CDTM</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Le centre d'addictologie</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- L'observatoire d'épidémiologie</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Le LEHM</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Le CHU</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Parmi les critères suivants lequel indique le centre de santé rural 1er niveau :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Sa situation géographique en milieu urbain</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- La taille de la population desservie de 7 000 habitants</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Son paquet d'activité identique au centre de santé 2ème niveau</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- La taille de la population desservie de 25 000 habitants</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- La taille de la population desservie de 50 000 habitants</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Le paquet d'activité qui comprend la mention obstétrique seulement correspond :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Au paquet d'activité d'un CHP</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Au paquet d'activité d'un CHR</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Au paquet d'activité d'un UMP</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Au paquet d'activité d'un CHU</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Au paquet d'activité d'aucun des hôpitaux</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) L'hôpital SEGER (Service de l'État Géré en Régie) s'identifie par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- L'existence à la fois de la personnalité morale et l'autonomie financière</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- L'absence de la personnalité morale mais l'existence de l'autonomie financière</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- L'absence de l'autonomie financière mais l'existence de la personnalité morale</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Le directeur est un ordonnateur de dépenses</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- L'absence de la personnalité morale et de l'autonomie financière</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) L'inspection générale du ministère de la santé a pour mission :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Les affaires techniques et administratives</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Le contrôle et l'audit</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Conseil politique du Ministre</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- La révision des textes réglementaires</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Toutes ces missions</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Le secteur privé comprend :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Le privé à but lucratif</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Les services de santé des FAR (forces armées royales)</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Les services du Ministère de la santé</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Le privé à but non lucratif</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Fait partie du secteur public</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) L'intervention sanitaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- C'est l'ensemble des soins préventifs</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- C'est l'ensemble des soins curatifs</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- C'est l'ensemble des soins curatifs et préventifs</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- C'est la mise en œuvre d'une politique de santé</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- C'est tout effort dont l'objectif principal est d'améliorer la santé</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Les niveaux de recours dans le système de santé au Maroc sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Trois niveaux de recours</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Quatre niveaux de recours</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Dix niveaux de recours</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Deux niveaux de recours</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Aucun niveau de recours</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Le niveau déconcentré du ministère de la santé est composé :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- A. Des directions de l'administration centrale (DAC)</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- B. Du cabinet du ministre</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- C. Des directions régionales de santé</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- D. Du secrétariat général</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- E. Des délégations provinciales de la santé</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Le mode mobile de prestations de soins comprend :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- A. Les hôpitaux de district (HD)</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- B. La visite à domicile (VD)</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- C. Les centres de santé de tous les niveaux (CS)</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- D. Les hôpitaux mobiles (HM)</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- E. Les caravanes médicales spécialisées (CMS)</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) L'entrave à l'accès aux soins de santé peut être :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- A. Financière</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- B. Intellectuelle</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- C. Géographique</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- D. Organisationnelle</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- E. Culturelle</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) La nationalisation des ressources humaines était la priorité de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- A. Après l'indépendance en 1959 1ère conférence nationale de santé</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- B. La première réforme du système de santé en 1981</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- C. La deuxième réforme en 1994</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- D. La réforme en cours après la constitution 2011</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- E. Après la conférence d'ALMAATA 1978</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Ne fait pas partie des services de la direction régionale de santé :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- A. Service de la population</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- B. Service de l'équipement et de la maintenance</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- C. Service de santé publique</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- D. Service de l'offre de soins</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- E. Service des ressources humaines et de contentieux</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Font partie du réseau des établissements médico-sociaux (REMS) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- A. Les centres d'oncologie</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- B. Les centres d'addictologie</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- C. Les centres de soins palliatifs</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- D. Les centres de rééducation</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- E. Les centres de références</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Les critères de classification des ESSP sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- A. Population desservie</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- B. Nature de staff</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- C. Paquet d'activité</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- D. Proximité d'un hôpital</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- E. Situation géographique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) La direction régionale de la santé a pour mission :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- A. La protection de la santé publique et la veille sanitaire</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- B. La planification stratégique</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- C. Le financement et la gestion financière</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- D. La gestion des ressources humaines</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- E. La définition de la politique de santé</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) On appelle une Infection nosocomiale toute infection survenant :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- A. Chez un patient au cours ou au décours d'un séjour à l'hôpital</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- B. Chez un patient à l'admission à l'hôpital</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- C. Chez un patient qui n'a jamais été hospitalisé</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- D. En dehors de toute structure de soins</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- E. Uniquement chez les immunodéprimés</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) La classification des hôpitaux se fait sur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- A. Situation géographique</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- B. Population desservie</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- C. Capacité litière</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- D. Mode de gestion</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- E. Paquet d'activité (nature de l'offre)</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Selon ALMA-ATA 1978 les soins de santé primaires comprennent toutes les activités sauf une laquelle :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- A. Le traitement des blessures courantes</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- B. Des examens biologiques de laboratoire</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- C. Une éducation concernant les problèmes de santé</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- D. La protection maternelle et infantile</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- E. Les interventions chirurgicales</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Le réseau coordonné de soins est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- A. Organisation horizontale non hiérarchisée</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- B. Organisation horizontale hiérarchisée</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- C. Organisation verticale hiérarchisée</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- D. Organisation verticale non hiérarchisée</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- E. Organisation verticale et horizontale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) La spécificité fonctionnelle, l'absence de chevauchement et de trou caractérisent :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- A. Le système de santé global</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- B. Le système de santé dominant</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- C. Le système de santé intégré</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- D. Le système de santé séparatiste</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- E. Aucun système de santé</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Parmi les principes de lutte contre les infections nosocomiales on trouve :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- A. Lavage et/ou désinfection des mains</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- B. Port de gants</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- C. Port de sur blouse, port de lunettes et masques</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- D. Antibiothérapie thérapeutique</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- E. Toutes les réponses sont justes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) Les régimes de la couverture médicale de base comprennent :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- A. Le régime minimal d'insertion RMI</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- B. Régime d'aide médicale aux économiquement démunis RAMED</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- C. Les allocations familiales AF</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- D. Assurance maladie obligatoire AMO</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- E. Aucune réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) Les facteurs favorisant les infections nosocomiales sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- A. L'âge jeune</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- B. Les performances physiques</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- C. Pathologie sous-jacente</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- D. Prise médicamenteuse</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- E. L'âge <1an et >65ans</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) Les dépenses de la santé sont financées par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- A. L'état à travers les impôts</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- B. Les mutuelles</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- C. Les assurances privées</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- D. Les administrations publiques</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- E. Aucune réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) La prime d'assurance :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- A. Ne prend pas en considération l'état de santé de départ</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- B. Est la même que la cotisation</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- C. Est prélevée quelque soit l'état de santé de départ</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- D. La prime est prélevée en fonction de l'état de santé de départ</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- E. Est un prélèvement fiscal</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) Le réservoir des germes responsables des infections nosocomiales :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- A. Peut-être exogène provenant du personnel soignant</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- B. Peut-être endogène provenant du personnel soignant</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- C. Peut-être endogène provenant de la flore commensale naturelle</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- D. Peut-être exogène provenant de l'environnement : surface, eau, air</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- E. Peut-être exogène provenant de la flore commensale modifiée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) Le centre de santé rural de deuxième niveau se caractérise par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A- A. Les quatre spécialités de base</li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B- B. Des prestations d'urgence de proximité</li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C- C. Les soins palliatifs</li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D- D. Les soins de suivi et de réhabilitation (SSR)</li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E- E. Les soins buccodentaires</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) Pour une maladie 'X' que représente le numérateur d'un taux de prévalence ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A- A. L'effectif des nouveaux cas apparus durant la période d'observation de la population</li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B- B. L'effectif des malades déjà présents avant le début de la maladie</li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C- C. L'effectif des anciens et nouveaux malades durant la période d'observation de la population</li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D- D. L'effectif des sujets exposés à la maladie</li>
+            
+                    <li><input type="checkbox" id="q33e" name="q33" value="E"> E- E. L'effectif de la population observée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) Le taux brut de mortalité est le rapport entre :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A- A. Décès enregistrés au cours d'une période donnée / population moyenne X 1000 habitants</li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B- B. Décès de moins de 1 an enregistrés au cours d'une période donnée / population moyenne X 1000 habitants</li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C- C. Décès de moins de 5 ans enregistrés au cours d'une période donnée / population moyenne X 1000 habitants</li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D- D. Décès de 1 à 5 ans enregistrés au cours d'une période donnée / population moyenne X 1000 habitants</li>
+            
+                    <li><input type="checkbox" id="q34e" name="q34" value="E"> E- E. Aucune réponse n'est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) L'épidémiologie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A- A. Étudie la fréquence de la maladie</li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B- B. Étudie les déterminants de la maladie</li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C- C. Peut-être descriptive</li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D- D. Peut-être analytique</li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E- E. Aucune réponse n'est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-36" class="question-container">
+            <div class="question">
+                <p>36.) L'éducation thérapeutique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q36a" name="q36" value="A"> A- A. Est destinée aux maladies chroniques</li>
+            
+                    <li><input type="checkbox" id="q36b" name="q36" value="B"> B- B. Aide les patients à acquérir les compétences dont ils ont besoin pour gérer au mieux leur vie</li>
+            
+                    <li><input type="checkbox" id="q36c" name="q36" value="C"> C- C. Est une activité de la prévention tertiaire</li>
+            
+                    <li><input type="checkbox" id="q36d" name="q36" value="D"> D- D. Nécessite la collaboration du patient</li>
+            
+                    <li><input type="checkbox" id="q36e" name="q36" value="E"> E- E. Aucune réponse n'est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-37" class="question-container">
+            <div class="question">
+                <p>37.) Parmi les propositions suivantes trois sont en rapport avec la définition de la santé selon la conception biomédicale :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q37a" name="q37" value="A"> A- A. La santé est facilement mesurée</li>
+            
+                    <li><input type="checkbox" id="q37b" name="q37" value="B"> B- B. La maladie est principalement organique</li>
+            
+                    <li><input type="checkbox" id="q37c" name="q37" value="C"> C- C. La normalité est définie par les professionnels de la santé</li>
+            
+                    <li><input type="checkbox" id="q37d" name="q37" value="D"> D- D. La normalité est définie par l'individu</li>
+            
+                    <li><input type="checkbox" id="q37e" name="q37" value="E"> E- E. Aucune réponse n'est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-38" class="question-container">
+            <div class="question">
+                <p>38.) En santé publique, la prévention :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q38a" name="q38" value="A"> A- A. Vise à éviter l'apparition de la maladie</li>
+            
+                    <li><input type="checkbox" id="q38b" name="q38" value="B"> B- B. Permet de réduire la gravité de la maladie</li>
+            
+                    <li><input type="checkbox" id="q38c" name="q38" value="C"> C- C. Fait appel à des mesures individuelles</li>
+            
+                    <li><input type="checkbox" id="q38d" name="q38" value="D"> D- D. Fait appel à des mesures collectives</li>
+            
+                    <li><input type="checkbox" id="q38e" name="q38" value="E"> E- E. Fait appel à des mesures correctives</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-39" class="question-container">
+            <div class="question">
+                <p>39.) La mortalité maternelle :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q39a" name="q39" value="A"> A- A. Est le rapport entre le nombre de femmes qui décèdent au cours de la grossesse, accouchement et dans les 42 jours qui suivent l'accouchement suite à une cause puerpérale / 100 000 naissances vivantes</li>
+            
+                    <li><input type="checkbox" id="q39b" name="q39" value="B"> B- B. Est le rapport entre (Le nombre de femmes qui décèdent et qui sont âgées de 15 à 49 ans / femmes âgées de 15 à 49 ans) X 1000</li>
+            
+                    <li><input type="checkbox" id="q39c" name="q39" value="C"> C- C. Est un problème de santé publique au Maroc et dans les pays en voie de développement</li>
+            
+                    <li><input type="checkbox" id="q39d" name="q39" value="D"> D- D. Interpelle uniquement le ministère de la santé</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-40" class="question-container">
+            <div class="question">
+                <p>40.) Parmi les barrières à l'utilisation des services de santé on peut citer :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q40a" name="q40" value="A"> A- A. L'accessibilité géographique</li>
+            
+                    <li><input type="checkbox" id="q40b" name="q40" value="B"> B- B. L'accessibilité financière</li>
+            
+                    <li><input type="checkbox" id="q40c" name="q40" value="C"> C- C. L'accessibilité culturelle</li>
+            
+                    <li><input type="checkbox" id="q40d" name="q40" value="D"> D- D. L'accessibilité organisationnelle</li>
+            
+                    <li><input type="checkbox" id="q40e" name="q40" value="E"> E- E. Aucune réponse n'est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-41" class="question-container">
+            <div class="question">
+                <p>41.) Parmi les variables suivantes, lesquelles sont des variables quantitatives continues ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q41a" name="q41" value="A"> A- A. Poids</li>
+            
+                    <li><input type="checkbox" id="q41b" name="q41" value="B"> B- B. La fratrie</li>
+            
+                    <li><input type="checkbox" id="q41c" name="q41" value="C"> C- C. Niveau d'étude</li>
+            
+                    <li><input type="checkbox" id="q41d" name="q41" value="D"> D- D. La taille</li>
+            
+                    <li><input type="checkbox" id="q41e" name="q41" value="E"> E- E. Aucune réponse n'est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-42" class="question-container">
+            <div class="question">
+                <p>42.) Parmi les variables suivantes, lesquelles sont des variables quantitatives discrètes ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q42a" name="q42" value="A"> A- A. Etat de santé (malade/non malade)</li>
+            
+                    <li><input type="checkbox" id="q42b" name="q42" value="B"> B- B. Nombre de repas par jour</li>
+            
+                    <li><input type="checkbox" id="q42c" name="q42" value="C"> C- C. Parité</li>
+            
+                    <li><input type="checkbox" id="q42d" name="q42" value="D"> D- D. Sexe</li>
+            
+                    <li><input type="checkbox" id="q42e" name="q42" value="E"> E- E. Aucune réponse n'est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-43" class="question-container">
+            <div class="question">
+                <p>43.) Parmi les variables suivantes, lesquelles sont des variables qualitatives nominales ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q43a" name="q43" value="A"> A- A. Niveau d'étude</li>
+            
+                    <li><input type="checkbox" id="q43b" name="q43" value="B"> B- B. Groupe sanguin</li>
+            
+                    <li><input type="checkbox" id="q43c" name="q43" value="C"> C- C. Nationalité</li>
+            
+                    <li><input type="checkbox" id="q43d" name="q43" value="D"> D- D. Pression artérielle</li>
+            
+                    <li><input type="checkbox" id="q43e" name="q43" value="E"> E- E. Aucune réponse n'est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-44" class="question-container">
+            <div class="question">
+                <p>44.) Parmi les affirmations suivantes lesquelles sont justes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q44a" name="q44" value="A"> A- A. L'écart type est une mesure de dispersion</li>
+            
+                    <li><input type="checkbox" id="q44b" name="q44" value="B"> B- B. La médiane se confond avec la moyenne pour une distribution suivant la loi normale</li>
+            
+                    <li><input type="checkbox" id="q44c" name="q44" value="C"> C- C. Plus la distribution d'une variable est hétérogène, plus sa variance est petite</li>
+            
+                    <li><input type="checkbox" id="q44d" name="q44" value="D"> D- D. La moyenne est sensible aux valeurs extrêmes</li>
+            
+                    <li><input type="checkbox" id="q44e" name="q44" value="E"> E- E. Aucune proposition n'est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-45" class="question-container">
+            <div class="question">
+                <p>45.) Le mode :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q45a" name="q45" value="A"> A- A. Est utilisé pour les calculs en rapport avec l'inférence statistique</li>
+            
+                    <li><input type="checkbox" id="q45b" name="q45" value="B"> B- B. Est une mesure de tendance centrale</li>
+            
+                    <li><input type="checkbox" id="q45c" name="q45" value="C"> C- C. Est une mesure de dispersion</li>
+            
+                    <li><input type="checkbox" id="q45d" name="q45" value="D"> D- D. Une distribution ne peut contenir qu'un seul mode</li>
+            
+                    <li><input type="checkbox" id="q45e" name="q45" value="E"> E- E. Est appelé pic de la distribution</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-46" class="question-container">
+            <div class="question">
+                <p>46.) La moyenne :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q46a" name="q46" value="A"> A- A. Est le principal paramètre de mesure de la tendance centrale d'une variable</li>
+            
+                    <li><input type="checkbox" id="q46b" name="q46" value="B"> B- B. Est le principal paramètre de mesure de la dispersion d'une variable</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-47" class="question-container">
+            <div class="question">
+                <p>47.) Les représentations graphiques en Biostatistiques correspondent aux affirmations suivantes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q47a" name="q47" value="A"> A- A. Le Diagramme en bâtons est utilisé pour la représentation des variables quantitatives continues</li>
+            
+                    <li><input type="checkbox" id="q47b" name="q47" value="B"> B- B. Le diagramme circulaire permet de représenter les variables qualitatives nominales</li>
+            
+                    <li><input type="checkbox" id="q47c" name="q47" value="C"> C- C. Le polygone de fréquences est représenté en joignant les milieux des côtés supérieurs des rectangles dans un histogramme</li>
+            
+                    <li><input type="checkbox" id="q47d" name="q47" value="D"> D- D. L'histogramme permet la représentation des variables qualitatives</li>
+            
+                    <li><input type="checkbox" id="q47e" name="q47" value="E"> E- E. Aucune réponse n'est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-48" class="question-container">
+            <div class="question">
+                <p>48.) Concernant l'échantillonnage :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q48a" name="q48" value="A"> A- A. La population cible correspond à la population vers laquelle les résultats des enquêtes vont être extrapolées</li>
+            
+                    <li><input type="checkbox" id="q48b" name="q48" value="B"> B- B. L'échantillon correspond au sous ensemble d'individus ou d'unités statistiques sélectionnés dans la population source</li>
+            
+                    <li><input type="checkbox" id="q48c" name="q48" value="C"> C- C. Lors d'un sondage probabiliste, la sélection des sujets se base sur le hasard</li>
+            
+                    <li><input type="checkbox" id="q48d" name="q48" value="D"> D- D. Plus la taille d'un échantillon est petite, plus le risque d'erreur d'échantillonnage est minime</li>
+            
+                    <li><input type="checkbox" id="q48e" name="q48" value="E"> E- E. L'échantillonnage est un critère important pour juger de la validité d'une étude statistique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+
+<div id="question-49" class="question-container">
+    <div class="question">
+        <p>49.) Concernant les mesures de dispersion :</p>
+        <ul>
+            <li><input type="checkbox" id="q49a" name="q49" value="A"> A- L’écart type correspond à la racine carrée de la variance.</li>
+            <li><input type="checkbox" id="q49b" name="q49" value="B"> B- Pour le quartile 3 : 75% des observations lui sont supérieurs et 25% lui sont inférieurs.</li>
+            <li><input type="checkbox" id="q49c" name="q49" value="C"> C- L’intervalle interquartile est un meilleur indicateur de la dispersion que l’étendue.</li>
+            <li><input type="checkbox" id="q49d" name="q49" value="D"> D- L’écart type n’est pas utilisé dans l’inférence statistique.</li>
+            <li><input type="checkbox" id="q49e" name="q49" value="E"> E- Le mode est une mesure de dispersion.</li>
+        </ul>
+    </div>
+    
+</div>
+
+<div id="question-50" class="question-container">
+    <div class="question">
+        <p>50.) Les affirmations suivantes sont justes concernant les études utilisant les bios statistiques :</p>
+        <ul>
+            <li><input type="checkbox" id="q50a" name="q50" value="A"> A- La première étape d’une étude est la collecte des données.</li>
+            <li><input type="checkbox" id="q50b" name="q50" value="B"> B- La variabilité intra-individuelle correspond au fait que la même grandeur mesurée chez un sujet donné peut être soumise à des variations aléatoires.</li>
+            <li><input type="checkbox" id="q50c" name="q50" value="C"> C- La Variabilité métrologique correspond à la variabilité expérimentale et à la variabilité de l’appareil de mesure.</li>
+            <li><input type="checkbox" id="q50d" name="q50" value="D"> D- Il est possible d’effectuer des estimations en utilisant un échantillonnage aléatoire simple.</li>
+            <li><input type="checkbox" id="q50e" name="q50" value="E"> E- Aucune réponse n’est juste.</li>
+        </ul>
+    </div>
+    
+</div>
+
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S1" "Sante_publique_et_Biostatistique" "Sp2017R" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+
+            <div id="details-section" style="display:none;">
+                <h2>Questions :</h2>
+                <div id="question-links" class="question-links"></div>
+            </div>
+
+            <script>
+const correctAnswers = {
+    q1: ['B', 'C', 'D'],
+    q2: ['C', 'D'],
+    q2: ['B', 'E'],
+    q3: ['B', 'D'],
+    q4: ['A', 'D'],
+    q5: ['B', 'C', 'E'],
+    q6: ['B'],
+    q7: ['D'],
+    q8: ['E'],
+    q9: ['B'],
+    q10: ['A', 'D'],
+    q11: ['E'],
+    q12: ['A'],
+    q13: ['C', 'E'],
+    q14: ['B', 'E', 'D'],
+    q15: ['A', 'D', 'C', 'E'],
+    q16: ['A'],
+    q17: ['A'],
+    q18: ['A', 'E'],
+    q19: ['A', 'B', 'C'],
+    q20: ['A', 'B', 'C', 'E'],
+    q21: ['A'],
+    q22: ['E', 'C', 'D'],
+    q23: ['E'],
+    q24: ['A'],
+    q25: ['C'],
+    q26: ['A', 'B', 'C'],
+    q27: ['B', 'D'],
+    q28: ['D', 'C', 'E'],
+    q29: ['A', 'C', 'B'],
+    q30: ['D'],
+    q31: ['A', 'C', 'D'],
+    q32: ['B', 'E'],
+    q33: ['C'],
+    q34: ['A'],
+    q35: ['A', 'D', 'C', 'B'],
+    q36: ['A', 'D', 'C', 'B'],
+    q37: ['A', 'B', 'C'],
+    q38: ['A', 'B', 'C', 'D'],
+    q39: ['A', 'C', 'E'],
+    q40: ['A', 'D', 'C', 'B'],
+    q41: ['A', 'D'],
+    q42: ['B', 'C'],
+    q43: ['B', 'C'],
+    q44: ['A', 'D', 'B'],
+    q45: ['B', 'E'],
+    q46: ['A'],
+    q47: ['B', 'C'],
+    q48: ['A', 'B', 'C', 'E'],
+    q49: ['A', 'C'],
+    q50: ['B', 'D', 'C'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersSp2017R'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+<script src="{% static 'java/question-stats.js' %}" defer></script>

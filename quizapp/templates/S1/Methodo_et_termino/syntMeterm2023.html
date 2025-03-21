@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+        <div class="quiz-title">
+            <h1> Methodologie et Terminologie 2023</h1>
+            <p></p>
+        </div>
+
+
+<form id="quiz-form">
+<input type="hidden" name="file_name" value="Meterm2023">
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Les pauses au moment des révisions ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Durent 10 minutes après chaque heure de révision.</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Sont déconseillées car elles font perdre du temps à l’étudiant.</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Permettent d’éviter la surcharge cérébrale.</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Peuvent être utilisées pour se dégourdir.</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Peuvent être utilisées pour chatter avec les amis par WhatsApp.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Quelle est la définition de la procrastination ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Le fait de bien programmer ses révisions.</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Le fait de laisser la révision des chapitres faciles jusqu’à la veille de l’examen.</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Pouvoir prévoir les questions qui vont être posées le jour de l’examen.</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Le fait de tout remettre au lendemain.</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Le fait de terminer la révision des cours 5 jours avant l’examen.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Comment peut se manifester la procrastination au début des révisions des cours ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Consulter sa boite mail.</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Regarder sa page Facebook.</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Regarder les actualités du jour.</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Appeler un(e) ami(e).</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Créer un sentiment d’urgence.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Pour éviter la procrastination l’étudiant doit</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Travailler à son rythme naturel.</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Faire le bilan de la journée.</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Prendre des stimulants.</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Faire un audit du temps.</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Boire 4 tasses de café par jour.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) La concentration</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Est l’orientation de l’ensemble de ses activités mentales vers un seul objet.</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Est la même chez tous les étudiants.</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Est un état passif.</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Ne nécessite aucun effort.</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Permet à l’étudiant de suivre correctement les cours.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) La concentration pendant les cours nécessite de la part de l’étudiant une préparation car :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Elle n’est pas une disposition normale de l’esprit.</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Le travail intellectuel peut épuiser l’étudiant.</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Elle est fragile.</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- L’étudiant n’utilisait pas la concentration lors de ses études au lycée.</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- En médecine, les cours sont très difficiles à apprendre.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Pour une bonne concentration, comment l’étudiant doit choisir un environnement de travail ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Un endroit très chauffé.</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Un endroit frais.</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Un fauteuil moelleux.</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Avec un bon éclairage.</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Une surface réservée au travail.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Le rythme de vie qui maintient et renforce une bonne concentration est fait de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Un sommeil réparateur et suffisant.</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- La prise de somnifères avant le sommeil.</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- La lutte contre le stress.</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- L’exercice physique avant d’aller se coucher.</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- La consommation d’au moins 4 tasses de café le soir.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Pour lutter contre des idées parasites au moment d’une révision l’étudiant doit</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Écrire en résumé les idées parasites sur un bloc note.</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Se lever chaque fois qu’il prend conscience de ses rêveries.</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Faire quelques pas et se recentrer sur le sujet de sa révision.</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Regarder la télévision afin de se détendre avant de reprendre la révision.</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- S’arrêter la révision et aller dormir.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Lors de la prise des notes l’étudiant doit</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Utiliser des abréviations.</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Noter intégralement les définitions.</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Noter tout ce que dit le professeur.</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Prendre tout ce qui est écrit dans les diapositives.</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Noter intégralement les schémas les plus pertinents.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Comment l’étudiant peut prendre des notes fidèles à ce qu’a été dit par l’enseignant ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Enregistrer la totalité des cours à l’aide d’un magnétophone.</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Noter tout ce que dit l’enseignant.</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Relire ses écrits le soir même pour identifier les questions à poser à l’enseignant au début du cours suivant.</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Accorder plus d’attention à la transcription des idées.</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Se concentrer seulement sur ce qui est écrit dans les diapositives.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Au cours des répétitions pour apprendre un cours ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Ne doit répéter que les cours très difficiles.</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Doit utiliser des dessins.</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Doit comprendre le cours avant de l’apprendre.</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Peut s’aider de la vocalisation.</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- L’utilisation de fiches – résumé peut faciliter sa mémorisation.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Les facteurs propres à la personne qui peuvent gêner la mémorisation sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Le cerveau de l’étudiant n’est pas éveillé.</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- L’étudiant n’est pas motivé.</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- La non-compréhension du cours.</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Le manque d’argent.</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Le désir de se rappeler n’est pas assez vif.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Pour ne pas être dérangé par le téléphone au moment des révisions des cours, l’étudiant doit le mettre :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- En mode silencieux et l’éloigner de la table de travail</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- En mode arrêt (l’éteindre)</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- En mode silencieux et le mettre à côté des documents qu’il est en train de réviser</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- En mode silencieux et le consulter toutes les 15 min pour savoir s’il a reçu des appels</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- En mode silencieux et le consulter au moment des pauses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Quels sont les éléments qui diminuent l’attention ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Les insomnies</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Le stress</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- La dépression</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- L’activité physique régulière</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- L’obésité</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) L’endroit de travail dans lequel l’étudiant doit réviser ses cours doit être :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Bruyant</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Bien éclairé</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Froid</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Calme</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Clos</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Parmi les facteurs suivants, deux influencent l’apprentissage. Lesquels ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- L’âge de l’étudiant</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- La rétroaction de l’enseignant</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- La motivation de l’étudiant</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- La condition physique de l’étudiant</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- L’âge de l’enseignant</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Lors d’une activité d’apprentissage l’étudiant se souvient de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- 30 % de ce qu’il a vu</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- 75 % de ce qu’il a entendu</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- 100 % de ce qu’il a lu</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- 20 % de ce qu’il a entendu</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- 90 % de ce qu’il fait</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Pour éviter le plagiat, l’étudiant en médecine doit éviter les actions suivantes sauf s’il cite la référence intégrale.</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Copier intégralement tout ou partie d’une revue médicale</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Copier intégralement tout ou partie d’une page Web</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Illustrer un travail avec des images ou des graphiques</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Photocopier un polycopié du cours</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Utiliser le travail d’une autre personne en le présentant comme le sien</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Au cours du processus de mémorisation, quels sont les éléments qui entrent en compte dans le stockage des informations ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Les sentiments</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Les émotions</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- La condition physique</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Le désir de se souvenir</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- La concentration</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) L’attention est maximale :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- En fin de matinée</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Le lundi</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Après le réveil le matin</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- En fin de journée</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- En milieu d’après-midi</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Le stockage des informations au cours du processus de mémorisation :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Se fait dans la mémoire à long terme</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Se fait avec une possibilité de réactiver les informations en cas de besoin</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Se fait dans la mémoire procédurale</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Nécessite une forte attention</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Nécessite une bonne condition physique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) La mémoire est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Localisée au niveau de l’hippocampe</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Sélective</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Imparfaite</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Subjective</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- La même chez tous les étudiants</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Parmi ces méthodes quelles sont les 4 qui doivent être utilisées pour apprendre les cours ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Apprendre en comprenant</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Apprendre en répétant (par cœur)</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Apprendre par les images</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Apprendre en utilisant des schémas</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Apprendre en écoutant une seule fois le cours</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) La lumière dans l’endroit du travail pour les révisions des cours doit être :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Homogène</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Multicolore</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Tamisée</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Suffisante</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Variable</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Cochez la ou les réponse(s) où l’unité de sens (ou préfixe ou suffixe) correspond au mot :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- Diaphragme : Cléido-</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- Cartilage : Chondro-</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- Sang : Hemo-</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- Côtes : Spino-</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- Caillot : Thrombo-</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) Cochez la ou les réponse(s) juste(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- Une dyspnée est une difficulté à respirer et un essoufflement</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- Une apnée est un arrêt respiratoire</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Une tachycardie correspond à des battements cardiaques trop rapides (au-delà de 100 battements/minute)</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Une cyanose est une coloration jaune de la peau</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- Une claudication est une crampe musculaire en rapport avec un défaut de perfusion</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) Cochez la ou les réponse(s) juste(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- La Pression artérielle diastolique est la valeur minimale atteinte à la fin de la diastole</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- La Cardiotomie est une intervention chirurgicale qui consiste à réséquer (enlever) le cœur</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- La Thrombectomie est une intervention qui consiste à réséquer (enlever) un caillot sanguin</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- La Sternotomie est une voie d’abord chirurgicale du thorax qui consiste à couper (sectionner) le sternum</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- La Valvuloplastie Mitrale est une intervention chirurgicale qui consiste à réparer la valve Mitrale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) Cochez la ou les réponse(s) juste(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- Une Thrombophlébite est un caillot sanguin qui se forme dans une veine, et qui est associée à une inflammation de la veine</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- Une Cardiomégalie est une diminution du volume du cœur</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- Une Cardiomyopathie est une maladie du muscle cardiaque</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- Une insuffisance cardiaque est l’incapacité du muscle cardiaque de propulser suffisamment de sang dans les artères</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- Une Maladie coronarienne est une maladie cardiaque due à une irrigation sanguine insuffisante du cœur</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) La discipline qui traite les maladies du nez et des sinus est nommée :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- La pneumologie</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- La laryngologie</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- La rhinologie</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- L’audiophonologie</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- L’otologie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) Cochez la ou les réponse(s) où le suffixe désignée correspond correctement au mot :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- -acusie : Audition</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- -plastie : exérèse</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- -rragie : saignement</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- -scopie : observer</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- -métrie : mesurer</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) Quel(s) terme(s) sémiologique(s) signifie(nt) un écoulement provenant du nez quelque soit sa nature (purulent, sanguin ou claire) ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A- Otorrhée</li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B- Epistaxis</li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C- Rhinorrhée</li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D- Rhinolalie</li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E- Rhinosinusite</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) À propos du diagnostic en médecine :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A- C’est l’évaluation de la durée de la maladie</li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B- C’est la prédiction de l’issue de la maladie</li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C- C’est l’identification de la maladie</li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D- C’est l’étude des causes de la maladie</li>
+            
+                    <li><input type="checkbox" id="q33e" name="q33" value="E"> E- C’est le traitement de la maladie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) Concernant l’hystérectomie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A- Il s’agit d’une maladie de l’utérus</li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B- Il s’agit d’une radiographie de l’utérus</li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C- Il s’agit d’une chirurgie de l’utérus</li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D- Il s’agit d’une incision de l’utérus</li>
+            
+                    <li><input type="checkbox" id="q34e" name="q34" value="E"> E- Il s’agit d’une ablation de l’utérus</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) Concernant l’hystérectomie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A- Il s’agit d’une maladie de l’utérus</li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B- Il s’agit d’une radiographie de l’utérus</li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C- Il s’agit d’une chirurgie de l’utérus</li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D- Il s’agit d’une incision de l’utérus</li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E- Il s’agit d’une ablation de l’utérus</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-36" class="question-container">
+            <div class="question">
+                <p>36.) Une ulcération cutanée est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q36a" name="q36" value="A"> A- Une perte de substance</li>
+            
+                    <li><input type="checkbox" id="q36b" name="q36" value="B"> B- Une mort cellulaire</li>
+            
+                    <li><input type="checkbox" id="q36c" name="q36" value="C"> C- Une inflammation</li>
+            
+                    <li><input type="checkbox" id="q36d" name="q36" value="D"> D- Une plaie vive</li>
+            
+                    <li><input type="checkbox" id="q36e" name="q36" value="E"> E- Une lichénification</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-37" class="question-container">
+            <div class="question">
+                <p>37.) L’herpès circiné est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q37a" name="q37" value="A"> A- Une infection mycosique</li>
+            
+                    <li><input type="checkbox" id="q37b" name="q37" value="B"> B- Une dermatose de la grossesse</li>
+            
+                    <li><input type="checkbox" id="q37c" name="q37" value="C"> C- Une infection due au HSV (herpès simplex virus)</li>
+            
+                    <li><input type="checkbox" id="q37d" name="q37" value="D"> D- Une infection unguéale</li>
+            
+                    <li><input type="checkbox" id="q37e" name="q37" value="E"> E- Une inflammation buccale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-38" class="question-container">
+            <div class="question">
+                <p>38.) La mélanogenèse est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q38a" name="q38" value="A"> A- La sécrétion excessive du sébum</li>
+            
+                    <li><input type="checkbox" id="q38b" name="q38" value="B"> B- La différenciation des kératinocytes</li>
+            
+                    <li><input type="checkbox" id="q38c" name="q38" value="C"> C- La phase anagène du cycle pilaire</li>
+            
+                    <li><input type="checkbox" id="q38d" name="q38" value="D"> D- La formation du pigment cutané</li>
+            
+                    <li><input type="checkbox" id="q38e" name="q38" value="E"> E- La prolifération des mélanocytes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-39" class="question-container">
+            <div class="question">
+                <p>39.) Une douleur au niveau du genou est une :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q39a" name="q39" value="A"> A- Coxalgie</li>
+            
+                    <li><input type="checkbox" id="q39b" name="q39" value="B"> B- Gonalgie</li>
+            
+                    <li><input type="checkbox" id="q39c" name="q39" value="C"> C- Talalgie</li>
+            
+                    <li><input type="checkbox" id="q39d" name="q39" value="D"> D- Myalgie</li>
+            
+                    <li><input type="checkbox" id="q39e" name="q39" value="E"> E- Fibromyalgie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-40" class="question-container">
+            <div class="question">
+                <p>40.) La Racine « Myo » concernant le Tissu :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q40a" name="q40" value="A"> A- Signifie le muscle</li>
+            
+                    <li><input type="checkbox" id="q40b" name="q40" value="B"> B- Exemple Myologie</li>
+            
+                    <li><input type="checkbox" id="q40c" name="q40" value="C"> C- Exemple Myopathie</li>
+            
+                    <li><input type="checkbox" id="q40d" name="q40" value="D"> D- Exemple Myalgie</li>
+            
+                    <li><input type="checkbox" id="q40e" name="q40" value="E"> E- Exemple Myélite</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-41" class="question-container">
+            <div class="question">
+                <p>41.) Une douleur au niveau de la région scapulaire est une :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q41a" name="q41" value="A"> A- Coxalgie</li>
+            
+                    <li><input type="checkbox" id="q41b" name="q41" value="B"> B- Gonalgie</li>
+            
+                    <li><input type="checkbox" id="q41c" name="q41" value="C"> C- Talalgie</li>
+            
+                    <li><input type="checkbox" id="q41d" name="q41" value="D"> D- Scapulalgie</li>
+            
+                    <li><input type="checkbox" id="q41e" name="q41" value="E"> E- Fibromyalgie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-42" class="question-container">
+            <div class="question">
+                <p>42.) L’Hématologie est une discipline qui assure le :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q42a" name="q42" value="A"> A- Diagnostic et traitement des maladies cardiovasculaires</li>
+            
+                    <li><input type="checkbox" id="q42b" name="q42" value="B"> B- Diagnostic et traitement des hémopathies malignes uniquement</li>
+            
+                    <li><input type="checkbox" id="q42c" name="q42" value="C"> C- Diagnostic et traitement des hémopathies bénignes uniquement</li>
+            
+                    <li><input type="checkbox" id="q42d" name="q42" value="D"> D- Diagnostic, traitement des diverses maladies du sang, de la moelle osseuse et des organes lymphoïdes</li>
+            
+                    <li><input type="checkbox" id="q42e" name="q42" value="E"> E- Diagnostic et traitement des maladies du système nerveux central</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-43" class="question-container">
+            <div class="question">
+                <p>43.) La technique qui permet le recueil de cellules souches à partir du sang en vue d’une autogreffe :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q43a" name="q43" value="A"> A- Allogreffe</li>
+            
+                    <li><input type="checkbox" id="q43b" name="q43" value="B"> B- Cytaphérèse</li>
+            
+                    <li><input type="checkbox" id="q43c" name="q43" value="C"> C- Myelogramme</li>
+            
+                    <li><input type="checkbox" id="q43d" name="q43" value="D"> D- Biopsie ostéo-médullaire</li>
+            
+                    <li><input type="checkbox" id="q43e" name="q43" value="E"> E- Hématopoïèse</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-44" class="question-container">
+            <div class="question">
+                <p>44.) La chimère :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q44a" name="q44" value="A"> A- Un être humain avec deux génomes</li>
+            
+                    <li><input type="checkbox" id="q44b" name="q44" value="B"> B- Un être humain avec un génome</li>
+            
+                    <li><input type="checkbox" id="q44c" name="q44" value="C"> C- Est utilisée en autogreffe</li>
+            
+                    <li><input type="checkbox" id="q44d" name="q44" value="D"> D- Est utilisée en allogreffe</li>
+            
+                    <li><input type="checkbox" id="q44e" name="q44" value="E"> E- Toutes les réponses sont justes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-45" class="question-container">
+            <div class="question">
+                <p>45.) Les cellules corticotropes sont, Cochez la ou les réponses justes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q45a" name="q45" value="A"> A- Des cellules localisées au niveau de la corticosurrénale</li>
+            
+                    <li><input type="checkbox" id="q45b" name="q45" value="B"> B- Des cellules localisées au niveau de l’hypophyse</li>
+            
+                    <li><input type="checkbox" id="q45c" name="q45" value="C"> C- Des cellules ayant une affinité pour les cellules du cortex surrénalien</li>
+            
+                    <li><input type="checkbox" id="q45d" name="q45" value="D"> D- Localisées au niveau du cortex cérébral</li>
+            
+                    <li><input type="checkbox" id="q45e" name="q45" value="E"> E- Des cellules qui ont un tropisme pour le cortex cérébral</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-46" class="question-container">
+            <div class="question">
+                <p>46.) Un défaut de production de l’ensemble des hormones hypophysaires est désigné par le terme, cochez la réponse juste :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q46a" name="q46" value="A"> A- Un pluri hypopituitarisme</li>
+            
+                    <li><input type="checkbox" id="q46b" name="q46" value="B"> B- Un antéhypopituitarisme</li>
+            
+                    <li><input type="checkbox" id="q46c" name="q46" value="C"> C- Un panhypopituitarisme</li>
+            
+                    <li><input type="checkbox" id="q46d" name="q46" value="D"> D- Un polyhypopituitarisme</li>
+            
+                    <li><input type="checkbox" id="q46e" name="q46" value="E"> E- Un multihypopituitarisme</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-47" class="question-container">
+            <div class="question">
+                <p>47.) Quel terme désigne une ablation chirurgicale du lobe et de l’isthme de la glande thyroïde, cochez la réponse juste :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q47a" name="q47" value="A"> A- Une loboisthmectomie</li>
+            
+                    <li><input type="checkbox" id="q47b" name="q47" value="B"> B- Une lobectomie</li>
+            
+                    <li><input type="checkbox" id="q47c" name="q47" value="C"> C- Une thyroidectomie</li>
+            
+                    <li><input type="checkbox" id="q47d" name="q47" value="D"> D- Une loboisthmoplastie</li>
+            
+                    <li><input type="checkbox" id="q47e" name="q47" value="E"> E- Une loboisthomorphie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-48" class="question-container">
+            <div class="question">
+                <p>48.) Sur le plan étymologique, psychiatrie veut dire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q48a" name="q48" value="A"> A- Soins du cerveau</li>
+            
+                    <li><input type="checkbox" id="q48b" name="q48" value="B"> B- Traitement de la tête</li>
+            
+                    <li><input type="checkbox" id="q48c" name="q48" value="C"> C- Médecine de l’âme</li>
+            
+                    <li><input type="checkbox" id="q48d" name="q48" value="D"> D- Traitement de la tristesse</li>
+            
+                    <li><input type="checkbox" id="q48e" name="q48" value="E"> E- Aucune des réponses n’est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-49" class="question-container">
+            <div class="question">
+                <p>49.) La psychiatrie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q49a" name="q49" value="A"> A- Est la même chose que la neurologie</li>
+            
+                    <li><input type="checkbox" id="q49b" name="q49" value="B"> B- Est la même chose que la neurochirurgie</li>
+            
+                    <li><input type="checkbox" id="q49c" name="q49" value="C"> C- Est totalement subjective</li>
+            
+                    <li><input type="checkbox" id="q49d" name="q49" value="D"> D- N’est pas fondée sur la preuve scientifique</li>
+            
+                    <li><input type="checkbox" id="q49e" name="q49" value="E"> E- Aucune réponse n’est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-50" class="question-container">
+            <div class="question">
+                <p>50.) L’Echopraxie correspond à :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q50a" name="q50" value="A"> A- Le patient répète la mimique de son interlocuteur</li>
+            
+                    <li><input type="checkbox" id="q50b" name="q50" value="B"> B- Le patient a l’impression d’entendre sa pensée en écho</li>
+            
+                    <li><input type="checkbox" id="q50c" name="q50" value="C"> C- Le patient répète les gestes de son interlocuteur</li>
+            
+                    <li><input type="checkbox" id="q50d" name="q50" value="D"> D- Le patient a un discours totalement incohérent</li>
+            
+                    <li><input type="checkbox" id="q50e" name="q50" value="E"> E- Aucune réponse n’est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+         
+
+        
+
+       
+    
+    
+    
+</div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S1" "Methodo_et_termino" "meterm2023" %}';">Réessayer tout le Quiz</button>
+</div>
+
+<div id="details-section" class="details-section" style="display: none;">
+    <h3>Tableau des questions</h3>
+    <div class="question-links" id="question-links"></div>
+</div>
+
+
+
+
+<!-- Section pour afficher le tableau avec les numéros encerclés -->
+<div id="details-section" style="display:none;">
+    <h2>Questions :</h2>
+    <div id="question-links" class="question-links">
+        <!-- Le tableau de numéros va être généré ici -->
+    </div>
+</div>
+
+<script>
+const correctAnswers = {
+  q1: ['A', 'C', 'D'],
+  q2: ['D'],
+  q3: ['A', 'B', 'C', 'D'],
+  q4: ['A', 'B', 'D'],
+  q5: ['A', 'E'],
+  q6: ['A', 'B', 'C'],
+  q7: ['B', 'D', 'E'],
+  q8: ['A', 'C', 'D'],
+  q9: ['A', 'B', 'C'],
+  q10: ['A', 'B', 'E'],
+  q11: ['C', 'D'],
+  q12: ['B', 'C', 'D', 'E'],
+  q13: ['A', 'B', 'E'],
+  q14: ['A', 'B', 'E'],
+  q15: ['A', 'B', 'C'],
+  q16: ['B', 'D'],
+  q17: ['B', 'C'],
+  q18: ['A', 'D', 'E'],
+  q19: ['A', 'B', 'C', 'E'],
+  q20: ['A', 'B', 'D', 'E'],
+  q21: ['A', 'D', 'E'],
+  q22: ['A', 'B'],
+  q23: ['A', 'B', 'C', 'D'],
+  q24: ['A', 'B', 'C', 'D'],
+  q25: ['A', 'D'],
+q26: ['B', 'C', 'E'],
+q27: ['A', 'B', 'C', 'E'],
+q28: ['A', 'C', 'D', 'E'],
+q29: ['A', 'C', 'D', 'E'],
+q30: ['C'],
+q31: ['A', 'C', 'D', 'E'],
+q32: ['B', 'C'],
+q33: ['C'],
+q34: ['C', 'E'],
+q35: ['C', 'D'],
+q36: ['A', 'D'],
+q37: ['A'],
+q38: ['D'],
+q39: ['B'],
+q40: ['B', 'C', 'D', 'A'],
+q41: ['D'],
+q42: ['D'],
+q43: ['B'],
+q44: ['A', 'D'],
+q45: ['B', 'C'],
+q46: ['C'],
+q47: ['A'],
+q48: ['C'],
+q49: ['E'],
+q50: ['C'],
+
+
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersMeterm2023'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

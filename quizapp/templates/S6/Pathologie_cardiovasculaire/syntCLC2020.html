@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="CLC2020">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) L'athérosclérose :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Est un phénomène qui commence à l'âge adulte</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Est plus fréquent chez les descendants d'un mariage consanguins</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Peut se compliquer de poussées aigues</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Est plus fréquente chez l'homme que chez la femme</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Peut rester pendant longtemps asymptomatique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Concernant les facteurs de risque cardiovasculaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Ils sont toujours modifiables</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- L'objectif thérapeutique pour le LDL est toujours le même</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Le tabac stimule l'agrégation plaquettaire</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Le tabac est un facteur de risque de l'AOMI</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- L'effet du tabac sur le phénomène d'athérosclérose persiste 10 ans après l'arrêt</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Concernant l'athérogénèse :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- L'excès de molécules HDL de cholestérol dans le sang traverse la couche de cellules endothéliales</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- L'oxydation de molécules de cholestérol a lieu au niveau de la média</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- L'oxydation de molécules de cholestérol a un effet toxique sur l'endothélium</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Les monocytes adhèrent aux cellules endothéliales grâce aux récepteurs exprimés anormalement à la surface de cellules endothéliales</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Les macrophages phagocytent les molécules de cholestérol et deviennent cellules spumeuses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) La plaque d'athérome vulnérable :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- A une chape fibreuse fine</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- A un noyau lipidique très réduit</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- A une chape est fragilisée par l'inflammation</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- A une chape fibreuse épaisse</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Est sujette à l'érosion ou à la rupture</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Concernant les AAP :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- L'aspirine agit par blocage des récepteurs ADP</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Les thienopyridines doivent être prescrits systématiquement en cas du SCA</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- La dose de charge de Ticagrelor est de 300 mg en prise unique</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Les anti GllbIIIa sont systématiquement prescrits</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Les anti GllbIIIa sont utilisés par voie orale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Dans le traitement anticoagulant :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Le fondaparinux est une héparine de bas poids moléculaire</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Les HBPM ont essentiellement une action anti Xa</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- La thrombopénie est un effet secondaire fréquent des AVK</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Les anticoagulants oraux directs ont une action anti IIa ou anti Xa</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- L'association avec un anti AAP est contre-indiquée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) L'héparine non fractionnée est indiquée :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Dans les thromboses de prothèses mécaniques</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Dans l'arythmie complète par fibrillation auriculaire (ACFA)</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Dans l'embolie pulmonaire</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Dans l'ischémie aiguë d'un membre</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Dans l'angor stable</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Dans le SCA sans sus décalage persistant du segment ST :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Le thrombus est souvent occlusif</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Le thrombus est riche en fibrine</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Le traitement antithrombotique est prescrit après le dosage de la troponine</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- La troponine est une protéine spécifique du myocarde</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- La coronarographie doit être réalisée immédiatement</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Dans la stratification de risque ischémique du SCA sans sus décalage de ST :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- On distingue 6 niveaux du risque</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- La présence d'une récidive angineuse rebelle au traitement médical impose une coronarographie dans les 2 heures</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- L'élévation de la troponine doit inciter à faire une coronarographie avec revascularisation dans la semaine</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Les antécédents d'angioplastie coronarienne sont un facteur de bas risque</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- L'évaluation de la fonction systolique du VG fait partie des éléments de cette stratification de risque</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Les inhibiteurs de l'enzyme de conversion : IEC</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Empêchent la dégradation de l'angiotensine II</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Sont des antagonistes des récepteurs AT1 de l'angiotensine II</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Sont contre-indiqués en présence d'un syndrome d'insuffisance cardiaque</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Sont indiqués dans le traitement de l'hypertension artérielle</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Sont prescrits chez la femme enceinte</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Quelles sont parmi les propositions concernant les bétabloquants, celles qui sont exactes ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Sont indiqués dans le bloc auriculoventriculaire</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Sont contre-indiqués dans la fibrillation atriale</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Les bétabloquants cardiosélectifs peuvent être prescrits en cas d'insuffisance cardiaque</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Font partie de l'arsenal thérapeutique dans l'hypertension artérielle</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Sont des antagonistes des récepteurs B1 de l'adrénaline et de la noradrénaline</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Quelles explorations doit comporter le bilan minimum d'une hypertension artérielle ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Un doppler des artères rénales</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Un dosage de la rénine et de l'aldostérone</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Un ionogramme sanguin</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Une bandelette urinaire</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Une créatininémie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Devant une hypertension artérielle avec hypokaliémie, quelles causes évoquez-vous ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Syndrome de Cushing</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Phéochromocytome</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Adénome de Conn</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Sténose d'une artère rénale</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Hyperplasie bilatérale des surrénales</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Quels sont les objectifs du traitement de l'hypertension artérielle ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Réduction du risque CVX global</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Protection des organes cibles</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- PA < 150/95 mmHg chez sujet de moins de 65 ans</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Réduire les symptômes</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- PA < 120/80 mmHg chez sujet diabétique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Lesquelles de ces propositions ci-dessous sont fausses ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Seuils de définition de l'HTA en consultation 140/90 mmHg</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Seuils de définition de l'HTA en automesure 135/85 mmHg</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Poussée hypertensive : Élévation sévère de la PA (>180/110 mmHg) avec signes de retentissement viscéral</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- HTA maligne : Élévation importante de la PA (PAD > 130 mmHg) associée à des signes de souffrance neurologique</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Urgence hypertensive : HTA sévère associée à une pré-éclampsie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Quelles sont les contre-indications des inhibiteurs de l'enzyme de conversion ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Anémie</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Grossesse</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Insuffisance cardiaque</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Fibrillation atriale</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Sténose de l'artère rénale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Quelles sont les propositions vraies parmi les suivantes ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- L'insuffisance mitrale peut être découverte fortuitement</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- La douleur thoracique est le maître symptôme de l'insuffisance mitrale</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- L'insuffisance mitrale peut se manifester par un OAP inaugural</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- L'insuffisance mitrale peut être diagnostiquée à l'occasion d'une fibrillation auriculaire</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- La symptomatologie de l'insuffisance mitrale se résume en une syncope</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Dans l'examen clinique d'une insuffisance mitrale chronique pure, on peut trouver :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Un choc de pointe abaissé et dévié à gauche</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Un frémissement cataire</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Un souffle diastolique aspiratif</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Un souffle systolique éjectionnel</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Un souffle systolique de régurgitation</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Lesquels de ces signes peut-on trouver au cours de l'auscultation d'une sténose aortique ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Éclat de B1 au foyer aortique</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Souffle systolique éjectionnel au 2ème espace intercostal droit</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Souffle diastolique le long du bord gauche du sternum</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Abolition de B2 aortique</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Éclat du B2 pulmonaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) La transposition des gros vaisseaux :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Est diagnostiquée devant une cyanose néonatale réfractaire à l'oxygène</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Est diagnostiquée devant une cyanose néonatale s'améliorant sous oxygène</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Est traitée par les prostaglandines intraveineuses</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Est traitée par une intervention de switch artériel</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Est traitée par une intervention de Rashkind</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) La tamponnade aiguë :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Est une urgence</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Est traitée par les diurétiques intraveineux</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Est traitée par des bolus de corticoïdes</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- Est une indication à un traitement anticoagulant</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Est une indication à une ponction-drainage péricardique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) L'endocardite infectieuse :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Touche les femmes plus que les hommes</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Touche beaucoup plus le cœur gauche que le cœur droit</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Survient sur les valves natives seulement</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Se manifeste toujours par une fièvre</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Se voit fréquemment après soins dentaires</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Les cardiopathies à haut risque d'endocardite infectieuse sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- L'insuffisance aortique</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- La bicuspidie aortique</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- L'insuffisance mitrale</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Les prothèses valvulaires</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Les cardiopathies congénitales cyanogènes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Les cardiopathies à risque modéré d'endocardite infectieuse sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- L'insuffisance aortique</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- La bicuspidie aortique</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- L'insuffisance mitrale</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Les prothèses valvulaires</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Les cardiopathies congénitales cyanogènes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Les manifestations extracardiaques de l'endocardite infectieuse sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Un AVC hémorragique</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Un AVC ischémique</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Des varices œsophagiennes</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Une spondylodiscite</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Une insuffisance rénale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Le diagnostic positif de l'endocardite infectieuse fait appel à :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- L'échocardiographie transthoracique</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- L'échocardiographie transoesophagienne</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- Les hémocultures</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- La biopsie endomyocardique</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- L'angioscanner thoracique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) Concernant l'embolie pulmonaire aiguë grave :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- L'embolie pulmonaire est grave si la PAS < 90 mmHg</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- La gravité de l'embolie pulmonaire est appréciée par le score de PESI</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- La gravité de l'embolie pulmonaire est appréciée par le score de Genève</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Devant une suspicion d'embolie pulmonaire grave, il est obligatoire de faire un dosage des D-dimères</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- L'embolie pulmonaire grave est une indication à la thrombolyse</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) Devant une suspicion d'embolie pulmonaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- La radiographie thoracique peut être normale dans certains cas</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- L'élévation des D-dimères permet de confirmer le diagnostic</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- L'élévation de la Troponine élimine le diagnostic</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- L'élévation de la BNP permet de confirmer le diagnostic</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- L'angioscanner thoracique permet de confirmer le diagnostic</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) Pour la prise en charge de l'embolie pulmonaire, quelles sont les options thérapeutiques possibles :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- Héparine et Antivitamine K</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- Anticoagulants oraux directs et antivitamine K</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- L'association Héparine, clopidogrel et aspirine</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- Anticoagulants oraux directs seuls</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- La thrombolyse à la phase aiguë dans certains cas</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) Le bloc sino-auriculaire peut se manifester sur le plan électrocardiographique par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- Une pause au-delà de 1 seconde</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- Une disparition des ondes P sinusales</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- Une bradycardie sinusale (<80 battements/min le jour et <50 battements/min la nuit)</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- Une insuffisance chronotrope : FC max <75 de la FC maximale</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- Toutes les réponses sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) Les blocs auriculo-ventriculaires :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- Peuvent être asymptomatiques</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- Le premier degré (BAV 1er degré) relève toujours d'une thérapeutique</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- BAV II Mobitz I = Allongement progressif de l'espace PR jusqu'à apparition d'une onde P bloquée</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- BAV II Mobitz II symptomatique relève d'une stimulation cardiaque par pacemaker</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- Le BAV III correspond à une dissociation auriculo-ventriculaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) Le bloc de branche gauche :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A- Est mieux visualisé au niveau des dérivations standards à l'ECG</li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B- Est mieux visualisé au niveau des dérivations précordiales gauches à l'ECG</li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C- Est toujours incomplet</li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D- Est parfois incomplet</li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E- Peut se manifester par un aspect QS en précordiales droites</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) Parmi les étiologies des blocs auriculo-ventriculaires (BAV) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A- La maladie de Lyme</li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B- Le rétrécissement mitral</li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C- Les causes dégénératives (BAV dégénératif)</li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D- L'hypertension artérielle</li>
+            
+                    <li><input type="checkbox" id="q33e" name="q33" value="E"> E- Toutes les réponses sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) Le pacemaker :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A- Peut être quadruple chambre</li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B- Peut être triple chambre</li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C- Peut être double chambre</li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D- Peut être mono chambre</li>
+            
+                    <li><input type="checkbox" id="q34e" name="q34" value="E"> E- A une durée de vie limitée dans le temps</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) Les tachycardies à QRS fins sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A- La torsade de pointe</li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B- La maladie de Bouveret</li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C- Les réentrées intranodales</li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D- Les tachycardies jonctionnelles</li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E- La tachycardie ventriculaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-36" class="question-container">
+            <div class="question">
+                <p>36.) La fibrillation atriale est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q36a" name="q36" value="A"> A- Une arythmie qui résulte d'un seul foyer ectopique au sein des oreillettes</li>
+            
+                    <li><input type="checkbox" id="q36b" name="q36" value="B"> B- Définie par une activité anarchique et rapide du myocarde atrial</li>
+            
+                    <li><input type="checkbox" id="q36c" name="q36" value="C"> C- Responsable d'une augmentation du volume d'éjection ventriculaire</li>
+            
+                    <li><input type="checkbox" id="q36d" name="q36" value="D"> D- Un trouble du rythme jonctionnel</li>
+            
+                    <li><input type="checkbox" id="q36e" name="q36" value="E"> E- Un trouble du rythme ne relevant pas d'une anticoagulation</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-37" class="question-container">
+            <div class="question">
+                <p>37.) Le flutter atrial :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q37a" name="q37" value="A"> A- Est un trouble de rythme supraventriculaire</li>
+            
+                    <li><input type="checkbox" id="q37b" name="q37" value="B"> B- Est dû à une micro-rentrée au niveau de l'oreillette</li>
+            
+                    <li><input type="checkbox" id="q37c" name="q37" value="C"> C- Ne peut pas être à conduction variable</li>
+            
+                    <li><input type="checkbox" id="q37d" name="q37" value="D"> D- La conduction 1/1 met en jeu le pronostic vital</li>
+            
+                    <li><input type="checkbox" id="q37e" name="q37" value="E"> E- Toutes les réponses sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-38" class="question-container">
+            <div class="question">
+                <p>38.) Une tachycardie à QRS large peut être :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q38a" name="q38" value="A"> A- Une tachysystolie auriculaire</li>
+            
+                    <li><input type="checkbox" id="q38b" name="q38" value="B"> B- Une tachycardie ventriculaire</li>
+            
+                    <li><input type="checkbox" id="q38c" name="q38" value="C"> C- Une réentrée intra-nodale</li>
+            
+                    <li><input type="checkbox" id="q38d" name="q38" value="D"> D- Une fibrillation ventriculaire</li>
+            
+                    <li><input type="checkbox" id="q38e" name="q38" value="E"> E- Une tachycardie supra-ventriculaire sur une pré-excitation ventriculaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-39" class="question-container">
+            <div class="question">
+                <p>39.) Devant une tachycardie importante, il faut :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q39a" name="q39" value="A"> A- Apprécier l'état hémodynamique</li>
+            
+                    <li><input type="checkbox" id="q39b" name="q39" value="B"> B- Une cardioversion électrique n'est pas indispensable en cas d'instabilité hémodynamique</li>
+            
+                    <li><input type="checkbox" id="q39c" name="q39" value="C"> C- Préciser les modalités de début et de la fin de la crise</li>
+            
+                    <li><input type="checkbox" id="q39d" name="q39" value="D"> D- Des manœuvres vagales pour les tachycardies supraventriculaires</li>
+            
+                    <li><input type="checkbox" id="q39e" name="q39" value="E"> E- Rechercher les facteurs favorisants</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-40" class="question-container">
+            <div class="question">
+                <p>40.) La libération de l'AgII qui fait suite à l'hypovolémie provoquée par un diurétique thiazidique peut nécessiter son association à un alpha-bloquant (1) car les alpha-bloquants inhibent la synthèse de l'AgII (2).</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q40a" name="q40" value="A"> A- Les 2 propositions sont vraies avec relation de cause à effet</li>
+            
+                    <li><input type="checkbox" id="q40b" name="q40" value="B"> B- Les 2 propositions sont vraies sans relation de cause à effet</li>
+            
+                    <li><input type="checkbox" id="q40c" name="q40" value="C"> C- La proposition n°1 est vraie, la proposition n°2 est fausse</li>
+            
+                    <li><input type="checkbox" id="q40d" name="q40" value="D"> D- La proposition n°1 est fausse, la proposition n°2 est vraie</li>
+            
+                    <li><input type="checkbox" id="q40e" name="q40" value="E"> E- Les 2 propositions sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-41" class="question-container">
+            <div class="question">
+                <p>41.) Indiquer parmi les suivants, la (les) proposition(s) exacte(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q41a" name="q41" value="A"> A- Le vérapamil subit un important effet du premier passage pulmonaire</li>
+            
+                    <li><input type="checkbox" id="q41b" name="q41" value="B"> B- Le vérapamil est métabolisé par le cytochrome P450 3A4</li>
+            
+                    <li><input type="checkbox" id="q41c" name="q41" value="C"> C- Le vérapamil est métabolisé par le cytochrome P450 2D6</li>
+            
+                    <li><input type="checkbox" id="q41d" name="q41" value="D"> D- Le vérapamil est métabolisé par le cytochrome P450 2C9</li>
+            
+                    <li><input type="checkbox" id="q41e" name="q41" value="E"> E- La métabolisation du vérapamil est réduite en cas de son association au millepertuis</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-42" class="question-container">
+            <div class="question">
+                <p>42.) Le risque hémorragique lié à l'emploi des héparines de bas poids moléculaire (HBPM) est plus faible qu'avec les héparines fractionnées : HNF (1) car les HBPM agissent essentiellement par l'inhibition du facteur X activé (2).</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q42a" name="q42" value="A"> A- Les 2 propositions sont vraies avec relation de cause à effet</li>
+            
+                    <li><input type="checkbox" id="q42b" name="q42" value="B"> B- Les 2 propositions sont vraies sans relation de cause à effet</li>
+            
+                    <li><input type="checkbox" id="q42c" name="q42" value="C"> C- La proposition n°1 est vraie, la proposition n°2 est fausse</li>
+            
+                    <li><input type="checkbox" id="q42d" name="q42" value="D"> D- La proposition n°1 est fausse, la proposition n°2 est vraie</li>
+            
+                    <li><input type="checkbox" id="q42e" name="q42" value="E"> E- Les 2 propositions sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-43" class="question-container">
+            <div class="question">
+                <p>43.) L'inhibition de l'agrégation plaquettaire est obtenue avec de faibles doses d'aspirine (1) car aux faibles doses, l'aspirine inhibe seulement la production de la prostacycline : PGI2 (2).</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q43a" name="q43" value="A"> A- Les 2 propositions sont vraies avec relation de cause à effet</li>
+            
+                    <li><input type="checkbox" id="q43b" name="q43" value="B"> B- Les 2 propositions sont vraies sans relation de cause à effet</li>
+            
+                    <li><input type="checkbox" id="q43c" name="q43" value="C"> C- La proposition n°1 est vraie, la proposition n°2 est fausse</li>
+            
+                    <li><input type="checkbox" id="q43d" name="q43" value="D"> D- La proposition n°1 est fausse, la proposition n°2 est vraie</li>
+            
+                    <li><input type="checkbox" id="q43e" name="q43" value="E"> E- Les 2 propositions sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-44" class="question-container">
+            <div class="question">
+                <p>44.) L'association de la trinitrine avec un inhibiteur de phosphodiestérase de type 5 (sildenafil) est formellement contre-indiquée (1) car une telle association peut provoquer un bronchospasme (2).</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q44a" name="q44" value="A"> A- Les 2 propositions sont vraies avec relation de cause à effet</li>
+            
+                    <li><input type="checkbox" id="q44b" name="q44" value="B"> B- Les 2 propositions sont vraies sans relation de cause à effet</li>
+            
+                    <li><input type="checkbox" id="q44c" name="q44" value="C"> C- La proposition n°1 est vraie, la proposition n°2 est fausse</li>
+            
+                    <li><input type="checkbox" id="q44d" name="q44" value="D"> D- La proposition n°1 est fausse, la proposition n°2 est vraie</li>
+            
+                    <li><input type="checkbox" id="q44e" name="q44" value="E"> E- Les 2 propositions sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S6" "Pathologie_cardiovasculaire" "CLC2020" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['C', 'D', 'E'],
+    q2: ['C', 'D'],
+    q3: ['C', 'D', 'E'],
+    q4: ['A', 'C', 'E'],
+    q5: ['B'],
+    q6: ['B', 'D'],
+    q7: ['A', 'B', 'C', 'D'],
+    q8: ['D'],
+    q9: ['B', 'E'],
+    q10: ['D'],
+    q11: ['C', 'D', 'E'],
+    q12: ['C', 'D', 'E'],
+    q13: ['C', 'E'],
+    q14: ['A', 'B', 'D'],
+    q15: ['C', 'E'],
+    q16: ['B', 'E'],
+    q17: ['A', 'C', 'D'],
+    q18: ['A', 'E'],
+    q19: ['B', 'D'],
+    q20: ['A', 'C', 'D', 'E'],
+    q21: ['A', 'E'],
+    q22: ['B', 'E'],
+    q23: ['D', 'E'],
+    q24: ['A', 'B', 'C'],
+    q25: ['A', 'B', 'D', 'E'],
+    q26: ['A', 'B', 'C'],
+    q27: ['A', 'B', 'E'],
+    q28: ['A', 'E'],
+    q29: ['A', 'D', 'E'],
+    q30: ['B', 'C', 'D'],
+    q31: ['A', 'C', 'D', 'E'],
+    q32: ['B', 'D', 'E'],
+    q33: ['A', 'C'],
+    q34: ['B', 'C', 'D', 'E'],
+    q35: ['B', 'C', 'D'],
+    q36: ['B'],
+    q37: ['A', 'D'],
+    q38: ['B', 'D', 'E'],
+    q39: ['A', 'C', 'D', 'E'],
+    q40: ['E'],
+    q41: ['B'],
+    q42: ['A'],
+    q43: ['C'],
+    q44: ['C'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersCLC2020'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

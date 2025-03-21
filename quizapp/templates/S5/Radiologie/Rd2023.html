@@ -1,0 +1,2086 @@
+<!DOCTYPE html>
+{% load static %}
+
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'css/stylequiz.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+
+</head>
+<body>
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+
+    <div id="content">
+
+         <div class="quiz-title">
+            <h1>
+Radiologie 2023
+</h1>
+         </div>
+         <form id="quiz-form">
+    <input type="hidden" id='exam_name' name="exam_name" value="Rd2023">
+    {% csrf_token %}
+            <div class="question-container" id="question-1">
+               <div class="question">
+                  <p> 1.) Les rayons X ont les propriétés suivantes : </p>
+                  <ul>
+                     <li>
+                        <input id="q1a" name="q1" type="checkbox" value="A" /> A- Sont des rayonnements ionisants. </li>
+                     <li>
+                        <input id="q1b" name="q1" type="checkbox" value="B" /> B- Sont à la base de la radiologie conventionnelle et le scanner. </li>
+                     <li>
+                        <input id="q1c" name="q1" type="checkbox" value="C" /> C- Sont contre-indiqués chez les patients porteurs d'un pace Maker. </li>
+                     <li>
+                        <input id="q1d" name="q1" type="checkbox" value="D" /> D- S'atténuent lors de la traversée de l'organe en fonction de la densité de celui-ci. </li>
+                     <li>
+                        <input id="q1e" name="q1" type="checkbox" value="E" /> E- Se propagent de mode sinusoïdal. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q1')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q1')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="1"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_1" onclick="toggleCommentSection('Rd2023_1', event)"> 💬 <span class="badge" data-comment-id="Rd2023_1">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-2">
+               <div class="question">
+                  <p> 2.) En radiographie conventionnelle, le terme d'opacité : </p>
+                  <ul>
+                     <li>
+                        <input id="q2a" name="q2" type="checkbox" value="A" /> A- Est une image qui peut être de tonalité aériqu </li>
+                     <li>
+                        <input id="q2b" name="q2" type="checkbox" value="B" /> B- Correspond soit à du tissu mou soit à des calcifications. </li>
+                     <li>
+                        <input id="q2c" name="q2" type="checkbox" value="C" /> C- Présente toujours des limites nettes. </li>
+                     <li>
+                        <input id="q2d" name="q2" type="checkbox" value="D" /> D- Est exclusivement utilisée en pathologie thoraciqu </li>
+                     <li>
+                        <input id="q2e" name="q2" type="checkbox" value="E" /> E- Est une formation de forte densité. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q2')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q2')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="2"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_2" onclick="toggleCommentSection('Rd2023_2', event)"> 💬 <span class="badge" data-comment-id="Rd2023_2">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-3">
+               <div class="question">
+                  <p> 3.) Dans le cadre de la maladie de Crohn : </p>
+                  <ul>
+                     <li>
+                        <input id="q3a" name="q3" type="checkbox" value="A" /> A- Le transit du grêle permet une étude de la lumière intestinale, de la paroi digestive et de la graisse péritonéal </li>
+                     <li>
+                        <input id="q3b" name="q3" type="checkbox" value="B" /> B- L’entéroclisme est un examen sensible sans effet secondair </li>
+                     <li>
+                        <input id="q3c" name="q3" type="checkbox" value="C" /> C- L’entéro IRM peut montrer un épaississement de la paroi grêliqu </li>
+                     <li>
+                        <input id="q3d" name="q3" type="checkbox" value="D" /> D- Les fistules et les abcès sont les complications les redoutables. </li>
+                     <li>
+                        <input id="q3e" name="q3" type="checkbox" value="E" /> E- L’entéro IRM est une technique non irradiante qui permet d’assurer une surveillance de la maladie sous traitement médical. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q3')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q3')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="3"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_3" onclick="toggleCommentSection('Rd2023_3', event)"> 💬 <span class="badge" data-comment-id="Rd2023_3">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-4">
+               <div class="question">
+                  <p> 4.) Le kyste hydatique du foie se traduit en échographie par le ou les signes suivants : </p>
+                  <ul>
+                     <li>
+                        <input id="q4a" name="q4" type="checkbox" value="A" /> A- Une image anéchogène dans le stade I. </li>
+                     <li>
+                        <input id="q4b" name="q4" type="checkbox" value="B" /> B- Une image anéchogène avec décollement membranaire dans le stade V. </li>
+                     <li>
+                        <input id="q4c" name="q4" type="checkbox" value="C" /> C- Une image kystique multi vésiculaire dans le stade III. </li>
+                     <li>
+                        <input id="q4d" name="q4" type="checkbox" value="D" /> D- Une lésion calcifiée dans le stade II. </li>
+                     <li>
+                        <input id="q4e" name="q4" type="checkbox" value="E" /> E- Une image pseudo tumorale dans le stade IV. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q4')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q4')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="4"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_4" onclick="toggleCommentSection('Rd2023_4', event)"> 💬 <span class="badge" data-comment-id="Rd2023_4">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-5">
+               <div class="question">
+                  <p> 5.) L’angiome hépatique est une tumeur bénigne du foie qui se traduit en imagerie par le ou les signes suivants : </p>
+                  <ul>
+                     <li>
+                        <input id="q5a" name="q5" type="checkbox" value="A" /> A- Un aspect anéchogène avec renforcement postérieur. </li>
+                     <li>
+                        <input id="q5b" name="q5" type="checkbox" value="B" /> B- Un aspect hypodense qui se rehausse en couronne périphériqu </li>
+                     <li>
+                        <input id="q5c" name="q5" type="checkbox" value="C" /> C- Une prise de contraste en mote au temps artériel. </li>
+                     <li>
+                        <input id="q5d" name="q5" type="checkbox" value="D" /> D- Une prise de contraste de la périphérie vers le centr </li>
+                     <li>
+                        <input id="q5e" name="q5" type="checkbox" value="E" /> E- Un remplissage complet au temps tardif. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q5')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q5')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="5"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_5" onclick="toggleCommentSection('Rd2023_5', event)"> 💬 <span class="badge" data-comment-id="Rd2023_5">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-6">
+               <div class="question">
+                  <p> 6.) Les métastases hépatiques sont les tumeurs malignes hépatiques les plus fréquentes caractérisées par le ou les signes suivants : </p>
+                  <ul>
+                     <li>
+                        <input id="q6a" name="q6" type="checkbox" value="A" /> A- Une lésion hyperéchogène entourée d’un halo hypo échogèn </li>
+                     <li>
+                        <input id="q6b" name="q6" type="checkbox" value="B" /> B- Une lésion isodense qui se rehausse en motte discontinu </li>
+                     <li>
+                        <input id="q6c" name="q6" type="checkbox" value="C" /> C- Une lésion kystiqu </li>
+                     <li>
+                        <input id="q6d" name="q6" type="checkbox" value="D" /> D- Une lésion infiltrante mal limitée au scanner. </li>
+                     <li>
+                        <input id="q6e" name="q6" type="checkbox" value="E" /> E- Une lésion totalement calcifié </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q6')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q6')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="6"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_6" onclick="toggleCommentSection('Rd2023_6', event)"> 💬 <span class="badge" data-comment-id="Rd2023_6">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-7">
+               <div class="question">
+                  <p> 7.) Le diagnostic échographique d’une cholécystite aiguë repose sur l’un ou plusieurs des signes suivants : </p>
+                  <ul>
+                     <li>
+                        <input id="q7a" name="q7" type="checkbox" value="A" /> A- La présence d’un calcul intra vésiculaire avec cône d’ombre postérieur </li>
+                     <li>
+                        <input id="q7b" name="q7" type="checkbox" value="B" /> B- Un épaississement de la paroi vésiculaire au-delà de 4 mm </li>
+                     <li>
+                        <input id="q7c" name="q7" type="checkbox" value="C" /> C- Une dilatation des voies biliaires intra et extra hépatiques. </li>
+                     <li>
+                        <input id="q7d" name="q7" type="checkbox" value="D" /> D- Un épaississement des voies biliaires intra hépatiques. </li>
+                     <li>
+                        <input id="q7e" name="q7" type="checkbox" value="E" /> E- La présence d’une image hyperechogène avec cône d’ombre au niveau du bas cholédoqu </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q7')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q7')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="7"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_7" onclick="toggleCommentSection('Rd2023_7', event)"> 💬 <span class="badge" data-comment-id="Rd2023_7">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-8">
+               <div class="question">
+                  <p> 8.) En matière de pancréatite aiguë, le scanner est un examen radiologique qui présente un intérêt dans les situations suivantes : </p>
+                  <ul>
+                     <li>
+                        <input id="q8a" name="q8" type="checkbox" value="A" /> A- Il doit être réalisé dans les 48 à 72 heures après le début de la symptomatologi </li>
+                     <li>
+                        <input id="q8b" name="q8" type="checkbox" value="B" /> B- Il participe au score de gravité. </li>
+                     <li>
+                        <input id="q8c" name="q8" type="checkbox" value="C" /> C- Il est inférieur à l’échographie dans la mesure du pourcentage de nécrose pancréatiqu </li>
+                     <li>
+                        <input id="q8d" name="q8" type="checkbox" value="D" /> D- Il permet de détecter les complications. </li>
+                     <li>
+                        <input id="q8e" name="q8" type="checkbox" value="E" /> E- Il permet de guider les gestes de radiologie interventionnell </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q8')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q8')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="8"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_8" onclick="toggleCommentSection('Rd2023_8', event)"> 💬 <span class="badge" data-comment-id="Rd2023_8">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-9">
+               <div class="question">
+                  <p> 9.) L’intestin grêle est un segment digestif long, exploré en imagerie par la ou les techniques suivantes : </p>
+                  <ul>
+                     <li>
+                        <input id="q9a" name="q9" type="checkbox" value="A" /> A- Le coloscanner et l’échographi </li>
+                     <li>
+                        <input id="q9b" name="q9" type="checkbox" value="B" /> B- L’entéro-IRM et l’entéro-scanner. </li>
+                     <li>
+                        <input id="q9c" name="q9" type="checkbox" value="C" /> C- Le transit eso-gastro-duodénal. </li>
+                     <li>
+                        <input id="q9d" name="q9" type="checkbox" value="D" /> D- Le lavement baryté. </li>
+                     <li>
+                        <input id="q9e" name="q9" type="checkbox" value="E" /> E- Le transit du grêl </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q9')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q9')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="9"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_9" onclick="toggleCommentSection('Rd2023_9', event)"> 💬 <span class="badge" data-comment-id="Rd2023_9">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-10">
+               <div class="question">
+                  <p> 10.) L’hépatocarcinome ou carcinome hépato-cellulaire est une tumeur maligne qui se caractérise par un ou plusieurs éléments suivants : </p>
+                  <ul>
+                     <li>
+                        <input id="q10a" name="q10" type="checkbox" value="A" /> A- Il est issu d’une cirrhose du foi </li>
+                     <li>
+                        <input id="q10b" name="q10" type="checkbox" value="B" /> B- Sa présentation est variable en échographie : hypo, iso ou hyperechogèn </li>
+                     <li>
+                        <input id="q10c" name="q10" type="checkbox" value="C" /> C- Il peut se rehausser par l’angioscanner. </li>
+                     <li>
+                        <input id="q10d" name="q10" type="checkbox" value="D" /> D- Il se rehausse au temps artériel et portal au scanner. </li>
+                     <li>
+                        <input id="q10e" name="q10" type="checkbox" value="E" /> E- Il se rehausse au temps artériel et se lave au temps portal à l’IRM. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q10')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q10')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="10"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_10" onclick="toggleCommentSection('Rd2023_10', event)"> 💬 <span class="badge" data-comment-id="Rd2023_10">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-11">
+               <div class="question">
+                  <p> 11.) A propos des indications de la tomodensitométrie (TDM) dans l’exploration de l’appareil locomoteur : </p>
+                  <ul>
+                     <li>
+                        <input id="q11a" name="q11" type="checkbox" value="A" /> A- La TDM est l’examen à réaliser en première intention dans le cadre des urgences traumatiques du squelette axial. </li>
+                     <li>
+                        <input id="q11b" name="q11" type="checkbox" value="B" /> B- La TDM est indiquée pour les fractures complexes </li>
+                     <li>
+                        <input id="q11c" name="q11" type="checkbox" value="C" /> C- La radiographie conventionnelle est normale </li>
+                     <li>
+                        <input id="q11d" name="q11" type="checkbox" value="D" /> D- La TDM est le meilleur examen pour étudier un hématome musculaire </li>
+                     <li>
+                        <input id="q11e" name="q11" type="checkbox" value="E" /> E- L’échographie est faite en deuxième intention </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q11')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q11')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="11"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_11" onclick="toggleCommentSection('Rd2023_11', event)"> 💬 <span class="badge" data-comment-id="Rd2023_11">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-12">
+               <div class="question">
+                  <p> 12.) Les actes de radiologie interventionnelle osseuse sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q12a" name="q12" type="checkbox" value="A" /> A- L’arthroscanner du poignet </li>
+                     <li>
+                        <input id="q12b" name="q12" type="checkbox" value="B" /> B- L’arthro-IRM du genou </li>
+                     <li>
+                        <input id="q12c" name="q12" type="checkbox" value="C" /> C- La ponction drainage d’un abcès hépatique </li>
+                     <li>
+                        <input id="q12d" name="q12" type="checkbox" value="D" /> D- L’ablation percutanée d’un ostéo-ostéome </li>
+                     <li>
+                        <input id="q12e" name="q12" type="checkbox" value="E" /> E- La biopsie d’une tumeur musculaire </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q12')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q12')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="12"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_12" onclick="toggleCommentSection('Rd2023_12', event)"> 💬 <span class="badge" data-comment-id="Rd2023_12">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-13">
+               <div class="question">
+                  <p> 13.) Concernant l’échographie des tendons : </p>
+                  <ul>
+                     <li>
+                        <input id="q13a" name="q13" type="checkbox" value="A" /> A- Les fibres tendineuses ont un aspect peigné </li>
+                     <li>
+                        <input id="q13b" name="q13" type="checkbox" value="B" /> B- L’étude doppler est systématique dans les atteintes inflammatoires </li>
+                     <li>
+                        <input id="q13c" name="q13" type="checkbox" value="C" /> C- Les épaississements sont hyperechogènes </li>
+                     <li>
+                        <input id="q13d" name="q13" type="checkbox" value="D" /> D- Permet de diagnostiquer une fissure </li>
+                     <li>
+                        <input id="q13e" name="q13" type="checkbox" value="E" /> E- La sonde de basse fréquence est indispensable </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q13')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q13')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="13"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_13" onclick="toggleCommentSection('Rd2023_13', event)"> 💬 <span class="badge" data-comment-id="Rd2023_13">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-14">
+               <div class="question">
+                  <p> 14.) L’arthrite septique est caractérisée par : </p>
+                  <ul>
+                     <li>
+                        <input id="q14a" name="q14" type="checkbox" value="A" /> A- La contamination hématogène est fréquente </li>
+                     <li>
+                        <input id="q14b" name="q14" type="checkbox" value="B" /> B- La radiographie conventionnelle n’est pas systématique </li>
+                     <li>
+                        <input id="q14c" name="q14" type="checkbox" value="C" /> C- L’échographie peut montrer un épanchement articulaire </li>
+                     <li>
+                        <input id="q14d" name="q14" type="checkbox" value="D" /> D- Le rachis est le plus touché </li>
+                     <li>
+                        <input id="q14e" name="q14" type="checkbox" value="E" /> E- L’atteinte est souvent d’origine virale </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q14')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q14')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="14"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_14" onclick="toggleCommentSection('Rd2023_14', event)"> 💬 <span class="badge" data-comment-id="Rd2023_14">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-15">
+               <div class="question">
+                  <p> 15.) L’ostéomyélite à la phase subaiguë est caractérisée par : </p>
+                  <ul>
+                     <li>
+                        <input id="q15a" name="q15" type="checkbox" value="A" /> A- Une fièvre d’installation brutale </li>
+                     <li>
+                        <input id="q15b" name="q15" type="checkbox" value="B" /> B- Correspond à la phase de nécrose osseuse </li>
+                     <li>
+                        <input id="q15c" name="q15" type="checkbox" value="C" /> C- La radiographie conventionnelle est normale </li>
+                     <li>
+                        <input id="q15d" name="q15" type="checkbox" value="D" /> D- Le staphylocoque atteint l’os par voie hématogène </li>
+                     <li>
+                        <input id="q15e" name="q15" type="checkbox" value="E" /> E- L’échographie est faite en deuxième intention </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q15')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q15')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="15"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_15" onclick="toggleCommentSection('Rd2023_15', event)"> 💬 <span class="badge" data-comment-id="Rd2023_15">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-16">
+               <div class="question">
+                  <p> 16.) Lesquels parmi les signes suivants désignent une arthrose? </p>
+                  <ul>
+                     <li>
+                        <input id="q16a" name="q16" type="checkbox" value="A" /> A- Un pincement de l’interligne articulaire </li>
+                     <li>
+                        <input id="q16b" name="q16" type="checkbox" value="B" /> B- La présence de géodes </li>
+                     <li>
+                        <input id="q16c" name="q16" type="checkbox" value="C" /> C- Une radiographie normale </li>
+                     <li>
+                        <input id="q16d" name="q16" type="checkbox" value="D" /> D- La présence d’ostéophyte </li>
+                     <li>
+                        <input id="q16e" name="q16" type="checkbox" value="E" /> E- Une condensation de l’os sous chondral </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q16')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q16')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="16"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_16" onclick="toggleCommentSection('Rd2023_16', event)"> 💬 <span class="badge" data-comment-id="Rd2023_16">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-17">
+               <div class="question">
+                  <p> 17.) L'abcès de Brodie : </p>
+                  <ul>
+                     <li>
+                        <input id="q17a" name="q17" type="checkbox" value="A" /> A- Une forme clinique d’une ostéomyélite chroniqu </li>
+                     <li>
+                        <input id="q17b" name="q17" type="checkbox" value="B" /> B- Est une forme clinique d’une ostéomyélite aiguë. </li>
+                     <li>
+                        <input id="q17c" name="q17" type="checkbox" value="C" /> C- Se traduit radiologiquement sous forme d’une ostéolyse type I de Lodwick. </li>
+                     <li>
+                        <input id="q17d" name="q17" type="checkbox" value="D" /> D- Siège préférentiellement au niveau métaphysair </li>
+                     <li>
+                        <input id="q17e" name="q17" type="checkbox" value="E" /> E- Pose le diagnostic différentiel avec un ostéoblastom </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q17')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q17')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="17"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_17" onclick="toggleCommentSection('Rd2023_17', event)"> 💬 <span class="badge" data-comment-id="Rd2023_17">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-18">
+               <div class="question">
+                  <p> 18.) La spondylodiscite tuberculeuse se caractérise par : </p>
+                  <ul>
+                     <li>
+                        <input id="q18a" name="q18" type="checkbox" value="A" /> A- Un abcès du disque intervertébral </li>
+                     <li>
+                        <input id="q18b" name="q18" type="checkbox" value="B" /> B- Une épidurite compressive </li>
+                     <li>
+                        <input id="q18c" name="q18" type="checkbox" value="C" /> C- Une ostéolyse en miroir des plateaux sous chondraux </li>
+                     <li>
+                        <input id="q18d" name="q18" type="checkbox" value="D" /> D- Des signes radiographiques précoces </li>
+                     <li>
+                        <input id="q18e" name="q18" type="checkbox" value="E" /> E- Une installation brutale </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q18')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q18')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="18"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_18" onclick="toggleCommentSection('Rd2023_18', event)"> 💬 <span class="badge" data-comment-id="Rd2023_18">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-19">
+               <div class="question">
+                  <p> 19.) Un enfant de 5 ans, consulte aux urgences pour un traumatisme de la jambe droit Une radiographie conventionnelle de la jambe de face et de
+                     profil a objectivé un trait de solution de continuité d’une seule corticale avec une incurvation du tibi Quel type de fracture s’agit-il ? </p>
+                  <ul>
+                     <li>
+                        <input id="q19a" name="q19" type="checkbox" value="A" /> A- Fracture en cheveu </li>
+                     <li>
+                        <input id="q19b" name="q19" type="checkbox" value="B" /> B- Fracture en motte de beurre </li>
+                     <li>
+                        <input id="q19c" name="q19" type="checkbox" value="C" /> C- Fracture en miel </li>
+                     <li>
+                        <input id="q19d" name="q19" type="checkbox" value="D" /> D- Fracture bois vert </li>
+                     <li>
+                        <input id="q19e" name="q19" type="checkbox" value="E" /> E- Fracture comminutive en « aile de papillon » </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q19')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q19')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="19"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_19" onclick="toggleCommentSection('Rd2023_19', event)"> 💬 <span class="badge" data-comment-id="Rd2023_19">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-20">
+               <div class="question">
+                  <p> 20.) Les tumeurs osseuses malignes secondaires : </p>
+                  <ul>
+                     <li>
+                        <input id="q20a" name="q20" type="checkbox" value="A" /> A- Sont uniquement ostéocondensantes. </li>
+                     <li>
+                        <input id="q20b" name="q20" type="checkbox" value="B" /> B- Intéressent surtout le squelette axial. </li>
+                     <li>
+                        <input id="q20c" name="q20" type="checkbox" value="C" /> C- Sont souvent multiples </li>
+                     <li>
+                        <input id="q20d" name="q20" type="checkbox" value="D" /> D- Sont ostéolytiques ou condensantes </li>
+                     <li>
+                        <input id="q20e" name="q20" type="checkbox" value="E" /> E- Peuvent être mixte </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q20')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q20')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="20"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_20" onclick="toggleCommentSection('Rd2023_20', event)"> 💬 <span class="badge" data-comment-id="Rd2023_20">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-21">
+               <div class="question">
+                  <p> 21.) Dans les contusions pulmonaires : </p>
+                  <ul>
+                     <li>
+                        <input id="q21a" name="q21" type="checkbox" value="A" /> A- La radiographie standard est suffisante pour le diagnosti </li>
+                     <li>
+                        <input id="q21b" name="q21" type="checkbox" value="B" /> B- Le scanner est l’examen de choix pour le diagnosti </li>
+                     <li>
+                        <input id="q21c" name="q21" type="checkbox" value="C" /> C- L’aspect radiologique est des plages en verre dépolii. </li>
+                     <li>
+                        <input id="q21d" name="q21" type="checkbox" value="D" /> D- L’aspect radiologique est une cavité remplie d’air ou de sang. </li>
+                     <li>
+                        <input id="q21e" name="q21" type="checkbox" value="E" /> E- Elles peuvent être périphériques. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q21')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q21')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="21"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_21" onclick="toggleCommentSection('Rd2023_21', event)"> 💬 <span class="badge" data-comment-id="Rd2023_21">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-22">
+               <div class="question">
+                  <p> 22.) Le cancer broncho pulmonaire : </p>
+                  <ul>
+                     <li>
+                        <input id="q22a" name="q22" type="checkbox" value="A" /> A- La radiographie standard est l’examen de choix pour le diagnosti </li>
+                     <li>
+                        <input id="q22b" name="q22" type="checkbox" value="B" /> B- Le scanner sans injection de PDC est l’examen de choix pour le diagnosti </li>
+                     <li>
+                        <input id="q22c" name="q22" type="checkbox" value="C" /> C- Le scanner avec injection de PDC est l’examen de choix pour le diagnosti </li>
+                     <li>
+                        <input id="q22d" name="q22" type="checkbox" value="D" /> D- L’IRM est indiquée en cas de bilan d’extension pariétale et médullaire des tumeurs de l’apex. </li>
+                     <li>
+                        <input id="q22e" name="q22" type="checkbox" value="E" /> E- Le PET scanner est indiqué pour le bilan d’extension. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q22')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q22')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="22"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_22" onclick="toggleCommentSection('Rd2023_22', event)"> 💬 <span class="badge" data-comment-id="Rd2023_22">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-23">
+               <div class="question">
+                  <p> 23.) Dans la pneumonie franche lobaire, quelles sont les propositions exactes ? </p>
+                  <ul>
+                     <li>
+                        <input id="q23a" name="q23" type="checkbox" value="A" /> A- Elle fait partie du syndrome interstitiel. </li>
+                     <li>
+                        <input id="q23b" name="q23" type="checkbox" value="B" /> B- Elle fait partie du syndrome alvéolair </li>
+                     <li>
+                        <input id="q23c" name="q23" type="checkbox" value="C" /> C- Opacité systématisée </li>
+                     <li>
+                        <input id="q23d" name="q23" type="checkbox" value="D" /> D- Opacité Non systématisée . </li>
+                     <li>
+                        <input id="q23e" name="q23" type="checkbox" value="E" /> E- La scissure crée une interface air / liquide . </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q23')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q23')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="23"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_23" onclick="toggleCommentSection('Rd2023_23', event)"> 💬 <span class="badge" data-comment-id="Rd2023_23">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-24">
+               <div class="question">
+                  <p> 24.) Quels signes font partie du syndrome interstitiel ? </p>
+                  <ul>
+                     <li>
+                        <input id="q24a" name="q24" type="checkbox" value="A" /> A- Un épanchement pleural liquidien. </li>
+                     <li>
+                        <input id="q24b" name="q24" type="checkbox" value="B" /> B- Un épaississement péri-bronchovasculair </li>
+                     <li>
+                        <input id="q24c" name="q24" type="checkbox" value="C" /> C- Des lignes de Kerley. </li>
+                     <li>
+                        <input id="q24d" name="q24" type="checkbox" value="D" /> D- Des dilatations de bronches. </li>
+                     <li>
+                        <input id="q24e" name="q24" type="checkbox" value="E" /> E- Des micro-nodulations réalisant une miliair </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q24')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q24')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="24"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_24" onclick="toggleCommentSection('Rd2023_24', event)"> 💬 <span class="badge" data-comment-id="Rd2023_24">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-25">
+               <div class="question">
+                  <p> 25.) Pour la tuberculose pulmonaire, quelles sont les propositions exactes ? </p>
+                  <ul>
+                     <li>
+                        <input id="q25a" name="q25" type="checkbox" value="A" /> A- Les séquelles sont fréquentes. </li>
+                     <li>
+                        <input id="q25b" name="q25" type="checkbox" value="B" /> B- La radiographie standard contient toujours des anomalies. </li>
+                     <li>
+                        <input id="q25c" name="q25" type="checkbox" value="C" /> C- La caverne est fréquente au cours de la phase d’état. </li>
+                     <li>
+                        <input id="q25d" name="q25" type="checkbox" value="D" /> D- Les adénopathies médiastinales sont possibles. </li>
+                     <li>
+                        <input id="q25e" name="q25" type="checkbox" value="E" /> E- On peut avoir d’autres localisations extra thoraciqu </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q25')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q25')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="25"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_25" onclick="toggleCommentSection('Rd2023_25', event)"> 💬 <span class="badge" data-comment-id="Rd2023_25">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-26">
+               <div class="question">
+                  <p> 26.) Pour les lésions cavitaires, quelles sont les propositions exactes ? </p>
+                  <ul>
+                     <li>
+                        <input id="q26a" name="q26" type="checkbox" value="A" /> A- Le contenu peut être mixt </li>
+                     <li>
+                        <input id="q26b" name="q26" type="checkbox" value="B" /> B- Elles font parties du syndrome pleural. </li>
+                     <li>
+                        <input id="q26c" name="q26" type="checkbox" value="C" /> C- La paroi a une épaisseur de 15 mm est en faveur d’une pathologie malign </li>
+                     <li>
+                        <input id="q26d" name="q26" type="checkbox" value="D" /> D- Le kyste hydatique rompu est l’un des diagnostics étiologique à évoquer. </li>
+                     <li>
+                        <input id="q26e" name="q26" type="checkbox" value="E" /> E- L’épaisseur de la paroi et le contenu sont les éléments de base à analyser. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q26')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q26')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="26"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_26" onclick="toggleCommentSection('Rd2023_26', event)"> 💬 <span class="badge" data-comment-id="Rd2023_26">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-27">
+               <div class="question">
+                  <p> 27.) Les infections à pneumocoque réalisent : </p>
+                  <ul>
+                     <li>
+                        <input id="q27a" name="q27" type="checkbox" value="A" /> A- Elles font parties du syndrome pleural. </li>
+                     <li>
+                        <input id="q27b" name="q27" type="checkbox" value="B" /> B- Une pneumonie franche lobaire aiguë. </li>
+                     <li>
+                        <input id="q27c" name="q27" type="checkbox" value="C" /> C- Elles réalisent des verres dépolis. </li>
+                     <li>
+                        <input id="q27d" name="q27" type="checkbox" value="D" /> D- Elles réalisent une bronchopneumonie avec tendance à l’abcédation. </li>
+                     <li>
+                        <input id="q27e" name="q27" type="checkbox" value="E" /> E- Les complications pleurales sont fréquentes. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q27')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q27')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="27"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_27" onclick="toggleCommentSection('Rd2023_27', event)"> 💬 <span class="badge" data-comment-id="Rd2023_27">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-28">
+               <div class="question">
+                  <p> 28.) Concernant les techniques d’imagerie thoracique, quelles sont les réponses exactes : </p>
+                  <ul>
+                     <li>
+                        <input id="q28a" name="q28" type="checkbox" value="A" /> A- Pour la radiographie thoracique, l’incidence de base est en position debout. </li>
+                     <li>
+                        <input id="q28b" name="q28" type="checkbox" value="B" /> B- La Tomodensitométrie est un examen non irradiant. </li>
+                     <li>
+                        <input id="q28c" name="q28" type="checkbox" value="C" /> C- L’échographie thoracique est indiquée pour les épanchements pleuraux liquidiennes de faible abondanc </li>
+                     <li>
+                        <input id="q28d" name="q28" type="checkbox" value="D" /> D- Un cliché en expiration est réalisé pour rechercher un pneumothorax minime </li>
+                     <li>
+                        <input id="q28e" name="q28" type="checkbox" value="E" /> E- L’angioscanner thoracique est réalisé pour l’exploration des artères pulmonaire et l’aorte thoraciqu </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q28')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q28')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="28"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_28" onclick="toggleCommentSection('Rd2023_28', event)"> 💬 <span class="badge" data-comment-id="Rd2023_28">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-29">
+               <div class="question">
+                  <p> 29.) Pour le syndrome alvéolaire, quelles sont les propositions exactes ? </p>
+                  <ul>
+                     <li>
+                        <input id="q29a" name="q29" type="checkbox" value="A" /> A- Opacité avec répartition systématisé </li>
+                     <li>
+                        <input id="q29b" name="q29" type="checkbox" value="B" /> B- Opacité avec limites floues. </li>
+                     <li>
+                        <input id="q29c" name="q29" type="checkbox" value="C" /> C- Absence de bronchogramme aérien </li>
+                     <li>
+                        <input id="q29d" name="q29" type="checkbox" value="D" /> D- Opacité Non confluent </li>
+                     <li>
+                        <input id="q29e" name="q29" type="checkbox" value="E" /> E- On peut avoir une répartition en ailes de papillon. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q29')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q29')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="29"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_29" onclick="toggleCommentSection('Rd2023_29', event)"> 💬 <span class="badge" data-comment-id="Rd2023_29">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-30">
+               <div class="question">
+                  <p> 30.) Dans le COVID 19, quelles sont les propositions exactes ? </p>
+                  <ul>
+                     <li>
+                        <input id="q30a" name="q30" type="checkbox" value="A" /> A- L’atteinte est représentée par des verre dépolii. </li>
+                     <li>
+                        <input id="q30b" name="q30" type="checkbox" value="B" /> B- L’atteinte prédomine dans les régions périphériques et basales. </li>
+                     <li>
+                        <input id="q30c" name="q30" type="checkbox" value="C" /> C- Le scanner peut être normal dans les atteintes au COVID 19. </li>
+                     <li>
+                        <input id="q30d" name="q30" type="checkbox" value="D" /> D- Un scanner normal peut éliminer une atteinte au covid 19. </li>
+                     <li>
+                        <input id="q30e" name="q30" type="checkbox" value="E" /> E- L’embolie pulmonaire est un signe de gravité. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q30')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q30')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="30"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_30" onclick="toggleCommentSection('Rd2023_30', event)"> 💬 <span class="badge" data-comment-id="Rd2023_30">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-31">
+               <div class="question">
+                  <p> 31.) Dans l’exploration d’une colique néphrétique chez l’homme, l’examen radiologique qui permet une meilleure approche diagnostique est : </p>
+                  <ul>
+                     <li>
+                        <input id="q31a" name="q31" type="checkbox" value="A" /> A- L’ASP </li>
+                     <li>
+                        <input id="q31b" name="q31" type="checkbox" value="B" /> B- L’échographie </li>
+                     <li>
+                        <input id="q31c" name="q31" type="checkbox" value="C" /> C- Le scanner </li>
+                     <li>
+                        <input id="q31d" name="q31" type="checkbox" value="D" /> D- L’IRM </li>
+                     <li>
+                        <input id="q31e" name="q31" type="checkbox" value="E" /> E- Le couple ASP + échographie </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q31')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q31')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="31"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_31" onclick="toggleCommentSection('Rd2023_31', event)"> 💬 <span class="badge" data-comment-id="Rd2023_31">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-32">
+               <div class="question">
+                  <p> 32.) Dans le syndrome obstructif chronique du haut appareil : </p>
+                  <ul>
+                     <li>
+                        <input id="q32a" name="q32" type="checkbox" value="A" /> A- L’échographie rénale est toujours normale </li>
+                     <li>
+                        <input id="q32b" name="q32" type="checkbox" value="B" /> B- Le scanner sans injection est suffisant pour déterminer les étiologies possibles de l’obstacle </li>
+                     <li>
+                        <input id="q32c" name="q32" type="checkbox" value="C" /> C- La cause peut être tumorale extra urinaire </li>
+                     <li>
+                        <input id="q32d" name="q32" type="checkbox" value="D" /> D- Parmi les étiologies, on retrouve les cancers gynécologiques </li>
+                     <li>
+                        <input id="q32e" name="q32" type="checkbox" value="E" /> E- Le syndrome tumoral est toujours respecté </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q32')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q32')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="32"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_32" onclick="toggleCommentSection('Rd2023_32', event)"> 💬 <span class="badge" data-comment-id="Rd2023_32">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-33">
+               <div class="question">
+                  <p> 33.) Dans l’exploration du pelvis chez la femme, quelles sont les réponses correctes : </p>
+                  <ul>
+                     <li>
+                        <input id="q33a" name="q33" type="checkbox" value="A" /> A- L’hystérosalpingographie est un examen irradiant </li>
+                     <li>
+                        <input id="q33b" name="q33" type="checkbox" value="B" /> B- L’hystérosalpingographie permet d’explorer les ovaires. </li>
+                     <li>
+                        <input id="q33c" name="q33" type="checkbox" value="C" /> C- L’hystérosalpingographie est contre indiquée en cas de stérilité. </li>
+                     <li>
+                        <input id="q33d" name="q33" type="checkbox" value="D" /> D- L’imagerie par résonance magnétique est l’examen de choix dans le bilan d’extension du cancer du col. </li>
+                     <li>
+                        <input id="q33e" name="q33" type="checkbox" value="E" /> E- L’échographie est l’examen de première intention dans l’exploration du pelvis. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q33')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q33')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="33"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_33" onclick="toggleCommentSection('Rd2023_33', event)"> 💬 <span class="badge" data-comment-id="Rd2023_33">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-34">
+               <div class="question">
+                  <p> 34.) Quelle est ou quelles sont la ou les réponses justes concernant le reflux vésico-urétéral ? </p>
+                  <ul>
+                     <li>
+                        <input id="q34a" name="q34" type="checkbox" value="A" /> A- Est passif si le passage rétrograde des urines se fait au cours de la miction. </li>
+                     <li>
+                        <input id="q34b" name="q34" type="checkbox" value="B" /> B- Est actif si le passage rétrograde des urines se fait au cours de la miction. </li>
+                     <li>
+                        <input id="q34c" name="q34" type="checkbox" value="C" /> C- Peut-être secondaire à une valve de l’urètre postérieur. </li>
+                     <li>
+                        <input id="q34d" name="q34" type="checkbox" value="D" /> D- La cystographie rétrograde confirme le diagnosti </li>
+                     <li>
+                        <input id="q34e" name="q34" type="checkbox" value="E" /> E- La cystographie rétrograde évalue sa gravité. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q34')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q34')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="34"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_34" onclick="toggleCommentSection('Rd2023_34', event)"> 💬 <span class="badge" data-comment-id="Rd2023_34">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-35">
+               <div class="question">
+                  <p> 35.) Devant la suspicion d’une lithiase urinaire, quelle est ou quelles sont la ou les réponses justes ? </p>
+                  <ul>
+                     <li>
+                        <input id="q35a" name="q35" type="checkbox" value="A" /> A- Un cliché arbre urinaire sans préparation normale élimine le diagnosti </li>
+                     <li>
+                        <input id="q35b" name="q35" type="checkbox" value="B" /> B- Une échographie normale élimine le diagnosti </li>
+                     <li>
+                        <input id="q35c" name="q35" type="checkbox" value="C" /> C- Le scanner permet de préciser sa densité. </li>
+                     <li>
+                        <input id="q35d" name="q35" type="checkbox" value="D" /> D- Une IRM permet de préciser sa densité. </li>
+                     <li>
+                        <input id="q35e" name="q35" type="checkbox" value="E" /> E- Une échographie peut déterminer sa nature obstructiv </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q35')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q35')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="35"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_35" onclick="toggleCommentSection('Rd2023_35', event)"> 💬 <span class="badge" data-comment-id="Rd2023_35">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-36">
+               <div class="question">
+                  <p> 36.) Devant la suspicion d’une origine prostatique d’un syndrome obstructif bas, quelle est ou quelles sont la ou les réponses justes ? </p>
+                  <ul>
+                     <li>
+                        <input id="q36a" name="q36" type="checkbox" value="A" /> A- Une échographie sus-pubienne précise le volume prostatiqu </li>
+                     <li>
+                        <input id="q36b" name="q36" type="checkbox" value="B" /> B- Une échographie sus-pubienne permet d’évaluer le retentissement sur la vessie et le haut appareil. </li>
+                     <li>
+                        <input id="q36c" name="q36" type="checkbox" value="C" /> C- Un scanner permet d’orienter une biopsie prostatiqu </li>
+                     <li>
+                        <input id="q36d" name="q36" type="checkbox" value="D" /> D- Le scanner est l’examen de choix pour faire le bilan d’extension locorégional. </li>
+                     <li>
+                        <input id="q36e" name="q36" type="checkbox" value="E" /> E- L’IRM est l’examen de choix pour faire le bilan d’extension locorégional. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q36')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q36')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="36"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_36" onclick="toggleCommentSection('Rd2023_36', event)"> 💬 <span class="badge" data-comment-id="Rd2023_36">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-37">
+               <div class="question">
+                  <p> 37.) Devant un syndrome de masse rénale, quelle est ou quelles sont la ou les réponses justes ? </p>
+                  <ul>
+                     <li>
+                        <input id="q37a" name="q37" type="checkbox" value="A" /> A- L’échographie est l’examen de première intention. </li>
+                     <li>
+                        <input id="q37b" name="q37" type="checkbox" value="B" /> B- L’uroscanner constitue l’examen de référenc </li>
+                     <li>
+                        <input id="q37c" name="q37" type="checkbox" value="C" /> C- L’uroscanner permet de faire le bilan d’extension locorégional et à distance d’une tumeur malign </li>
+                     <li>
+                        <input id="q37d" name="q37" type="checkbox" value="D" /> D- L’uro scanner est réalisé sans et avec injection de produit de contrast </li>
+                     <li>
+                        <input id="q37e" name="q37" type="checkbox" value="E" /> E- L’uro IRM est réalisée en cas de contre-indications au scanner. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q37')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q37')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="37"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_37" onclick="toggleCommentSection('Rd2023_37', event)"> 💬 <span class="badge" data-comment-id="Rd2023_37">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-38">
+               <div class="question">
+                  <p> 38.) Devant une boiterie de l’enfant : </p>
+                  <ul>
+                     <li>
+                        <input id="q38a" name="q38" type="checkbox" value="A" /> A- L’ostéochondrite primitive de hanche est diagnostiquée sur la Rx du bassin de fac </li>
+                     <li>
+                        <input id="q38b" name="q38" type="checkbox" value="B" /> B- L’épiphysiolyse fémorale supérieure est la cause la plus fréquente de boiterie de l’adolescent. </li>
+                     <li>
+                        <input id="q38c" name="q38" type="checkbox" value="C" /> C- Les radiographies du bassin de face et des hanches de profil permettent de mesurer l’angle de déplacement dans l’épiphysiolys </li>
+                     <li>
+                        <input id="q38d" name="q38" type="checkbox" value="D" /> D- Une boiterie douloureuse peut être d’origine tumoral </li>
+                     <li>
+                        <input id="q38e" name="q38" type="checkbox" value="E" /> E- Une ostéomyélite au fémur atteint l’épiphys </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q38')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q38')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="38"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_38" onclick="toggleCommentSection('Rd2023_38', event)"> 💬 <span class="badge" data-comment-id="Rd2023_38">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-39">
+               <div class="question">
+                  <p> 39.) Pour le dépistage du cancer du sein : </p>
+                  <ul>
+                     <li>
+                        <input id="q39a" name="q39" type="checkbox" value="A" /> A- L’échographie est l’examen de première intention. </li>
+                     <li>
+                        <input id="q39b" name="q39" type="checkbox" value="B" /> B- La mammographie est l’examen de référenc </li>
+                     <li>
+                        <input id="q39c" name="q39" type="checkbox" value="C" /> C- Les deux incidences réalisées sont les incidences de face et obliqu </li>
+                     <li>
+                        <input id="q39d" name="q39" type="checkbox" value="D" /> D- L’échographie permet de détecter de très petites calcifications. </li>
+                     <li>
+                        <input id="q39e" name="q39" type="checkbox" value="E" /> E- L’échographie peut être réalisée en complément de la mammographi </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q39')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q39')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="39"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_39" onclick="toggleCommentSection('Rd2023_39', event)"> 💬 <span class="badge" data-comment-id="Rd2023_39">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-40">
+               <div class="question">
+                  <p> 40.) Devant une masse kystique en imagerie : </p>
+                  <ul>
+                     <li>
+                        <input id="q40a" name="q40" type="checkbox" value="A" /> A- Un kyste simple Bosniak I ne justifie pas de surveillanc </li>
+                     <li>
+                        <input id="q40b" name="q40" type="checkbox" value="B" /> B- Devant un kyste atypique, la réalisation d’un uroscanner est indiqué </li>
+                     <li>
+                        <input id="q40c" name="q40" type="checkbox" value="C" /> C- Une masse kystique Bosniak IV correspond à un cancer kystique multi loculé. </li>
+                     <li>
+                        <input id="q40d" name="q40" type="checkbox" value="D" /> D- Une paroi épaisse avec végétations endokystiques sont suspects. </li>
+                     <li>
+                        <input id="q40e" name="q40" type="checkbox" value="E" /> E- Un kyste Bosniak II correspond à un kyste bénin remanié. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q40')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q40')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="40"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_40" onclick="toggleCommentSection('Rd2023_40', event)"> 💬 <span class="badge" data-comment-id="Rd2023_40">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-41">
+               <div class="question">
+                  <p> 41.) Quel est votre hypothèse diagnostique ? </p>
+                  <ul>
+                     <li>
+                        <input id="q41a" name="q41" type="checkbox" value="A" /> A- Tumeur cérébrale </li>
+                     <li>
+                        <input id="q41b" name="q41" type="checkbox" value="B" /> B- Encéphalite herpétique </li>
+                     <li>
+                        <input id="q41c" name="q41" type="checkbox" value="C" /> C- Abcès cérébral </li>
+                     <li>
+                        <input id="q41d" name="q41" type="checkbox" value="D" /> D- Accident vasculaire cérébral </li>
+                     <li>
+                        <input id="q41e" name="q41" type="checkbox" value="E" /> E- Méningite bactérienne </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q41')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q41')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="41"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_41" onclick="toggleCommentSection('Rd2023_41', event)"> 💬 <span class="badge" data-comment-id="Rd2023_41">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-42">
+               <div class="question">
+                  <p> 42.) Quel est l’examen d’imagerie de choix pour confirmer votre hypothèse ? </p>
+                  <ul>
+                     <li>
+                        <input id="q42a" name="q42" type="checkbox" value="A" /> A- Tomodensitométrie </li>
+                     <li>
+                        <input id="q42b" name="q42" type="checkbox" value="B" /> B- Résonance magnétique </li>
+                     <li>
+                        <input id="q42c" name="q42" type="checkbox" value="C" /> C- Angiographie cérébrale </li>
+                     <li>
+                        <input id="q42d" name="q42" type="checkbox" value="D" /> D- Ponction lombaire </li>
+                     <li>
+                        <input id="q42e" name="q42" type="checkbox" value="E" /> E- Electroencéphalogramme </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q42')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q42')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="42"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_42" onclick="toggleCommentSection('Rd2023_42', event)"> 💬 <span class="badge" data-comment-id="Rd2023_42">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-43">
+               <div class="question">
+                  <p> 43.) Un scanner cérébral a été demandé, il a objectivé une plage fronto-pariétale gauche, cortico-sous corticale, hypodense avec effet de masse
+                     sur les sillons corticaux adjacents et le ventricule latéral gauche sans déviation de la ligne médiane, quel diagnostic retenez-vous ? </p>
+                  <ul>
+                     <li>
+                        <input id="q43a" name="q43" type="checkbox" value="A" /> A- Tumeur cérébrale </li>
+                     <li>
+                        <input id="q43b" name="q43" type="checkbox" value="B" /> B- Encéphalite herpétique </li>
+                     <li>
+                        <input id="q43c" name="q43" type="checkbox" value="C" /> C- Abcès cérébral à pyogènes </li>
+                     <li>
+                        <input id="q43d" name="q43" type="checkbox" value="D" /> D- AVC ischémique </li>
+                     <li>
+                        <input id="q43e" name="q43" type="checkbox" value="E" /> E- AVC hémorragique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q43')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q43')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="43"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_43" onclick="toggleCommentSection('Rd2023_43', event)"> 💬 <span class="badge" data-comment-id="Rd2023_43">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-44">
+               <div class="question">
+                  <p> 44.) Quel est votre hypothèse diagnostique ? </p>
+                  <ul>
+                     <li>
+                        <input id="q44a" name="q44" type="checkbox" value="A" /> A- Tumeur cérébrale </li>
+                     <li>
+                        <input id="q44b" name="q44" type="checkbox" value="B" /> B- Méningite bactérienne </li>
+                     <li>
+                        <input id="q44c" name="q44" type="checkbox" value="C" /> C- Hémorragie méningée </li>
+                     <li>
+                        <input id="q44d" name="q44" type="checkbox" value="D" /> D- AVC ischémique </li>
+                     <li>
+                        <input id="q44e" name="q44" type="checkbox" value="E" /> E- Hématome extra dural </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q44')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q44')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="44"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_44" onclick="toggleCommentSection('Rd2023_44', event)"> 💬 <span class="badge" data-comment-id="Rd2023_44">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-45">
+               <div class="question">
+                  <p> 45.) Quel est l’examen d’imagerie de choix pour confirmer votre hypothèse ? </p>
+                  <ul>
+                     <li>
+                        <input id="q45a" name="q45" type="checkbox" value="A" /> A- Tomodensitométrie </li>
+                     <li>
+                        <input id="q45b" name="q45" type="checkbox" value="B" /> B- Résonance magnétique </li>
+                     <li>
+                        <input id="q45c" name="q45" type="checkbox" value="C" /> C- Angiographie cérébrale </li>
+                     <li>
+                        <input id="q45d" name="q45" type="checkbox" value="D" /> D- Ponction lombaire </li>
+                     <li>
+                        <input id="q45e" name="q45" type="checkbox" value="E" /> E- Electroencéphalogramme </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q45')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q45')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="45"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_45" onclick="toggleCommentSection('Rd2023_45', event)"> 💬 <span class="badge" data-comment-id="Rd2023_45">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-46">
+               <div class="question">
+                  <p> 46.) Le bilan d’imagerie a objectivé un aspect spontanément hyperdense des citernes de la base et des sillons corticaux fronto-temporaux gauches,
+                     sans autre signe associé, quel diagnostic retenez-vous ? </p>
+                  <ul>
+                     <li>
+                        <input id="q46a" name="q46" type="checkbox" value="A" /> A- Tumeur cérébrale </li>
+                     <li>
+                        <input id="q46b" name="q46" type="checkbox" value="B" /> B- Méningite bactérienne </li>
+                     <li>
+                        <input id="q46c" name="q46" type="checkbox" value="C" /> C- Hémorragie méningée </li>
+                     <li>
+                        <input id="q46d" name="q46" type="checkbox" value="D" /> D- AVC ischémique </li>
+                     <li>
+                        <input id="q46e" name="q46" type="checkbox" value="E" /> E- Hématome extra dural </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q46')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q46')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="46"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_46" onclick="toggleCommentSection('Rd2023_46', event)"> 💬 <span class="badge" data-comment-id="Rd2023_46">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-47">
+               <div class="question">
+                  <p> 47.) Quel est l’examen d’imagerie de choix pour confirmer votre hypothèse ? </p>
+                  <ul>
+                     <li>
+                        <input id="q47a" name="q47" type="checkbox" value="A" /> A- Angiographie cérébrale </li>
+                     <li>
+                        <input id="q47b" name="q47" type="checkbox" value="B" /> B- Résonance magnétique </li>
+                     <li>
+                        <input id="q47c" name="q47" type="checkbox" value="C" /> C- Tomodensitométrie </li>
+                     <li>
+                        <input id="q47d" name="q47" type="checkbox" value="D" /> D- Ponction lombaire </li>
+                     <li>
+                        <input id="q47e" name="q47" type="checkbox" value="E" /> E- Une radiographie du crâne de face et de profil </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q47')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q47')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="47"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_47" onclick="toggleCommentSection('Rd2023_47', event)"> 💬 <span class="badge" data-comment-id="Rd2023_47">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-48">
+               <div class="question">
+                  <p> 48.) Le bilan d’imagerie a objectivé une collection juxtasousdural en lentille biconvexe, spontanément hyperdense, exerçant un effet de masse sur
+                     les sillons corticaux et le ventricule latéral homolatéral, associée à une fracture non déplacée; quel diagnostic retenez-vous ? </p>
+                  <ul>
+                     <li>
+                        <input id="q48a" name="q48" type="checkbox" value="A" /> A- Hématome sous dural </li>
+                     <li>
+                        <input id="q48b" name="q48" type="checkbox" value="B" /> B- Lésions atomales diffuses </li>
+                     <li>
+                        <input id="q48c" name="q48" type="checkbox" value="C" /> C- Hémorragie méningée </li>
+                     <li>
+                        <input id="q48d" name="q48" type="checkbox" value="D" /> D- Hématome extradural </li>
+                     <li>
+                        <input id="q48e" name="q48" type="checkbox" value="E" /> E- Lésions parenchymateuses cérébrales </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q48')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q48')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="48"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_48" onclick="toggleCommentSection('Rd2023_48', event)"> 💬 <span class="badge" data-comment-id="Rd2023_48">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-49">
+               <div class="question">
+                  <p> 49.) Les tumeurs intradurales extra médullaires sont caractérisées par : </p>
+                  <ul>
+                     <li>
+                        <input id="q49a" name="q49" type="checkbox" value="A" /> A- Déplacement homolatéral de la moelle </li>
+                     <li>
+                        <input id="q49b" name="q49" type="checkbox" value="B" /> B- Elargissement homolatéral de l’espace liquidien </li>
+                     <li>
+                        <input id="q49c" name="q49" type="checkbox" value="C" /> C- Elargissement du cordon médullaire </li>
+                     <li>
+                        <input id="q49d" name="q49" type="checkbox" value="D" /> D- Aspect en cocarde de la moelle </li>
+                     <li>
+                        <input id="q49e" name="q49" type="checkbox" value="E" /> E- Disparition du liquide céphalo-rachidien </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q49')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q49')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="49"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_49" onclick="toggleCommentSection('Rd2023_49', event)"> 💬 <span class="badge" data-comment-id="Rd2023_49">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-50">
+               <div class="question">
+                  <p> 50.) Les éléments radiologiques en faveur d’une spondylodiscite infectieuse sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q50a" name="q50" type="checkbox" value="A" /> A- La collection discale </li>
+                     <li>
+                        <input id="q50b" name="q50" type="checkbox" value="B" /> B- L’érosion du disque et du corps vertébral adjacent </li>
+                     <li>
+                        <input id="q50c" name="q50" type="checkbox" value="C" /> C- La fusion des vertèbres adjacentes </li>
+                     <li>
+                        <input id="q50d" name="q50" type="checkbox" value="D" /> D- La déformation des parties molles </li>
+                     <li>
+                        <input id="q50e" name="q50" type="checkbox" value="E" /> E- Epaississement du ligament jaune </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q50')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q50')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="50"> ❤ </button>
+                  <button class="comment-button" data-question-id="Rd2023_50" onclick="toggleCommentSection('Rd2023_50', event)"> 💬 <span class="badge" data-comment-id="Rd2023_50">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="button-container">
+               <button class="submit-quiz-button" onclick="submitQuiz()" type="button"> Soumettre tout le Quiz </button>
+               <button class="favorite-button" id="voir-favoris-btn" onclick="voirFavoris()"> Voir Favoris </button>
+               <!-- Nouveau bouton -->
+            </div>
+            <div class="blur-background" id="blur-background"> </div>
+            <div class="result-popup" id="result-popup">
+               <h3>
+Résultat du Quiz
+</h3>
+               <div id="result"> </div>
+               <button class="close-button" id="close-result" onclick="closeResult(event)"> Fermer </button>
+               <button class="detail-button" id="voir-detail-btn" onclick="afficherDetails(event)" style="display: none;"> Voir Détail </button>
+               <button class="reset-quiz-button" onclick="resetAll()" type="button"> Réessayer tout le Quiz </button>
+            </div>
+            <div class="details-section" id="details-section" style="display: none;">
+               <h3>
+Tableau des questions
+</h3>
+               <div class="question-links" id="question-links"> </div>
+            </div>
+            <div id="timer-container"> <span id="timer">
+60:00
+</span> </div>
+            <div id="details-section" style="display:none;">
+               <h2>
+Questions :
+</h2>
+               <div class="question-links" id="question-links"> </div>
+            </div>
+<div class="comments-section" id="comments-section">
+    <h3>Commentaires</h3>
+    <textarea id="new-comment" placeholder="Écrire un commentaire..."></textarea>
+    <button type="button" onclick="addComment(event)">Ajouter</button>
+    <div id="comment-alert" class="alert" style="display: none;"></div>
+    <div id="comments-list"></div>
+</div>
+
+    <div id="comments-list"></div>
+</div>
+
+<!-- Boutons flottants -->
+<div id="floating-buttons" class="floating-buttons" style="position: fixed; bottom: 50px; right: 50px; z-index: 1000;">
+    <!-- Bouton pour afficher le cours -->
+    <button id="show-course-btn" class="floating-btn" type="button" 
+            onclick="window.open('https://drive.google.com/drive/folders/1Xd_FaJbPk4FJv3G5-96L7G0UlQnUZuSf', '_blank');">📚</button>
+    <!-- Bouton pour afficher le contact -->
+<button id="open-contact-modal" class="floating-btn" type="button">
+    ✉️
+</button>
+
+</div>
+
+
+
+
+
+<div class="message-container" id="message-container" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#f9f9f9; padding:40px; box-shadow:0 4px 12px rgba(0,0,0,0.15); border-radius:12px; z-index:1001; width:600px; max-width:90%; font-family:Arial, sans-serif;">
+    <div style="text-align:center; margin-bottom:30px;">
+        <h2 style="margin:0; font-size:24px; font-weight:bold; color:#333;">Posez vos observations <span>📝</span></h2>
+        <p style="margin:10px 0 0; font-size:16px; color:#666;">Nous sommes à votre écoute</p>
+    </div>
+    <div class="mb-3" style="margin-bottom:30px;">
+        <p style="font-size:16px; color:#333; margin:0;">En tant Que :</p>
+        <div style="margin-top:10px;">
+            <input type="radio" id="username" name="mode" value="username" style="margin-right:8px;">
+            <label for="username" style="font-size:16px; color:#333; cursor:pointer;">{{ user_full_name}}</label>
+            <br>
+            <input type="radio" id="anonymous" name="mode" value="anonymous" checked style="margin-right:8px; margin-top:10px;">
+            <label for="anonymous" style="font-size:16px; color:#333; cursor:pointer;">Anonyme</label>
+        </div>
+    </div>
+    <div class="mb-3">
+        <label for="message" class="form-label" style="font-size:18px; font-weight:bold; color:#333; margin-bottom:10px; display:block;">Votre message :</label>
+        <textarea class="form-control" id="message" rows="6" placeholder="Precisez l'examen si c'est en rapport avec une question..." style="width:100%; font-size:16px; padding:15px; border:1px solid #ccc; border-radius:8px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.1); background:#fff;"></textarea>
+    </div>
+<span class="close-btn" id="close-btn" style="cursor:pointer; position:absolute; top:15px; right:15px; font-size:51px; color:#ff0000; font-weight:bold;">&times;</span>
+<!-- Bouton Envoyer stylé -->
+<div style="text-align:center; margin-top:30px;">
+    <button type="button" class="btn btn-primary" id="send-message" style="background-color:#007bff; color:white; border:none; padding:12px 30px; border-radius:8px; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 4px 8px rgba(0, 0, 0, 0.2); transition:all 0.3s ease;">
+        Envoyer
+    </button>
+</div>
+</div>
+
+
+
+
+<div id="blur-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;"></div>
+
+
+
+<script src="{% static 'java/contact.js' %}"></script>
+            </div>
+            <script>
+            // Réponses correctes pour les questions 1 à 50
+            const correctAnswers = {
+               q1: ['Q', 'B', 'D'],
+               q2: ['B', 'E'],
+               q3: ['C', 'D', 'E'],
+               q4: ['A', 'C', 'E'],
+               q5: ['C', 'D', 'E'],
+               q6: ['A'],
+               q7: ['A', 'B'],
+               q8: ['A', 'B', 'D', 'E'],
+               q9: ['B', 'E'],
+               q10: ['A', 'B', 'C', 'E'],
+               q11: ['B', 'C'],
+               q12: ['A', 'B', 'D', 'E'],
+               q13: ['A', 'B', 'D'],
+               q14: ['A', 'C'],
+               q15: ['A', 'B', 'D'],
+               q16: ['A', 'B', 'D', 'E'],
+               q17: ['C', 'D'],
+               q18: ['A', 'B', 'C'],
+               q19: ['D'],
+               q20: ['B', 'C', 'E'],
+               q21: ['B', 'C', 'E'],
+               q22: ['C', 'D', 'E'],
+               q23: ['B', 'C', 'E'],
+               q24: ['B', 'C', 'E'],
+               q25: ['A', 'C', 'D', 'E'],
+               q26: ['A', 'C', 'D', 'E'],
+               q27: ['B'],
+               q28: ['A', 'C', 'D', 'E'],
+               q29: ['A', 'B', 'E'],
+               q30: ['A', 'B', 'C', 'E'],
+               q31: ['C'],
+               q32: ['C', 'D'],
+               q33: ['A', 'D', 'E'],
+               q34: ['B', 'C', 'D', 'E'],
+               q35: ['C', 'E'],
+               q36: ['A', 'B', 'E'],
+               q37: ['A', 'B', 'C', 'D', 'E'],
+               q38: ['A', 'B', 'C', 'D', 'E'],
+               q39: ['B', 'C', 'E'],
+               q40: ['A', 'B', 'C', 'D', 'E'],
+               q41: ['D'],
+               q42: ['A'],
+               q43: ['D'],
+               q44: ['C'],
+               q45: ['A'],
+               q46: ['C'],
+               q47: ['C'],
+               q48: ['D'],
+               q49: ['B'],
+               q50: ['A', 'D']
+            };
+            // Variable globale pour stocker l'intervalle du timer
+            let timerInterval;
+            const userAnswers = {}; // Object pour stocker les réponses de l'utilisateur
+            // Fonction pour démarrer le timer
+            function startTimer(duration, display) {
+               let timer = duration,
+                  minutes, seconds;
+               timerInterval = setInterval(() => {
+                  minutes = parseInt(timer / 60, 10);
+                  seconds = parseInt(timer % 60, 10);
+                  minutes = minutes < 10 ? "0" + minutes : minutes;
+                  seconds = seconds < 10 ? "0" + seconds : seconds;
+                  display.textContent = minutes + ":" + seconds;
+                  // Vérifie si le temps est écoulé
+                  if (--timer < 0) {
+                     clearInterval(timerInterval);
+                     showEndMessage();
+                  }
+               }, 1000);
+            }
+            // Fonction pour afficher le message de fin de test
+            function showEndMessage() {
+               const blurBackground = document.createElement('div');
+               blurBackground.id = 'test-end-blur';
+               blurBackground.style.position = 'fixed';
+               blurBackground.style.top = '0';
+               blurBackground.style.left = '0';
+               blurBackground.style.width = '100%';
+               blurBackground.style.height = '100%';
+               blurBackground.style.background = 'rgba(0, 0, 0, 0.5)';
+               blurBackground.style.zIndex = '100';
+               blurBackground.style.display = 'flex';
+               blurBackground.style.alignItems = 'center';
+               blurBackground.style.justifyContent = 'center';
+               const endMessage = document.createElement('div');
+               endMessage.id = 'test-end-message';
+               endMessage.style.padding = '40px';
+               endMessage.style.background = '#ffffff';
+               endMessage.style.borderRadius = '8px';
+               endMessage.style.textAlign = 'center';
+               endMessage.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+               endMessage.innerHTML = '<h2>Test terminé</h2><p>Le temps imparti est écoulé.</p><button onclick="location.reload()">Recommencer</button>';
+               blurBackground.appendChild(endMessage);
+               document.body.appendChild(blurBackground);
+               // Optionnel : masquer le conteneur de timer
+               const timerContainer = document.getElementById('timer-container');
+               timerContainer.classList.add('hide');
+            }
+ // Fonction pour réinitialiser une seule question
+            function resetQuestion(questionName) {
+               const form = document.getElementById('quiz-form');
+               const questionDiv = document.querySelector(`input[name="${questionName}"]`).closest('.question-container');
+               // Décocher toutes les cases de cette question
+               const inputs = Array.from(form.elements[questionName]);
+               inputs.forEach(input => {
+                  input.checked = false;
+               });
+               // Supprimer les styles correct/incorrect et remettre les couleurs par défaut
+               questionDiv.classList.remove('correct', 'incorrect');
+               questionDiv.querySelectorAll('li').forEach(li => {
+                  li.style.color = ''; // Réinitialiser la couleur
+                  li.style.fontWeight = ''; // Réinitialiser le texte en gras
+                  li.style.textShadow = ''; // Réinitialiser l'ombre du texte
+                  li.style.backgroundColor = ''; // Réinitialiser le fond
+                  li.style.border = ''; // Réinitialiser la bordure
+               });
+               // Supprimer les informations enregistrées sur la réponse de cette question
+               delete userAnswers[questionName];
+            }
+            // Fonction pour soumettre le quiz et afficher le résultat
+            
+// Fonction pour soumettre le quiz et afficher le résultat
+async function submitQuiz() {
+    console.log("Début de la soumission du quiz.");
+
+    const form = document.getElementById('quiz-form');
+    if (!form) {
+        console.error("Erreur : Formulaire introuvable.");
+        alert("Formulaire introuvable. Veuillez réessayer.");
+        return;
+    }
+
+    let score = 0;
+
+    // Évaluer les réponses utilisateur
+    for (const question of Object.keys(correctAnswers)) {
+        correctQuestion(question); // Fonction pour corriger chaque question
+        const userAnswer = userAnswers[question]?.isCorrect;
+        if (userAnswer) {
+            score++;
+        }
+    }
+
+    console.log("Score brut calculé (frontend) :", score);
+    console.log("Réponses utilisateur envoyées :", userAnswers);
+
+    // Lancer les confettis et afficher le message de félicitations si le score est parfait (50 sur 50)
+    lancerConfettisEtMessage(score);
+
+    // Mise à jour du résultat dans la boîte de dialogue
+    const resultDiv = document.getElementById('result'); // Assure-toi que tu as un div avec l'id 'result' dans ton HTML
+
+    if (score === 0) { resultDiv.innerHTML = `<p>Vous avez aucune réponse juste, bozo !</p>`; } else if  (score === 50) {
+        // Liste des messages de félicitations
+        const messages = [
+"Félicitations ! Votre maîtrise des techniques d'imagerie médicale est remarquable !",
+"Bravo ! Vous excellez dans l'interprétation des images radiologiques.",
+"Incroyable ! Votre compréhension des principes de la radiologie est impressionnante.",
+"Parfait ! Vous êtes sur le chemin pour devenir un(e) expert(e) en diagnostic par imagerie.",
+"Votre précision dans l'analyse des radiographies est admirable.",
+"Impressionnant ! Vous appliquez les concepts d'imagerie médicale avec rigueur.",
+"Bravo ! Votre aptitude à identifier les anomalies radiologiques est exceptionnelle.",
+"Extraordinaire ! Vous utilisez les outils d'imagerie avec une grande maîtrise.",
+"Félicitations ! Vous êtes prêt(e) à contribuer à des diagnostics précis et rapides.",
+"Votre capacité à relier les images radiologiques aux conditions cliniques est impressionnante.",
+"Impressionnant ! Vous démontrez une compréhension approfondie des techniques avancées de radiologie.",
+"Bravo ! Votre passion pour l'imagerie médicale est évidente.",
+"Votre expertise en interprétation d'IRM et de scanner est un véritable atout.",
+"Parfait ! Vous démontrez une aptitude exceptionnelle pour la radiologie interventionnelle.",
+"Félicitations ! Vous êtes sur le chemin pour devenir un(e) pionnier(ère) en imagerie médicale.",
+"Votre précision dans l'utilisation des technologies de pointe est exemplaire.",
+"Bravo ! Vous appliquez les connaissances radiologiques avec rigueur et précision.",
+"Incroyable ! Vous interprétez les images complexes avec une facilité admirable.",
+"Félicitations ! Votre curiosité pour les technologies d'imagerie est une source d'inspiration.",
+"Votre capacité à interpréter les résultats radiologiques est impressionnante.",
+
+        ];
+        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+        resultDiv.innerHTML = `<p>${randomMessage}</p>`;
+    } else {
+        resultDiv.innerHTML = `Vous avez obtenu ${score} bonnes réponses sur ${Object.keys(correctAnswers).length}.`;
+    }
+
+    // Afficher la boîte de résultat avec animation
+    const resultPopup = document.getElementById('result-popup');
+    const blurBackground = document.getElementById('blur-background');
+
+    blurBackground.style.display = 'block';
+    resultPopup.style.display = 'block';
+
+    setTimeout(() => {
+        blurBackground.classList.add('show'); // Ajoute l'animation de fondu sur le fond flouté
+        resultPopup.classList.add('show'); // Ajoute l'animation de zoom sur la boîte de résultat
+    }, 100); // Légère pause pour plus de fluidité
+
+    document.getElementById('voir-detail-btn').style.display = 'inline-block';
+
+    // Envoi des données au backend
+    try {
+        console.log("Préparation de l'enregistrement au backend...");
+
+        const response = await fetch("/soumettre-quiz/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}" // Inclure le token CSRF
+            },
+            body: JSON.stringify({
+                exam_name: "Rd2023", // Remplacez par le nom réel de l'examen
+                score: score,
+                userAnswers: userAnswers
+            })
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+            console.log("Score enregistré avec succès :", result);
+        } else {
+            console.error("Erreur du serveur :", result.message);
+            alert(`Erreur : ${result.message}`);
+        }
+    } catch (error) {
+        console.error("Erreur lors de l'envoi des données :", error);
+        alert("Une erreur s'est produite lors de la soumission. Veuillez réessayer.");
+    }
+}
+
+            function resetAll() {
+               const form = document.getElementById('quiz-form');
+               // Réinitialiser toutes les questions
+               for (const question of Object.keys(correctAnswers)) {
+                  const questionDiv = document.querySelector(`input[name="${question}"]`).closest('.question-container');
+                  form.elements[question].forEach(input => {
+                     input.checked = false; // Décocher toutes les cases
+                  });
+                  // Supprimer les styles correct/incorrect sans toucher au style des bonnes réponses
+                  questionDiv.classList.remove('correct', 'incorrect');
+                  questionDiv.querySelectorAll('li').forEach(li => {
+                     li.style.color = ''; // Réinitialiser la couleur du texte
+                     li.style.fontWeight = ''; // Supprimer les styles ajoutés
+                     li.style.textShadow = ''; // Réinitialiser l'ombre du texte
+                     li.style.backgroundColor = ''; // Remettre le fond par défaut
+                     li.style.border = ''; // Réinitialiser la bordure
+                  });
+               }
+               // Réinitialiser l'affichage du timer
+               const timerDuration = 60 * 60; // Remettre à 60 minutes (ou 10 secondes pour le test)
+               const display = document.querySelector('#timer');
+               startTimer(timerDuration, display); // Redémarrer le timer
+               // Masquer la boîte de résultat
+               const resultPopup = document.getElementById('result-popup');
+               const blurBackground = document.getElementById('blur-background');
+               resultPopup.classList.remove('show');
+               blurBackground.classList.remove('show');
+               setTimeout(() => {
+                  resultPopup.style.display = 'none';
+                  blurBackground.style.display = 'none';
+               }, 500);
+               // Remonter en haut de la page
+               window.scrollTo({
+                  top: 0,
+                  behavior: 'smooth'
+               });
+               document.getElementById('voir-detail-btn').style.display = 'none'; // Masquer le bouton "Voir Détail"
+            }
+            // Fonction pour fermer la popup et garder les couleurs des bonnes/mauvaises réponses
+            function closeResult(event) {
+               event.preventDefault(); // Empêche le comportement par défaut du bouton
+               const resultPopup = document.getElementById('result-popup');
+               const blurBackground = document.getElementById('blur-background');
+               // Masquer la boîte de résultat
+               resultPopup.classList.remove('show');
+               blurBackground.classList.remove('show');
+               setTimeout(() => {
+                  resultPopup.style.display = 'none';
+                  blurBackground.style.display = 'none';
+               }, 500);
+               // Décocher toutes les cases sans changer la couleur des bonnes/mauvaises réponses
+               const form = document.getElementById('quiz-form');
+               for (const question of Object.keys(correctAnswers)) {
+                  form.elements[question].forEach(input => {
+                     input.checked = false; // Décocher toutes les cases
+                  });
+               }
+            }
+            // Fonction pour afficher les détails et rediriger vers SyntRd2023
+            function afficherDetails(event) {
+               event.preventDefault(); // Empêche le comportement par défaut du bouton
+               saveUserAnswers(); // Enregistrer les réponses avant de quitter la page
+               window.location.href = '{% url 'dynamic_view' 'S5' 'Radiologie' 'syntRd2023' %}'; // Redirection vers SyntRd2023
+            }
+            // Fonction pour défiler jusqu'à la question
+            function scrollToQuestion(questionNumber) {
+               const questionDiv = document.querySelector(`.question-container:nth-of-type(${questionNumber})`);
+               if (questionDiv) {
+                  questionDiv.scrollIntoView({
+                     behavior: 'smooth'
+                  });
+               }
+            }
+
+            function saveUserAnswers() {
+               // Change la clé pour la version 2023
+               localStorage.setItem('userAnswersRd2023', JSON.stringify(userAnswers));
+            }
+            // Fonction pour afficher les confettis et ajouter le message de félicitations dans la popup de résultats
+            function lancerConfettisEtMessage(score) {
+    if (score === 50) {
+                  // Lancer les confettis
+                  confetti({
+                     particleCount: 200,
+                     spread: 70,
+                     origin: {
+                        y: 0.6
+                     },
+                     colors: ['#bb0000', '#ffffff'], // Couleurs de confettis
+                  });
+                  // Ajouter un message de félicitations à la boîte de résultat
+                  const resultDiv = document.getElementById('result');
+                  const felicitationMessage = `<p>Félicitations! Vous avez obtenu ${score} bonnes réponses. Vous serez un grand médecin !</p>`;
+                  // Ajouter le message à la fin du résultat
+                  resultDiv.innerHTML += felicitationMessage;
+               }
+            }
+            // Partie favori pour Anatomie2020
+            // Tableau pour stocker les questions favorites, récupéré depuis le localStorage (Anatomie2023)
+            let favoriteQuestionsRD2023 = JSON.parse(localStorage.getItem('favoriteQuestionsRD2023')) || [];
+            console.log('Favorite questions loaded from localStorage:', favoriteQuestionsRD2023);
+
+            function toggleFavorite(event, questionNumber) {
+               event.preventDefault(); // Empêche le rafraîchissement de la page
+               const button = document.querySelector(`.favorite-button[data-question="${questionNumber}"]`);
+               const questionContent = document.querySelector(`#question-${questionNumber}`).innerHTML; // Récupère le contenu HTML de la question
+               // Vérifie si la question est déjà dans les favoris
+               const isFavorited = favoriteQuestionsRD2023.includes(questionNumber);
+               if (isFavorited) {
+                  // Si elle est déjà favorisée, on la retire des favoris
+                  favoriteQuestionsRD2023 = favoriteQuestionsRD2023.filter(q => q !== questionNumber);
+                  button.classList.remove('favorited'); // Retire la classe favori
+                  localStorage.removeItem(`favoriteContent2023-${questionNumber}`); // Supprime le contenu de la question
+               } else {
+                  // Si elle n'est pas favorisée, on l'ajoute
+                  favoriteQuestionsRD2023.push(questionNumber);
+                  button.classList.add('favorited'); // Ajoute la classe favori
+                  localStorage.setItem(`favoriteContent2023-${questionNumber}`, questionContent); // Stocke le contenu de la question dans le localStorage
+               }
+               // Sauvegarde uniquement les favoris
+               saveFavoriteState2023(); // <== Remplacez par saveFavoriteState2023
+               // Mise à jour du bouton "Voir Favori" sans rafraîchir la page
+               showFavoriteButton();
+            }
+
+            function saveFavoriteState2023() {
+               localStorage.setItem('favoriteQuestionsRD2023', JSON.stringify(favoriteQuestionsRD2023)); // Sauvegarde les questions favorites
+            }
+
+            function initializeFavoriteButtons() {
+               const allFavoriteButtons = document.querySelectorAll('.favorite-button');
+               allFavoriteButtons.forEach(button => {
+                  const questionNumber = parseInt(button.getAttribute('data-question'), 10);
+                  // Vérifie si cette question est dans les favoris et applique la classe
+                  if (favoriteQuestionsRD2023.includes(questionNumber)) {
+                     button.classList.add('favorited'); // Ajoute l'état favori
+                  } else {
+                     button.classList.remove('favorited'); // Retire l'état favori
+                  }
+                  // Ajoute un événement de clic pour chaque bouton et empêche le rafraîchissement
+                  button.addEventListener('click', (event) => toggleFavorite(event, questionNumber));
+               });
+            }
+
+            function showFavoriteButton() {
+               const voirFavorisBtn = document.getElementById('voir-favoris-btn');
+               if (favoriteQuestionsRD2023.length > 0) {
+                  voirFavorisBtn.style.display = 'inline-block'; // Affiche le bouton si des questions sont favorisées
+               } else {
+                  voirFavorisBtn.style.display = 'none'; // Cache le bouton si aucun favori
+               }
+            }
+            // Appelle cette fonction après avoir ajouté ou retiré des favoris
+            window.onload = function() {
+               console.log('Page loaded, initializing favorite buttons for 2023.');
+               initializeFavoriteButtons(); // Charger les boutons de favoris
+               showFavoriteButton(); // Afficher le bouton "Voir Favori" si des favoris existent
+               const timerDuration = 60 * 60; // 60 minutes
+               const display = document.querySelector('#timer');
+               startTimer(timerDuration, display);
+               // Récupère toutes les listes (li) qui contiennent des propositions
+               const propositions = document.querySelectorAll('li');
+               propositions.forEach(function(proposition) {
+                  // Trouve la checkbox dans chaque liste
+                  const checkbox = proposition.querySelector('input[type="checkbox"]');
+                  if (checkbox) {
+                     // Créer un label
+                     const label = document.createElement('label');
+                     // Donner un id à la checkbox si elle n'en a pas
+                     if (!checkbox.id) {
+                        checkbox.id = checkbox.name + '-' + checkbox.value; // Ex: q1-A
+                     }
+                     // Déplacer le texte de la proposition dans le label
+                     label.htmlFor = checkbox.id; // Le 'for' du label correspond à l'id de la checkbox
+                     label.appendChild(checkbox); // Déplacer la checkbox dans le label
+                     label.appendChild(document.createTextNode(proposition.textContent.trim())); // Ajouter le texte de la proposition
+                     // Remplacer le contenu original par le nouveau label
+                     proposition.innerHTML = ''; // Vider le contenu de l'élément <li>
+                     proposition.appendChild(label); // Ajouter le label modifié
+                  }
+               });
+            };
+            try {
+               localStorage.setItem('testKey', 'testValue');
+               const testValue = localStorage.getItem('testKey');
+               if (testValue !== 'testValue') {
+                  console.error('localStorage is not functioning as expected.');
+               }
+            } catch (error) {
+               console.error('localStorage error:', error);
+            }
+
+            function voirFavoris() {
+               console.log('Redirection vers la page des favoris');
+               window.location.href = "{% url 'render_favorite' 'S5' 'favori9' %}";
+            }
+
+
+            </script>
+            <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js">
+
+
+            </script>
+         </form>
+      </div>
+      
+   </body>
+
+</html>      <script>
+// Fonction pour corriger une question
+function correctQuestion(questionName) {
+    const form = document.getElementById('quiz-form');
+    const questionDiv = document.querySelector(`input[name="${questionName}"]`).closest('.question-container');
+    const selected = Array.from(form.elements[questionName]).filter(input => input.checked).map(input => input.value);
+
+    // Calculer si la réponse est correcte
+    const isCorrect = JSON.stringify(correctAnswers[questionName].sort()) === JSON.stringify(selected.sort());
+
+    // Enregistre si la réponse est correcte ou incorrecte
+    userAnswers[questionName] = {
+        selected: selected,
+        isCorrect: isCorrect
+    };
+
+    // Supprimer les styles précédents
+    questionDiv.classList.remove('correct', 'incorrect');
+    questionDiv.querySelectorAll('li').forEach(li => li.style.color = '');
+
+    // Applique les couleurs selon la validité des réponses
+    questionDiv.querySelectorAll('li').forEach(li => {
+        const isChoiceCorrect = correctAnswers[questionName].includes(li.querySelector('input').value);
+        const isSelected = selected.includes(li.querySelector('input').value);
+
+        if (isChoiceCorrect) {
+            // Appliquer le style vert aux bonnes réponses
+            li.style.color = 'green';
+            li.style.fontWeight = 'bold';
+            li.style.textShadow = '1px 1px 2px rgba(0, 128, 0, 0.7)';
+        }
+
+        if (isSelected && !isChoiceCorrect) {
+            // Appliquer le style rouge pour les mauvaises réponses sélectionnées
+            li.style.color = 'red';
+        }
+    });
+
+    console.log(`Début de la correction pour la question ${questionName}`);
+    console.log(`Réponses sélectionnées pour ${questionName}: ${selected.join(', ')}`);
+    console.log(`Résultat pour ${questionName}: ${isCorrect ? 'Correct' : 'Incorrect'}`);
+
+    // Déterminer le nom de l'examen et l'ID complet de la question
+    const examNameElement = document.getElementById('exam_name');
+    const examName = examNameElement.value; // Nom de l'examen (par exemple, Anatomie2023)
+    const fullChoiceIds = selected.map(choice => `${examName}_${questionName.substring(1)}_${choice.toLowerCase()}`);
+    console.log(`IDs complets générés pour les choix : ${fullChoiceIds.join(', ')}`);
+
+    // Envoyer les données au serveur
+    fetch('/track_attempts/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            question_name: questionName,
+            full_choice_ids: fullChoiceIds
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log(`Données reçues du serveur : ${JSON.stringify(data)}`);
+            handleAlert(data.alert, questionDiv);
+            updateStatisticalAlerts(data, questionDiv);
+        })
+        .catch(error => console.error('Erreur lors de l’envoi des données:', error));
+}
+
+// Fonction pour gérer les alertes
+function handleAlert(alertData, questionDiv) {
+    const existingAlert = questionDiv.querySelector('.alert-indicator');
+    if (existingAlert) {
+        existingAlert.remove();
+    }
+
+    if (alertData) {
+        const alertIndicator = document.createElement('div');
+        alertIndicator.className = 'alert-indicator';
+        alertIndicator.style.backgroundColor = alertData.color || '#f8d7da';
+        alertIndicator.style.padding = '10px';
+        alertIndicator.style.marginTop = '10px';
+        alertIndicator.style.borderRadius = '5px';
+        alertIndicator.style.fontWeight = 'bold';
+        alertIndicator.style.color = '#721c24';
+        alertIndicator.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.1)';
+        alertIndicator.textContent = alertData.message;
+
+        questionDiv.appendChild(alertIndicator);
+        saveAlertToLocalStorage(questionDiv.getAttribute('data-question-id'), alertData);
+    } else {
+        removeAlertFromLocalStorage(questionDiv.getAttribute('data-question-id'));
+    }
+}
+
+// Charger les alertes persistantes
+function loadAlertsFromLocalStorage() {
+    const storedAlerts = JSON.parse(localStorage.getItem('alerts')) || {};
+    Object.keys(storedAlerts).forEach(questionId => {
+        const questionDiv = document.querySelector(`.question-container[data-question-id="${questionId}"]`);
+        if (questionDiv) {
+            handleAlert(storedAlerts[questionId], questionDiv);
+        }
+    });
+}
+
+// Sauvegarder les alertes dans localStorage
+function saveAlertToLocalStorage(questionId, alertData) {
+    const storedAlerts = JSON.parse(localStorage.getItem('alerts')) || {};
+    storedAlerts[questionId] = alertData;
+    localStorage.setItem('alerts', JSON.stringify(storedAlerts));
+}
+
+// Supprimer une alerte de localStorage
+function removeAlertFromLocalStorage(questionId) {
+    const storedAlerts = JSON.parse(localStorage.getItem('alerts')) || {};
+    delete storedAlerts[questionId];
+    localStorage.setItem('alerts', JSON.stringify(storedAlerts));
+}
+
+// Mise à jour des alertes statistiques
+function updateStatisticalAlerts(data, questionDiv) {
+    const existingStatisticalAlerts = questionDiv.querySelectorAll('.statistical-alert');
+    existingStatisticalAlerts.forEach(alert => alert.remove());
+
+    if (data.failure_rate > 0.6) {
+        const failureRateAlert = document.createElement('div');
+        failureRateAlert.className = 'statistical-alert';
+        failureRateAlert.style.backgroundColor = '#add8e6';
+        failureRateAlert.style.padding = '10px';
+        failureRateAlert.style.marginTop = '10px';
+        failureRateAlert.style.borderRadius = '5px';
+        failureRateAlert.style.fontWeight = 'bold';
+        failureRateAlert.style.color = '#004085';
+        failureRateAlert.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.1)';
+        failureRateAlert.textContent = `🔵 Votre taux d'échec est de ${(data.failure_rate * 100).toFixed(0)}%. Revoir cette question est conseillé.`;
+
+        questionDiv.appendChild(failureRateAlert);
+    }
+}
+
+// Charger les alertes au démarrage
+document.addEventListener('DOMContentLoaded', () => {
+    loadAlertsFromLocalStorage();
+});
+
+</script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+    <script src="{% static 'java/comment.js' %}"></script>

@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+        <div class="quiz-title">
+            <h1>Biochimie 2018</h1>
+            <p></p>
+        </div>
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+<form id="quiz-form">
+<input type="hidden" name="file_name" value="Bioch2018">
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) À propos de la glycolyse, toutes les propositions suivantes sont exactes sauf une, laquelle ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- La glycolyse consiste en une séquence de dix réactions qui débutent par le glucose et se terminent par le pyruvate.</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Tous les intermédiaires de la glycolyse sont constitués par des substances phosphorylées, à part le glucose et le pyruvate.</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Dans les globules rouges, la glycolyse constitue le seul mode de production d’énergie.</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Trois réactions de la glycolyse sont irréversibles.</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Le produit terminal de la glycolyse anaérobie est le pyruvate.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Le pyruvate, produit final de la glycolyse, peut subir d’autres transformations, différentes selon la cellule dans laquelle il apparaît et l’état métabolique de cette cellule. Parmi les propositions suivantes, indiquez laquelle (lesquelles) est (sont) exacte(s) ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- En anaérobie, le pyruvate s’accumule dans les cellules.</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- En anaérobie, le pyruvate se transforme en éthanol ou lactate.</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- En aérobiose, le pyruvate est transformé en acétyl-CoA.</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- En aérobiose, le pyruvate est décarboxylé, pour fournir une molécule d’acétyl-CoA.</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- En aérobiose, le pyruvate se transforme en glucose.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) À propos du cycle de Krebs, indiquez laquelle (lesquelles) est (sont) exacte(s) ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Le cycle de Krebs peut fonctionner aussi bien en présence qu’en absence d’oxygène.</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Le cycle de Krebs est une succession de réactions irréversibles et est donc lui-même irréversible.</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Le cycle de Krebs peut tourner dans les deux sens.</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Le cycle de Krebs s’appelle également « le cycle des acides tricarboxyliques ».</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Le cycle de Krebs produit 10 molécules d’ATP par molécule d’acétyl-CoA.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Parmi les propositions suivantes, indiquez laquelle (lesquelles) est (sont) exacte(s), la néoglucogenèse correspond à :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- La formation de glucose à partir des lipides.</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- La formation de glucose à partir des acides aminés.</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- La synthèse de glycogène à partir de glucose.</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- La formation de glucose à partir de lactate.</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- La formation de glucose à partir de glycogène.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Parmi les propositions suivantes, indiquez laquelle (lesquelles) est (sont) exacte(s), la glycogénolyse est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- La synthèse du glycogène.</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- La dégradation du glucose formé à partir de la néoglucogenèse.</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- La dégradation du glycogène en glucose dans le foie.</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- La dégradation du glycogène en glucose dans le muscle.</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- La synthèse du glucose à partir de molécules non glucidiques.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Le glucose-6-phosphate participe à tous les processus suivants, à l’exception d’un seul, lequel ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Transport du glucose à travers les cellules de la muqueuse intestinale.</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Glycolyse.</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Glycogénolyse.</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Néoglucogenèse.</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Voie des pentoses phosphates.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Le nombre d’ATP formé lors de l’hydrolyse complète d’une molécule de glucose en CO2 et H2O est de l’ordre de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- 30 ATP selon la navette Glycérol-3-phosphate.</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- 32 ATP selon la navette Malate/Aspartate.</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- 64 ATP selon la navette Malate/Aspartate.</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- 38 ATP selon la navette Glycérol-3-phosphate.</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Toutes les propositions précédentes sont fausses.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) À propos du cycle de Cori, indiquez laquelle (lesquelles) est (sont) exacte(s) ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Il permet la synthèse du glucose à partir du lactate.</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Il y a coopération entre le muscle et le foie.</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Il rassemble toute la glycolyse anaérobie et toute la néoglucogenèse.</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Il n’est composé que de la néoglucogenèse.</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Toutes les propositions précédentes sont fausses.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) La primaquine est une substance oxydoant utilisée en médecine pour le traitement du paludisme. Cette substance peut entraîner dans certains cas, une hémolyse des globules rouges. Ce phénomène s’explique de la façon suivante : parmi les cinq propositions citées, une seule est exacte, laquelle ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- La primaquine agit en inhibant la glucose-6-phosphate déshydrogénase chez certains sujets.</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Les globules rouges de certains sujets métabolisent la primaquine qui forme un inhibiteur de la voie glycolytique.</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Certaines substances, comme l’aspirine exercent sur les globules rouges un effet protecteur contre la primaquine.</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- La primaquine a un effet destructeur sur les membranes des globules rouges qui ne sont pas protégées par le NADPH chez les sujets qui présentent un déficit en glucose-6-phosphate déshydrogénase.</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Les globules rouges des sujets sensibilisés par la primaquine ne peuvent pas phosphoryler le glucose ce qui les prive d’un substrat pour la voie des pentoses phosphates.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Les trois premières réactions de la β-oxydation sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- 1) déshydrogénation, 2) hydratation, 3) déshydrogénation</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- 1) déshydrogénation, 2) hydrogénation, 3) hydratation</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- 1) hydrogénation, 2) hydratation, 3) déshydrogénation</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- 1) déshydrogénation, 2) hydratation, 3) déshydrogénation</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- 1) hydrogénation, 2) hydratation, 3) déshydrogénation</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) La β-oxydation d’une molécule d’acide stéarique (C18:0) permet la production de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- 144 ATP.</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- 122 ATP.</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- 126 ATP, suivant la navette Glycérol-3-phosphate.</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- 120 ATP.</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Toutes les propositions précédentes sont fausses.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Les corps cétoniques sont des substances caractérisées par un certain nombre de propriétés décrites dans les cinq propositions suivantes dont une seule est inexacte laquelle ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Le β-hydroxybutyrate est un corps cétonique.</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- L’acétone est un corps cétonique.</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- L’acétoacétate est un corps cétonique.</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Les corps cétoniques sont synthétisés à partir de l’Acétyl-CoA.</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Les corps cétoniques doivent être transportés, car ils sont insolubles dans le sang.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Parmi les propositions suivantes, indiquez laquelle (lesquelles) est (sont) exacte(s) ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- La β-oxydation permet de récupérer de l’énergie à partir des acides gras.</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- L’hydrolyse des triglycérides fournit des acides gras.</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- La formation des acyls-CoA et leur oxydation se déroulent dans la mitochondrie.</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- L’acétyl-CoA est une forme activée de l’acide gras.</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Les acyls-CoA synthétases utilisent l’ATP comme molécule donneuse d’énergie.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Parmi les propositions suivantes, indiquez laquelle (lesquelles) est (sont) exacte(s) ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- La carnitine assure l’entrée des acyls-CoA dans la mitochondrie.</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Les acyls-CoA pénètrent directement dans la mitochondrie.</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- La carnitine est liée aux acides gras par la fonction alcool.</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- L’entrée des acyls-CoA dans la mitochondrie nécessite plusieurs enzymes.</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Les acyls-CoA synthases est un coenzyme.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) La biosynthèse des acides gras nécessite :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Du FADH₂.</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Du NADH, H⁺.</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Du NADPH, H⁺.</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- De l’insuline.</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Du Malonyl-CoA.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) À propos du cholestérol, indiquez laquelle (lesquelles) est (sont) exacte(s) ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Le cholestérol est synthétisé à partir de l’Acétyl-CoA.</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Le cholestérol est le précurseur de plusieurs hormones stéroïdes.</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- La HMG-CoA réductase est l’enzyme clé dans la synthèse du cholestérol.</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Les statines sont des médicaments qui inhibent l’activité de la HMG-CoA réductase.</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Le cholestérol d’origine alimentaire inhibe la synthèse du cholestérol endogène.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) À propos des acides aminés, indiquez la ou les propositions exactes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Il existe des centaines d’acides aminés standard.</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- L’atome de carbone α est l’atome de carbone du groupement carboxylique.</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- La sélénocystéine est un acide aminé issu d’une modification post-traductionnelle de la cystéine.</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Dans certaines situations nutritionnelles, les acides aminés des protéines musculaires peuvent être utilisés comme substrats énergétiques.</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Certains acides aminés sont des neurotransmetteurs.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) À propos des acides aminés, indiquez la ou les propositions exactes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Cet acide aminé est la sérine.</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Sa chaîne latérale est polaire et ionisable.</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Cet acide aminé est phosphorylable.</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Le groupement hydroxyle peut être le point de branchement des O-glycosylations des glycoprotéines.</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Le groupement hydroxyle peut être le point de branchement des N-glycosylations des glycoprotéines.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) À propos des acides aminés, indiquez la ou les propositions exactes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Cet acide aminé est l’acide glutamique.</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Cet acide aminé est un diacide.</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Sa chaîne latérale est polaire et ionisable.</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- L’amide correspondant à cet acide aminé est l’asparagine.</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Cet acide aminé est transaminable.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) À propos des acides aminés, indiquez la ou les propositions exactes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Cet acide aminé est l’asparagine.</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Sa chaîne latérale est polaire et non ionisable.</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Cet acide aminé est disbasique.</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Il est fréquent dans le collagène.</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Cet acide aminé n’est pas un acide aminé standard.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) À propos des acides aminés, indiquez la ou les propositions exactes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- La réaction d’amidation est exergonique.</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- La réaction de transamination est la principale réaction d’« entrée en catabolisme » des acides aminés.</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- La réaction de transamination est irréversible.</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- La glutamate déshydrogénase est impliquée dans le catabolisme de l’azote des acides aminés.</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- La glutamine synthétase est impliquée dans le catabolisme de l’azote des acides aminés.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) À propos des protéines, indiquez la ou les propositions exactes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Une protéine de n acides aminés comprend n-2 liaisons peptidiques.</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- La liaison hydrogène participe aux structures secondaire, tertiaire et éventuellement quaternaire des protéines globulaires.</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- La liaison hydrogène est absente de la structure secondaire dans certaines protéines fibreuses.</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- La structure secondaire est absente dans certaines protéines fibreuses.</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- La liaison ionique stabilise les structures secondaire, tertiaire et éventuellement quaternaire des protéines globulaires.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) À propos des glucides, indiquez la ou les propositions exactes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Le fructose est le sucre des fruits.</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Le fructose est constitutif du lactose.</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Le glucose est constitutif du saccharose.</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Le glucose est constitutif de l’amidon.</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Le glucose est le sucre de table.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) À propos des glucides, indiquez la ou les propositions exactes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Ils sont représentés en projection de Haworth.</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Ils sont épimères.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) À propos des glucides, indiquez la ou les propositions exactes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Le glycogène est un polysaccharide ramifié dont les unités de glucose sont unies par des liaisons O-glycosidiques intra-chaînes (α1 → 4) et inter-chaînes (α1 → 6).</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- L'amylopectine est un polysaccharide ramifié dont les unités de glucose sont unies par des liaisons O-glycosidiques intra-chaînes (α1 → 4) et inter-chaînes (α1 → 6).</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- La cellulose est un polysaccharide constitué uniquement de glucose.</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- La cellulose est une β-glycosidase.</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- La cellulose est le glucide le plus abondant chez les Végétaux.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) À propos des protéoglycanes, indiquez la ou les propositions exactes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- La fraction protéinée est généralement prédominante.</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- La fraction glucidique est un oligosaccharide.</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- La fraction glucidique est riche en hexosamine et dérivés.</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- La fraction glucidique est riche en acides hexuroniques.</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- Les liaisons O-glycosidiques (α1 → 3) et (α1 → 4) alternent régulièrement.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) À propos des lipides, indiquez la ou les propositions exactes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- Tous les lipides sont strictement hydrophobes.</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- Tous les lipides sont solubles dans les solvants organiques.</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Les lipides, sauf les dérivés isopréniques, ont pour précurseur l’acétyl-coenzyme A.</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Un dérivé est un ester d’acide gras et d’alcool gras.</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- L'acide gras C18:3,6,9,12,15 appartient à la famille ω-3.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) À propos des lipides, indiquez la ou les propositions exactes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- Les triglycérides sont formés d’un glycérol et de 3 acides gras.</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- Les triglycérides sont strictement hydrophobes.</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- Les triglycérides sont les constituants essentiels de la membrane cellulaire.</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- Les triglycérides sont la forme de transport et de stockage majeure des acides gras dans les tissus adipeux.</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- Les triglycérides sont principalement localisés dans le tissu adipeux.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) À propos des lipides, indiquez la ou les propositions exactes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- Les glycérophospholipides sont formés d’un glycérol, d’un phosphate et de 3 acides gras.</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- Les triglycérides sont amphiphiles.</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- Les glycérophospholipides sont les constituants essentiels de la membrane cellulaire.</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- Les glycérophospholipides sont la forme de transport et de stockage majeure des acides gras.</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- Les lécithines sont des glycérophospholipides.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) À propos des lipides, indiquez la ou les propositions exactes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- Les lipoprotéines sont solubles dans l’eau.</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- Les lipoprotéines transportent les lipides plasmatiques.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) À propos des nucléotides, indiquez la ou les propositions exactes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- Un nucléotide est un nucléoside mono-, di- ou triphosphate.</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- Dans les nucléotides, les pentoses ont une configuration anomérique β.</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- Dans l'AMPc, le ribose est estérifié en C-3' et en C-5'.</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- L'ATP peut être un effecteur allostérique d’enzymes.</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- L'ATP participe à la plupart des réactions de phosphorylation.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+         
+
+        <button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S1" "Biochimie_et_chimie" "Bioch2018" %}';">Réessayer tout le Quiz</button>
+</div>
+
+
+       
+    
+    
+    
+</div>
+</div>
+
+<div id="details-section" class="details-section" style="display: none;">
+    <h3>Tableau des questions</h3>
+    <div class="question-links" id="question-links"></div>
+</div>
+
+
+
+
+<!-- Section pour afficher le tableau avec les numéros encerclés -->
+<div id="details-section" style="display:none;">
+    <h2>Questions :</h2>
+    <div id="question-links" class="question-links">
+        <!-- Le tableau de numéros va être généré ici -->
+    </div>
+</div>
+
+<script>
+const correctAnswers = {
+    q1: ['A', 'B', 'C', 'D'],
+    q2: ['B', 'D', 'E'],
+    q3: ['D', 'E'],
+    q4: ['B', 'D'],
+    q5: ['C', 'D'],
+    q6: ['A'],
+    q7: ['A', 'B'],
+    q8: ['A', 'C', 'B'],
+    q9: ['D'],
+    q10: ['A'],
+    q11: ['E'],
+    q12: ['E'],
+    q13: ['A', 'B', 'C', 'D'],
+    q14: ['A', 'C', 'D', 'E'],
+    q15: ['C', 'D', 'E'],
+    q16: ['A', 'B', 'C', 'D', 'E'],
+    q17: ['D', 'E'],
+    q18: ['C', 'D'],
+    q19: ['B', 'C', 'D', 'E'],
+    q20: ['C', 'D'],
+    q21: ['B', 'D', 'E'],
+    q22: ['B', 'C', 'D'],
+    q23: ['A', 'C', 'D'],
+    q24: ['B', 'E'],
+    q25: ['A', 'B', 'C', 'D', 'E'],
+    q26: ['C', 'D'],
+    q27: ['B', 'D', 'E'],
+    q28: ['A', 'B', 'D', 'E'],
+    q29: ['B', 'C'],
+    q30: ['A', 'B'],
+    q31: ['A', 'B', 'C', 'D', 'E']
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersBioch2018'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+<script src="{% static 'java/question-stats.js' %}" defer></script>

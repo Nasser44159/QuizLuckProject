@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="OC2019">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Laquelle des propositions suivantes correspond à la définition de la prévalence ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Nombre de décès chaque année dans une population.</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Nombre de nouveaux cas observés chaque année rapportée à 100 000 habitants.</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Nombre de nouveaux cas rapporté à 100000 habitants.</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Nombre total de cas observé dans une population donnée à un moment donné.</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Nombre total d’un cancer observé pendant une période donnée par rapport au total des cancers.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Les facteurs de risque des cancers du sein sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Allaitement</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Alimentation riche en graisses.</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Antécédents familiaux du cancer du sein</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Partenaires multiples</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Première grossesse après 35 ans</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) La prévention primaire du cancer du col utérin :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Permet de réduire l’incidence du cancer du col utérin</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Lutte contre les infections sexuellement transmissibles</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Est basée sur le frottis cervico vaginal</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Permet l’identification d’un cancer infra clinique.</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Se fait par le vaccin anti HPV</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Les facteurs de risques des cancers :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Sont dans 90 à 95 % des facteurs exogènes</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Sont toujours héréditaires</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Sont liés à l’âge</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Sont souvent liés à l’intoxications alcool tabagiques.</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Peuvent être évitables</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Le dépistage du cancer du sein :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Est indiqué chez la femme Marocaine à partir de l’âge 40 ans</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Est un examen clinique général.</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Doit être fait tous les 2 ans</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Est à base de la Mammographie</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Nécessite un Pet scan</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Épidémiologie descriptive :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Science qui permet d’établir une relation causale à effet entre un facteur de risque et un cancer</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Science qui permet d’analyser la répartition d’une maladie dans une population définie</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Donne une idée sur la mortalité et la morbidité d’un cancer</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Fait appel aux études prospectives et rétrospectives</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Permet d’évaluer l’incidence des cancers</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Selon le registre du cancer de la région de Casablanca 2008-2012 Quels sont les 3 premiers cancers de la femme</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Sein</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Colorectal</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Col utérin</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Cancer de l’utérus</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Thyroïde</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Parmi les éléments suivants, quel est celui ou quels sont ceux qui sont des facteurs de risque accru du cancer du col de l’utérus ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Précocité des rapports sexuels</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Ménopause tardive</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Infection HPV</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Partenaires multiples</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Ménarche précoce</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Pour quelles localisations de cancer un dépistage est recommandé en population générale ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Cancer du col utérin</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Cancer de l’ovaire</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Cancer du sein</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Cancer de l’endomètre</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Cancer du larynx</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Quelle est la fréquence recommandée pour faire le dépistage de masse du cancer Sein ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- 1 fois tous les 6 mois</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- 1 fois par an</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- 1 fois tous les 2 ans</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- 1 fois tous les 5 ans</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- 1 fois tous les 10 ans</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Colonoscope dans le cancer du côlon permet</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- De déterminer le siège de la lésion</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- De rechercher une deuxième localisation</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- De mesurer la hauteur de la lésion</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- De détecter des ganglions</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- De faire des biopsies</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Le bilan d'extension d'un cancer du sein évolué repose sur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Un examen clinique complet</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Échographie</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Le couple mammographie-échographie</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Scanner thoraco-abdomino-pelvien</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- La scintigraphie osseuse</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Le bilan d'extension locorégional d'un cancer de la langue repose sur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Un examen clinique de la cavité buccale</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- IRM de la face</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Scanner thoraco-abdomino-pelvien</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Pan endoscopie</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Un examen des ganglions cervicaux et sus claviculaires</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Le bilan d'extension métastatique d'un cancer du poumon repose sur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- PET scanner</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Bronchoscopie et biopsie</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- IRM cérébrale</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Exploration fonctionnelle respiratoire</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Examen clinique complet</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Les différentes classes de chimiothérapies sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Inhibiteurs de la mitose</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Antiangiogéniques</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Antityrosine kinase</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Intercalants</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- anticorps monoclonaux</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Toxicité de la chimiothérapie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Peut nécessiter une réduction de dose ou espacement entre les cures</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Sont d’ordre générales et spécifiques</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Souvent réversible</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Nécessite toujours une hospitalisation</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Dépend du type de chimiothérapie administrée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) La néphrotoxicité de la chimiothérapie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Est en rapport avec une nécrose glomérulaire</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Est une complication non spécifique</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Est souvent réversible</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Se manifeste par une insuffisance rénale</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Est liée aux sels de platine</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Les Conditions nécessaires à la chimiothérapie sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- La Mise en place d'une chambre implantable</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Une numération formule sanguine avant chaque cure</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Bon état général</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Conservation de sperme chez le sujet jeune</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Une hospitalisation</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Neutropénie fébrile post chimiothérapie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Est fréquente</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Nécessite une hospitalisation en soins intensifs en cas de neutropénie majeure</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Nécessite un bilan bactériologique complet</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Nécessite toujours une antibiothérapie</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Est une des complications spécifiques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Toxicité cardiaque :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Dominée par les cardiomyopathies</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Complication irréversible</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Se voit pour des doses cumulatives d’anthracyclines supérieur à 450mg/m2</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Complication non spécifique</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Doit être contrôlée par une échographie cardiaque systématique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Les anticorps monoclonaux :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Sont des thérapies ciblées dirigées contre des cibles moléculaires</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Sont prescrits en ambulatoire</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Sont administrés par voie parentérale</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- Peuvent être responsable d'allergie</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Très bien tolérés</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Quels sont les 2 examens à réaliser en 1ère intention devant une suspicion d'un cancer du sein ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Dosage des marqueurs tumoraux sériques</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Examen clinique complet des 2 seins</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- IRM mammaire</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Radiographie thoracique de face et de profil</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Mammographie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) À quelle famille de médicaments appartiennent les sels de platine ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Stabilisateur du fuseau</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Antagoniste de la LHRH</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Anti-métabolite</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Inhibiteur de la biosynthèse des androgènes</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Inhibiteur de la topo-isomérase I</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Pour quelles localisations de cancer chez l'homme un dépistage est recommandé en population générale ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Cancer du colon</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Cancer de la vessie</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Cancer de la prostate</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Cancer de la thyroïde</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Cancer du larynx</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Les deux examens de référence pour le bilan d'extension du cancer du côlon est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Radiographie thoracique</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Colonoscopie</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Le scanner hépatique</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Le scanner thoraco-abdomino-pelvien</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- IRM cérébrale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Les 3 cancers les plus fréquents chez l'homme sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- Cancer du colon</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- Cancer de la prostate</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- Cancer estomac</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- Cancer de la thyroïde</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- Cancer du poumon</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) Le diagnostic de cancer est confirmé sur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- Une biopsie</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- Marqueur tumoral</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Scanner</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- IRM</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- PET scanner</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) Les 3 principales voies de dissémination des cancers sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- Voie péritonéale</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- Voie lymphatique</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- Voie cutanée</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- Voie locorégionale par contiguïté</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- Voie hématogène</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) Les 2 principaux sites de métastases des cancers sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- Os</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- Foie</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- Cerveau</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- Poumon</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- Peau</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) Les indicateurs de morbidité sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- La fréquence</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- Déterminés par des études analytiques</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- Prévalence</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- Taux de mortalité</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- Incidence</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) La douleur par excès de nociception se caractérise par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- La présence d'une lésion neurologique</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- L'examen clinique retrouve des troubles de la sensibilité</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- Un fond douloureux continu</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- Un rythme mécanique ou inflammatoire</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- Une topographie régionale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) La douleur aigue au cours du cancer peut être due :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A- La colique néphrétique</li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B- La compression médullaire</li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C- La mucite chimio-induite</li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D- La polyarthrite rhumatoïde</li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E- Les prélèvements sanguins</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) Les avantages du traitement de la douleur sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A- Entretenir la dépendance du patient vis-à-vis de son entourage</li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B- Retarder la prise en charge du cancer</li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C- Retrouver le sommeil</li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D- Retrouver un environnement familial</li>
+            
+                    <li><input type="checkbox" id="q33e" name="q33" value="E"> E- Retrouver une certaine activité</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) La radiothérapie à visée curative :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A- Est utilisée dans les formes localisées sans métastases</li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B- Est utilisée dans les formes localement avancées sans métastases</li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C- Est hémostatique</li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D- Est Symptomatique</li>
+            
+                    <li><input type="checkbox" id="q34e" name="q34" value="E"> E- Est décompressive</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) La radiothérapie externe :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A- Nécessite l'hospitalisation des malades</li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B- Nécessite une anesthésie à chaque séance pour tous les malades</li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C- Peut-être interstitielle</li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D- Utilise des sources radioactives situées à l'extérieur du malade</li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E- Utilise des sources placées dans la tumeur</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-36" class="question-container">
+            <div class="question">
+                <p>36.) La réalisation pratique de la radiothérapie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q36a" name="q36" value="A"> A- Nécessite la confirmation anatomopathologique du cancer</li>
+            
+                    <li><input type="checkbox" id="q36b" name="q36" value="B"> B- Se fait avant les résultats du bilan d'extension</li>
+            
+                    <li><input type="checkbox" id="q36c" name="q36" value="C"> C- Se fait avant la cicatrisation de la plaie opératoire</li>
+            
+                    <li><input type="checkbox" id="q36d" name="q36" value="D"> D- Nécessite la réalisation de la NFS en cas d'une irradiation localisée</li>
+            
+                    <li><input type="checkbox" id="q36e" name="q36" value="E"> E- Nécessite la réalisation de la consultation de stomatologie systématique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-37" class="question-container">
+            <div class="question">
+                <p>37.) La curiethérapie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q37a" name="q37" value="A"> A- Nécessite l'anesthésie</li>
+            
+                    <li><input type="checkbox" id="q37b" name="q37" value="B"> B- Nécessite l'accessibilité de la tumeur</li>
+            
+                    <li><input type="checkbox" id="q37c" name="q37" value="C"> C- Respecte les tissus sains</li>
+            
+                    <li><input type="checkbox" id="q37d" name="q37" value="D"> D- S'adresse à des tumeurs < 4 cm</li>
+            
+                    <li><input type="checkbox" id="q37e" name="q37" value="E"> E- Traite la tumeur et des aires ganglionnaires</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-38" class="question-container">
+            <div class="question">
+                <p>38.) L'hormonothérapie inhibitrices dans les cancers du sein et de la prostate :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q38a" name="q38" value="A"> A- Repose sur les anti-aromatases de 3ème génération chez la femme</li>
+            
+                    <li><input type="checkbox" id="q38b" name="q38" value="B"> B- Repose sur l'Abiratérone chez l'homme</li>
+            
+                    <li><input type="checkbox" id="q38c" name="q38" value="C"> C- Induit une ostéoporose chez la femme non ménopausée</li>
+            
+                    <li><input type="checkbox" id="q38d" name="q38" value="D"> D- Induit des arthralgies chez la femme</li>
+            
+                    <li><input type="checkbox" id="q38e" name="q38" value="E"> E- Nécessite des corticoïdes en supplémentation chez l'homme avec l'Abiratérone</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S7" "Cancerologie_Hematologie" "OC2019" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['D'],
+    q2: ['B', 'C', 'E'],
+    q3: ['A', 'B', 'E'],
+    q4: ['A', 'C', 'D', 'E'],
+    q5: ['A', 'C', 'D'],
+    q6: ['B'],
+    q7: ['A', 'C', 'E'],
+    q8: ['A', 'C', 'D'],
+    q9: ['A', 'C'],
+    q10: ['C'],
+    q11: ['A', 'B', 'C', 'E'],
+    q12: ['A', 'C', 'D', 'E'],
+    q13: ['A', 'B', 'D', 'E'],
+    q14: ['A', 'C', 'E'],
+    q15: ['A', 'D'],
+    q16: ['A', 'B', 'C', 'E'],
+    q17: ['A', 'D', 'E'],
+    q18: ['A', 'B', 'C', 'D'],
+    q19: ['B', 'C', 'D'],
+    q20: ['A', 'B', 'C', 'E'],
+    q21: ['A', 'B', 'C', 'D', 'E'],
+    q22: ['B', 'E'],
+    q23: ['E'],
+    q24: ['A', 'C'],
+    q25: ['A', 'D'],
+    q26: ['A', 'B', 'E'],
+    q27: ['A'],
+    q28: ['B', 'D', 'E'],
+    q29: ['B', 'D'],
+    q30: ['A', 'C', 'E'],
+    q31: ['D', 'E'],
+    q32: ['B', 'D', 'E'],
+    q33: ['C', 'D', 'E'],
+    q34: ['A'],
+    q35: ['D'],
+    q36: ['A'],
+    q37: ['A', 'B', 'C', 'D'],
+    q38: ['A', 'B', 'D', 'E'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersOC2019'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Pediatrie</h1>
+            </div>
+            <form id="quiz-form">
+                <input type="hidden" id='exam_name' name="exam_name" value="Pd2021">
+    {% csrf_token %}>
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) A propos des règles de nutrition chez le nourrisson :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Alimentation exclusivement lactée les 6 premiers mois</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- La soupe de légume doit être introduite après 9 mois</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Les laits de croissances sont introduits dès l’âge de 12 mois</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- La diversification alimentaire est conseillée à partir de l’âge de 6 mois</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Les protéines animales sont proscrites pendant la 1ère année</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) La puberté précoce est caractérisée par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Définit par apparition des caractères sexuels secondaires avant l’âge de 8 ans chez la fille</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Est souvent d’origine idiopathique chez la fille</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Elle entraine un risque de petite taille finale</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Une IRM hypothalamo-hypophysaire est demandée si cause périphérique est suspectée</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Seule la réponse A est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Le retard statural est caractérisé par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Est définit par une taille inférieure à – 2 déviations standards (DS)</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Un décalage par rapport à la taille cible parentale d’au moins 4 DS</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Une pathologie chronique est à éliminer</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Une cause centrale est à rechercher en cas de syndrome d’hypertension intracrânienne</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Aucune réponse n’est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Une fièvre aigue chez l’enfant :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Se définit par une température supérieure à 37°C depuis moins de 5 jours chez le nourrisson</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Se définit par une température supérieure à 37°C depuis plus de 7 jours chez l’enfant</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Se définit par une température supérieure à 37°C depuis plus de 5 jours chez le nourrisson</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Se définit par une température supérieure à 37°C depuis moins de 7 jours chez l’enfant</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Aucune de ces propositions</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) A propos des étiologies des polyarthralgies de l’enfant :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Le RAA est à évoquer devant des polyarthrites migratrices et à traiter systématiquement par les corticoïdes</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- La leucémie aigue est à évoquer systématiquement devant des polyarthralgies insomniantes avec altération de l’état général</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- La maladie de Fabry est une cause possible de polyarthralgie et relève d’un traitement enzymatique substitutif</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- L’arthrite juvénile idiopathique dans sa forme systémique associe un syndrome tumoral, une fièvre et des polyarthrites évoluant depuis au moins 6 semaines</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Les polyarthralgies est une des manifestations extradigestives de la maladie de Crohn</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Quels sont les diagnostics les plus probables ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Thalassémie</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Leucémie aigue lymphoblastique</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Aplasie médullaire</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Drépanocytose</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Anémie par carence martiale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Quels bilans faites-vous pour avancer dans votre raisonnement diagnostic ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Ferritine sanguine</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Myélogramme</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Electrophorèse de l’hémoglobine</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- CRP</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Bilan hépatique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Quel est votre diagnostic le plus probable ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Thalassémie</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Leucémie aigue lymphoblastique</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Aplasie médullaire</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Drépanocytose</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Anémie par carence martiale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Quelles sont les possibilités thérapeutiques que vous allez expliquer aux parents de Ali ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Traitement transfusionnel</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Traitement chélateur de fer</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- La splénectomie</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- L’allogreffe de cellules souches hématopoïétiques</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- L’hydroxyurée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Les syndromes thalassémiques sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Des maladies héréditaires de l’hémoglobine</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Une diminution ou l’absence de production de l’une des chaînes de globine normales</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Caractérisés d’une baisse de production de l’hémoglobine normale</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Le diagnostic est évoqué sur des arguments cliniques et confirmé par l’électrophorèse de l’hémoglobine</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Aucune réponse n’est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Quel est le diagnostic compatible ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Epilepsie myoclonique bénigne du nourrisson</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Spasme de sanglot</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Convulsions néonatales idiopathique bénignes</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Syndrome de West</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Epilepsie absence</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Quel(s) examen(s) réalisez-vous pour confirmer votre diagnostic ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Electromyogramme (EMG)</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Electroencéphalogramme (EEG)</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Biopsie musculaire</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Polysomnographie</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- IRM musculaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Quels sont les anomalies attendues à l’examen demandé ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Ondes lentes et pointes lentes diffuses, asynchrone</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Désorganisation du tracé de fond</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Hypsarythmie</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Bouffées de pointes ondes, généralisées, synchrones à 3 Hz</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Pointes Centro-temporales sur fond normal</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Quelles pathologies peuvent être en cause de cette maladie ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Trisomie 21</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Sclérose tubéreuse de Bourneville</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Séquelles d’anoxie ischémie périnatale</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Malformations cérébrales</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Phénylcétonurie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Le traitement fait appel à :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Abstention thérapeutique</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Antibiothérapies</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Régime sans gluten</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Vigabatrin</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Corticothérapie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Quel est le diagnostic le plus probable ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Infection urinaire</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Invagination intestinale</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Appendicite aigue</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Gastroentérite bactérienne</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Gastroentérite virale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Zaid a :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Déshydratation tableau C</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Déshydratation tableau B</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Choc hypovolémique</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Tableau de méningite</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Aucune réponse n’est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Sa prise en charge consiste en :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Traitement en ambulatoire</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Hospitalisation nécessaire</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Réhydratation intraveineuse</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Antibiothérapie après bilan infectieux</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Remplissage massif par le sérum salé</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) La surveillance de Zaid sous traitement est basée sur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Surveillance des pertes digestives</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Surveillance des signes de déshydratation</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Surveillance de la saturation</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Surveillance de la diurèse</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Seule la réponse C est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Quels sont vos hypothèses diagnostiques parmi les propositions suivantes ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- RAA</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Arthrite chronique juvénile dans sa forme oligoarticulaire</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Arthrite septique</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Maladies de Fabry</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Leucémie aigue</li>
+            
+                    <li><input type="checkbox" id="q20f" name="q20" value="F"> F- Purpura rhumatoïde</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Parmi les examens complémentaires, quel est le premier à demander chez cette patiente ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Bilan rénal</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Echocardiographie</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Ponction articulaire</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- IRM genou</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Scintigraphie osseuse</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Sachant que cet examen a éliminé une origine infectieuse, quels sont les autres examens complémentaires à demander parmi les suivants ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- NFS</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- VS</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Examen ophtalmologique</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Anticorps anti nucléaires</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Protéinurie de 24h</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Une fois votre diagnostic retenu, quelles sont les possibilités thérapeutiques ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Antipyrétiques</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- AINS</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Corticoïdes locaux en infiltration</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Corticoïdes par voie générale</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Antibiotiques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Le pronostic est lié à l’atteinte :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Cardiaque</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Rénale</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Neurologique</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Multiviscérale</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Oculaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) A ce stade quel est le diagnostic le plus probable ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Staphylococcie pleuropulmonaire</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Pneumonie bactérienne pyogène</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Une tuberculose pulmonaire</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Kyste hydatique pulmonaire</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Abcès pulmonaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Comment confirmer le diagnostic ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- Hémoculture</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- BK tubages</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- IDR à la tuberculine/Quantiferan</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- Sérologie hydatique</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- TDM thoracique/Bronchoscopie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) Quelle est votre conduite thérapeutique ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- Traitement antibiotique à large spectre</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- Traitement anti bacillaire 2RH/4RH pendant 6 mois</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Drainage pleural</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Corticothérapie orale</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- Traitement antiparasitaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) Quels sont parmi les arguments suivants ceux ayant permis au médecin de retenir le diagnostic de DHA sévère ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- Le fait qu’il ne soit plus nourri au sein</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- La durée de la diarrhée d’une semaine</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- Les yeux enfoncés</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- La capacité à boire</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- Le pli cutané persistant</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) Quelle conduite préconiser chez Rahma ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- L’antibiothérapie</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- Un antiparasitaire</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- La réhydratation par voie intraveineuse</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- La supplémentation en zinc</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- Un antipéristaltique intestinal</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) Devant quels signes parmi les suivants Rahma doit revenir immédiatement vers son médecin ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- L’apparition de la fièvre</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- L’apparition du sang dans les selles</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- L’apparition de vomissements incoercibles</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- La persistance de la diarrhée</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- L’incapacité à s’alimenter</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+
+            
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S5" "Radiologie" "Rd2022" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+                
+            <script>
+const correctAnswers = {
+    q1: ['A', 'C', 'D'],
+    q2: ['A', 'B', 'C'],
+    q3: ['A', 'C', 'D'],
+    q4: ['B', 'C'],
+    q5: ['B', 'C', 'D', 'E'],
+    q6: ['A', 'B'],
+    q7: ['A', 'C'],
+    q8: ['A'],
+    q9: ['A', 'B', 'C', 'D', 'E'],
+    q10: ['D', 'E'],
+    q11: ['D'],
+    q12: ['B'],
+    q13: ['B', 'C', 'D'],
+    q14: ['A', 'B', 'D'],
+    q15: ['B', 'C', 'D'],
+    q16: ['C'],
+    q17: ['A', 'B', 'C', 'D'],
+    q18: ['A', 'B', 'C'],
+    q19: ['E'],
+    q20: ['C'],
+    q21: ['B', 'C', 'E'],
+    q22: ['B'],
+    q23: ['C', 'E'],
+    q24: ['C', 'D'],
+    q25: ['A', 'B', 'C', 'E'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersRd2022'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

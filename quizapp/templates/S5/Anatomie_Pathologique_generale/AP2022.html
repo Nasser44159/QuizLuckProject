@@ -1,0 +1,2075 @@
+<!DOCTYPE html>
+{% load static %}
+
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'css/stylequiz.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+
+</head>
+<body>
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+
+    <div id="content">
+
+         <div class="quiz-title">
+            <h1>
+Anatomie Pathologique 2022</h1>
+         </div>
+         <form id="quiz-form">
+    <input type="hidden" id='exam_name' name="exam_name" value="AP2022">
+    {% csrf_token %}
+            <div class="question-container" id="question-1">
+               <div class="question">
+                  <p> 1.) Concernant les acini et canaux galactophoriques du parenchyme mammaire : </p>
+                  <ul>
+                     <li>
+                        <input id="q1a" name="q1" type="checkbox" value="A" /> A- Sont bordés par une double couche épithéliale et myoépithéliale </li>
+                     <li>
+                        <input id="q1b" name="q1" type="checkbox" value="B" /> B- Les cellules myoépithéliales sont actine muscle lisse +, calponin + et P63 + </li>
+                     <li>
+                        <input id="q1c" name="q1" type="checkbox" value="C" /> C- Les cellules épithéliales sont cytokératine + </li>
+                     <li>
+                        <input id="q1d" name="q1" type="checkbox" value="D" /> D- Les cellules épithéliales sont des cellules sécrétantes </li>
+                     <li>
+                        <input id="q1e" name="q1" type="checkbox" value="E" /> E- Le cancer infiltrant est caractérisé par une disparition de la couche myoépithéliale </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q1')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q1')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="1"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_1" onclick="toggleCommentSection('AP2022_1', event)"> 💬 <span class="badge" data-comment-id="AP2022_1">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-2">
+               <div class="question">
+                  <p> 2.) Parmi les carcinomes du sein : </p>
+                  <ul>
+                     <li>
+                        <input id="q2a" name="q2" type="checkbox" value="A" /> A- Le sarcome phyllode </li>
+                     <li>
+                        <input id="q2b" name="q2" type="checkbox" value="B" /> B- Le carcinome canalaire infiltrant </li>
+                     <li>
+                        <input id="q2c" name="q2" type="checkbox" value="C" /> C- Le carcinome lobulaire infiltrant </li>
+                     <li>
+                        <input id="q2d" name="q2" type="checkbox" value="D" /> D- Le carcinome canalaire in situ </li>
+                     <li>
+                        <input id="q2e" name="q2" type="checkbox" value="E" /> E- L’adénofibrome </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q2')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q2')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="2"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_2" onclick="toggleCommentSection('AP2022_2', event)"> 💬 <span class="badge" data-comment-id="AP2022_2">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-3">
+               <div class="question">
+                  <p> 3.) Le grade histopronostique SBR du cancer du sein est basé sur : </p>
+                  <ul>
+                     <li>
+                        <input id="q3a" name="q3" type="checkbox" value="A" /> A- Trois critères histologiques cotés de 1 à 3 </li>
+                     <li>
+                        <input id="q3b" name="q3" type="checkbox" value="B" /> B- Différentiation glandulaire (formation de tubules) </li>
+                     <li>
+                        <input id="q3c" name="q3" type="checkbox" value="C" /> C- Degré de pléomorphisme nucléaire </li>
+                     <li>
+                        <input id="q3d" name="q3" type="checkbox" value="D" /> D- Compte des mitoses (nombre de mitoses par dix champs au fort grossissement) </li>
+                     <li>
+                        <input id="q3e" name="q3" type="checkbox" value="E" /> E- L’état des limites chirurgicales </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q3')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q3')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="3"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_3" onclick="toggleCommentSection('AP2022_3', event)"> 💬 <span class="badge" data-comment-id="AP2022_3">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-4">
+               <div class="question">
+                  <p> 4.) Les tumeurs mammaires HER 2 + : </p>
+                  <ul>
+                     <li>
+                        <input id="q4a" name="q4" type="checkbox" value="A" /> A- Sont de mauvais pronostic </li>
+                     <li>
+                        <input id="q4b" name="q4" type="checkbox" value="B" /> B- Sont de bon pronostic </li>
+                     <li>
+                        <input id="q4c" name="q4" type="checkbox" value="C" /> C- Sont caractérisées par un taux de récidive élevé </li>
+                     <li>
+                        <input id="q4d" name="q4" type="checkbox" value="D" /> D- Peuvent bénéficier d’un traitement au trastuzumab (Herceptin) </li>
+                     <li>
+                        <input id="q4e" name="q4" type="checkbox" value="E" /> E- Doivent bénéficier obligatoirement d’un traitement hormonal </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q4')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q4')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="4"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_4" onclick="toggleCommentSection('AP2022_4', event)"> 💬 <span class="badge" data-comment-id="AP2022_4">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-5">
+               <div class="question">
+                  <p> 5.) Les koïlocytes : </p>
+                  <ul>
+                     <li>
+                        <input id="q5a" name="q5" type="checkbox" value="A" /> A- Sont des cellules cancéreuses </li>
+                     <li>
+                        <input id="q5b" name="q5" type="checkbox" value="B" /> B- Témoignent d’une infection virale à HPV </li>
+                     <li>
+                        <input id="q5c" name="q5" type="checkbox" value="C" /> C- Doivent faire rechercher des foyers de CIN 2 </li>
+                     <li>
+                        <input id="q5d" name="q5" type="checkbox" value="D" /> D- Sont caractérisés par un noyau entouré par un halo clair </li>
+                     <li>
+                        <input id="q5e" name="q5" type="checkbox" value="E" /> E- Sont parfois binucléés </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q5')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q5')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="5"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_5" onclick="toggleCommentSection('AP2022_5', event)"> 💬 <span class="badge" data-comment-id="AP2022_5">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-6">
+               <div class="question">
+                  <p> 6.) Le carcinome épidermoïde micro invasif du col utérin : </p>
+                  <ul>
+                     <li>
+                        <input id="q6a" name="q6" type="checkbox" value="A" /> A- Est diagnostiqué lors de l’examen clinique </li>
+                     <li>
+                        <input id="q6b" name="q6" type="checkbox" value="B" /> B- Est équivalent de CIN 3 </li>
+                     <li>
+                        <input id="q6c" name="q6" type="checkbox" value="C" /> C- Présente un faible potentiel métastatique </li>
+                     <li>
+                        <input id="q6d" name="q6" type="checkbox" value="D" /> D- Est l’équivalent d’un carcinome in situ </li>
+                     <li>
+                        <input id="q6e" name="q6" type="checkbox" value="E" /> E- Est caractérisé par une invasion de 3 à 5 mm de profondeur et moins de 7mm en surface </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q6')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q6')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="6"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_6" onclick="toggleCommentSection('AP2022_6', event)"> 💬 <span class="badge" data-comment-id="AP2022_6">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-7">
+               <div class="question">
+                  <p> 7.) Les tumeurs du revêtement épithélial de surface de l’ovaire sont classées en : </p>
+                  <ul>
+                     <li>
+                        <input id="q7a" name="q7" type="checkbox" value="A" /> A- Tumeurs séreuses </li>
+                     <li>
+                        <input id="q7b" name="q7" type="checkbox" value="B" /> B- Tumeurs mucineuses </li>
+                     <li>
+                        <input id="q7c" name="q7" type="checkbox" value="C" /> C- Tumeurs endométrioïdes </li>
+                     <li>
+                        <input id="q7d" name="q7" type="checkbox" value="D" /> D- Tumeurs à cellules claires </li>
+                     <li>
+                        <input id="q7e" name="q7" type="checkbox" value="E" /> E- Tumeurs indifférenciées </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q7')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q7')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="7"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_7" onclick="toggleCommentSection('AP2022_7', event)"> 💬 <span class="badge" data-comment-id="AP2022_7">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-8">
+               <div class="question">
+                  <p> 8.) Parmi les tumeurs germinales ovariennes on distingue : </p>
+                  <ul>
+                     <li>
+                        <input id="q8a" name="q8" type="checkbox" value="A" /> A- Tératome </li>
+                     <li>
+                        <input id="q8b" name="q8" type="checkbox" value="B" /> B- Dysgerminome ou séminome </li>
+                     <li>
+                        <input id="q8c" name="q8" type="checkbox" value="C" /> C- Tumeur du sac vitellin (Tumeur du sinus endodermique) </li>
+                     <li>
+                        <input id="q8d" name="q8" type="checkbox" value="D" /> D- Carcinome embryonnaire </li>
+                     <li>
+                        <input id="q8e" name="q8" type="checkbox" value="E" /> E- Choriocarcinome </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q8')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q8')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="8"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_8" onclick="toggleCommentSection('AP2022_8', event)"> 💬 <span class="badge" data-comment-id="AP2022_8">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-9">
+               <div class="question">
+                  <p> 9.) Les implants tumoraux péritonéaux dans les tumeurs séreuses bordelines de l’ovaire : </p>
+                  <ul>
+                     <li>
+                        <input id="q9a" name="q9" type="checkbox" value="A" /> A- Peuvent être non invasifs </li>
+                     <li>
+                        <input id="q9b" name="q9" type="checkbox" value="B" /> B- Peuvent être invasifs </li>
+                     <li>
+                        <input id="q9c" name="q9" type="checkbox" value="C" /> C- Correspondent à des formations papillaires à la surface du péritoine </li>
+                     <li>
+                        <input id="q9d" name="q9" type="checkbox" value="D" /> D- Sont présents dans 20 à 40% des cas </li>
+                     <li>
+                        <input id="q9e" name="q9" type="checkbox" value="E" /> E- La présence d’implants invasifs nécessite une chimiothérapie adjuvante </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q9')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q9')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="9"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_9" onclick="toggleCommentSection('AP2022_9', event)"> 💬 <span class="badge" data-comment-id="AP2022_9">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-10">
+               <div class="question">
+                  <p> 10.) Sur le plan microscopique, le cystadénocarcinome séreux de l’ovaire est caractérisé par : </p>
+                  <ul>
+                     <li>
+                        <input id="q10a" name="q10" type="checkbox" value="A" /> A- Architecture glandulaire, papillaire ou solide </li>
+                     <li>
+                        <input id="q10b" name="q10" type="checkbox" value="B" /> B- Atypies cytonucléaires marquées </li>
+                     <li>
+                        <input id="q10c" name="q10" type="checkbox" value="C" /> C- Mitoses souvent très nombreuses </li>
+                     <li>
+                        <input id="q10d" name="q10" type="checkbox" value="D" /> D- Invasion du stroma </li>
+                     <li>
+                        <input id="q10e" name="q10" type="checkbox" value="E" /> E- Présence parfois de psammomes </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q10')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q10')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="10"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_10" onclick="toggleCommentSection('AP2022_10', event)"> 💬 <span class="badge" data-comment-id="AP2022_10">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-11">
+               <div class="question">
+                  <p> 11.) L’adénocarcinome acinaire prostatique : </p>
+                  <ul>
+                     <li>
+                        <input id="q11a" name="q11" type="checkbox" value="A" /> A- Est la tumeur la plus fréquente de la prostate </li>
+                     <li>
+                        <input id="q11b" name="q11" type="checkbox" value="B" /> B- Elle représente plus de 90% des tumeurs épithéliales </li>
+                     <li>
+                        <input id="q11c" name="q11" type="checkbox" value="C" /> C- Elle peut intéresser n’importe quelle région de la glande prostatique </li>
+                     <li>
+                        <input id="q11d" name="q11" type="checkbox" value="D" /> D- La zone périphérique est la plus touchée dans 68% des cas </li>
+                     <li>
+                        <input id="q11e" name="q11" type="checkbox" value="E" /> E- Est très fréquemment multifocal, dans plus de 50% des cas </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q11')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q11')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="11"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_11" onclick="toggleCommentSection('AP2022_11', event)"> 💬 <span class="badge" data-comment-id="AP2022_11">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-12">
+               <div class="question">
+                  <p> 12.) Le système de grading utilisé dans le cancer de la prostate : </p>
+                  <ul>
+                     <li>
+                        <input id="q12a" name="q12" type="checkbox" value="A" /> A- Est le grade de Gleason </li>
+                     <li>
+                        <input id="q12b" name="q12" type="checkbox" value="B" /> B- Comprend une échelle de 1 à 5 en fonction de l’architecture de la tumeur </li>
+                     <li>
+                        <input id="q12c" name="q12" type="checkbox" value="C" /> C- Est la somme des deux grades les plus représentés </li>
+                     <li>
+                        <input id="q12d" name="q12" type="checkbox" value="D" /> D- Le score varie de 6 à 10 </li>
+                     <li>
+                        <input id="q12e" name="q12" type="checkbox" value="E" /> E- Ne retient que les anomalies architecturales, sans évaluation des anomalies cytologiques </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q12')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q12')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="12"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_12" onclick="toggleCommentSection('AP2022_12', event)"> 💬 <span class="badge" data-comment-id="AP2022_12">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-13">
+               <div class="question">
+                  <p> 13.) Parmi les facteurs histopronostiques du cancer de la prostate : </p>
+                  <ul>
+                     <li>
+                        <input id="q13a" name="q13" type="checkbox" value="A" /> A- Le grade histologique </li>
+                     <li>
+                        <input id="q13b" name="q13" type="checkbox" value="B" /> B- Le score de Gleason </li>
+                     <li>
+                        <input id="q13c" name="q13" type="checkbox" value="C" /> C- Le stade TNM </li>
+                     <li>
+                        <input id="q13d" name="q13" type="checkbox" value="D" /> D- Le stade pTNM </li>
+                     <li>
+                        <input id="q13e" name="q13" type="checkbox" value="E" /> E- L’état des marges de résection chirurgicale </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q13')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q13')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="13"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_13" onclick="toggleCommentSection('AP2022_13', event)"> 💬 <span class="badge" data-comment-id="AP2022_13">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-14">
+               <div class="question">
+                  <p> 14.) Les tumeurs vésicales les plus fréquentes sont représentées par : </p>
+                  <ul>
+                     <li>
+                        <input id="q14a" name="q14" type="checkbox" value="A" /> A- Les tumeurs urothéliales </li>
+                     <li>
+                        <input id="q14b" name="q14" type="checkbox" value="B" /> B- Les tumeurs malpighiennes </li>
+                     <li>
+                        <input id="q14c" name="q14" type="checkbox" value="C" /> C- Tumeurs glandulaires </li>
+                     <li>
+                        <input id="q14d" name="q14" type="checkbox" value="D" /> D- Tumeurs mélanocytaires </li>
+                     <li>
+                        <input id="q14e" name="q14" type="checkbox" value="E" /> E- Tumeurs neuroendocrines </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q14')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q14')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="14"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_14" onclick="toggleCommentSection('AP2022_14', event)"> 💬 <span class="badge" data-comment-id="AP2022_14">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-15">
+               <div class="question">
+                  <p> 15.) Dans la classification OMS 2016 les lésions urothéliales non invasives sont représentées par : </p>
+                  <ul>
+                     <li>
+                        <input id="q15a" name="q15" type="checkbox" value="A" /> A- Carcinome urothélial in situ </li>
+                     <li>
+                        <input id="q15b" name="q15" type="checkbox" value="B" /> B- Carcinome urothélial papillaire non infiltrant de bas grade </li>
+                     <li>
+                        <input id="q15c" name="q15" type="checkbox" value="C" /> C- Carcinome urothélial papillaire non infiltrant de haut grade </li>
+                     <li>
+                        <input id="q15d" name="q15" type="checkbox" value="D" /> D- Néoplasie urothéliale papillaire de faible potentiel de malignité </li>
+                     <li>
+                        <input id="q15e" name="q15" type="checkbox" value="E" /> E- Prolifération urothéliale de potentiel de malignité incertain </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q15')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q15')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="15"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_15" onclick="toggleCommentSection('AP2022_15', event)"> 💬 <span class="badge" data-comment-id="AP2022_15">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-16">
+               <div class="question">
+                  <p> 16.) Parmi les facteurs histopronostiques du cancer de la vessie : </p>
+                  <ul>
+                     <li>
+                        <input id="q16a" name="q16" type="checkbox" value="A" /> A- Le stade TNM </li>
+                     <li>
+                        <input id="q16b" name="q16" type="checkbox" value="B" /> B- Le grade : surtout déterminant pour les tumeurs pTa et pT1 </li>
+                     <li>
+                        <input id="q16c" name="q16" type="checkbox" value="C" /> C- La présence de carcinome in situ </li>
+                     <li>
+                        <input id="q16d" name="q16" type="checkbox" value="D" /> D- Les emboles vasculaires </li>
+                     <li>
+                        <input id="q16e" name="q16" type="checkbox" value="E" /> E- La variante histologique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q16')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q16')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="16"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_16" onclick="toggleCommentSection('AP2022_16', event)"> 💬 <span class="badge" data-comment-id="AP2022_16">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-17">
+               <div class="question">
+                  <p> 17.) Quels sont les intérêts des biopsies des tumeurs pulmonaires ? </p>
+                  <ul>
+                     <li>
+                        <input id="q17a" name="q17" type="checkbox" value="A" /> A- Préciser le type histologique dans le cas d’une tumeur maligne uniquement sur l’aspect histologique </li>
+                     <li>
+                        <input id="q17b" name="q17" type="checkbox" value="B" /> B- Préciser le type histologique dans le cas d’une tumeur maligne sur l’aspect histologique et/ou immunohistochimique. </li>
+                     <li>
+                        <input id="q17c" name="q17" type="checkbox" value="C" /> C- La qualité de fixation représente une des limites d’analyser les biopsies </li>
+                     <li>
+                        <input id="q17d" name="q17" type="checkbox" value="D" /> D- Le matériel tumorale suffit rarement des limites d’analyser les biopsies </li>
+                     <li>
+                        <input id="q17e" name="q17" type="checkbox" value="E" /> E- Présenter du matériel pour analyse de biologie moléculaire </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q17')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q17')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="17"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_17" onclick="toggleCommentSection('AP2022_17', event)"> 💬 <span class="badge" data-comment-id="AP2022_17">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-18">
+               <div class="question">
+                  <p> 18.) Quels sont les principes de prise en charge macroscopique des pièces chirurgicales dans le cancer pulmonaire ? </p>
+                  <ul>
+                     <li>
+                        <input id="q18a" name="q18" type="checkbox" value="A" /> A- Orienter, mesurer, photographier </li>
+                     <li>
+                        <input id="q18b" name="q18" type="checkbox" value="B" /> B- Réaliser des prélèvements après fixation dans l’alcool 24 à 48h. </li>
+                     <li>
+                        <input id="q18c" name="q18" type="checkbox" value="C" /> C- Réaliser des prélèvements après fixation dans le formol tamponné 6h à 12H </li>
+                     <li>
+                        <input id="q18d" name="q18" type="checkbox" value="D" /> D- Les prélèvements réalisés intéressent la tumeur uniquement </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q18')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q18')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="18"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_18" onclick="toggleCommentSection('AP2022_18', event)"> 💬 <span class="badge" data-comment-id="AP2022_18">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-19">
+               <div class="question">
+                  <p> 19.) Quelles sont les entités histologiques de la classification des tumeurs pulmonaires primitives ? </p>
+                  <ul>
+                     <li>
+                        <input id="q19a" name="q19" type="checkbox" value="A" /> A- Le carcinome à petite cellule </li>
+                     <li>
+                        <input id="q19b" name="q19" type="checkbox" value="B" /> B- Le carcinome épidermoïde </li>
+                     <li>
+                        <input id="q19c" name="q19" type="checkbox" value="C" /> C- Le carcinome neuroendocrine à petite cellule </li>
+                     <li>
+                        <input id="q19d" name="q19" type="checkbox" value="D" /> D- Le carcinome métaplasique </li>
+                     <li>
+                        <input id="q19e" name="q19" type="checkbox" value="E" /> E- Les lymphomes </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q19')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q19')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="19"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_19" onclick="toggleCommentSection('AP2022_19', event)"> 💬 <span class="badge" data-comment-id="AP2022_19">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-20">
+               <div class="question">
+                  <p> 20.) Quelles sont les aspects anatomopathologiques des adénocarcinomes pulmonaires primitifs ? </p>
+                  <ul>
+                     <li>
+                        <input id="q20a" name="q20" type="checkbox" value="A" /> A- Une production de la kératine </li>
+                     <li>
+                        <input id="q20b" name="q20" type="checkbox" value="B" /> B- Présence de ponts d’union </li>
+                     <li>
+                        <input id="q20c" name="q20" type="checkbox" value="C" /> C- Production de mucine </li>
+                     <li>
+                        <input id="q20d" name="q20" type="checkbox" value="D" /> D- Une expression immunohistochimique du TTF1 </li>
+                     <li>
+                        <input id="q20e" name="q20" type="checkbox" value="E" /> E- Une expression immunohistochimique de p40 </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q20')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q20')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="20"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_20" onclick="toggleCommentSection('AP2022_20', event)"> 💬 <span class="badge" data-comment-id="AP2022_20">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-21">
+               <div class="question">
+                  <p> 21.) Quelles sont les techniques utilisées pour mettre en évidence les anomalies moléculaires des adénocarcinomes pulmonaires ? </p>
+                  <ul>
+                     <li>
+                        <input id="q21a" name="q21" type="checkbox" value="A" /> A- La culture cellulaire </li>
+                     <li>
+                        <input id="q21b" name="q21" type="checkbox" value="B" /> B- Le caryotype </li>
+                     <li>
+                        <input id="q21c" name="q21" type="checkbox" value="C" /> C- L’immunohistochimie </li>
+                     <li>
+                        <input id="q21d" name="q21" type="checkbox" value="D" /> D- L’hybridation in situ </li>
+                     <li>
+                        <input id="q21e" name="q21" type="checkbox" value="E" /> E- Le Séquençage </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q21')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q21')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="21"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_21" onclick="toggleCommentSection('AP2022_21', event)"> 💬 <span class="badge" data-comment-id="AP2022_21">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-22">
+               <div class="question">
+                  <p> 22.) Quelles sont les caractéristiques d’une tumeur carcinoïde typique pulmonaire ? </p>
+                  <ul>
+                     <li>
+                        <input id="q22a" name="q22" type="checkbox" value="A" /> A- L’architecture est neuroendocrine bien différenciée </li>
+                     <li>
+                        <input id="q22b" name="q22" type="checkbox" value="B" /> B- L’architecture neuroendocrine est peu différenciée </li>
+                     <li>
+                        <input id="q22c" name="q22" type="checkbox" value="C" /> C- Ne renferme pas des foyers de nécrose </li>
+                     <li>
+                        <input id="q22d" name="q22" type="checkbox" value="D" /> D- Présence de foyer de nécrose punctiforme </li>
+                     <li>
+                        <input id="q22e" name="q22" type="checkbox" value="E" /> E- Les cellules présentent un nombre de mitoses 2-10/10 champs x40 </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q22')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q22')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="22"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_22" onclick="toggleCommentSection('AP2022_22', event)"> 💬 <span class="badge" data-comment-id="AP2022_22">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-23">
+               <div class="question">
+                  <p> 23.) Quels sont les facteurs pronostiques des tumeurs pulmonaires ? </p>
+                  <ul>
+                     <li>
+                        <input id="q23a" name="q23" type="checkbox" value="A" /> A- La taille de la tumeur </li>
+                     <li>
+                        <input id="q23b" name="q23" type="checkbox" value="B" /> B- La présence ou l’absence de métastases ganglionnaires </li>
+                     <li>
+                        <input id="q23c" name="q23" type="checkbox" value="C" /> C- La qualité de l’exérèse chirurgicale </li>
+                     <li>
+                        <input id="q23d" name="q23" type="checkbox" value="D" /> D- Le carcinome à petite cellule est de bon pronostic </li>
+                     <li>
+                        <input id="q23e" name="q23" type="checkbox" value="E" /> E- Le carcinome épidermoïde est de meilleur pronostic que l’adénocarcinome </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q23')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q23')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="23"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_23" onclick="toggleCommentSection('AP2022_23', event)"> 💬 <span class="badge" data-comment-id="AP2022_23">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-24">
+               <div class="question">
+                  <p> 24.) Quelles sont les bases de la stratégie diagnostique d’un nodule thyroïdien ? </p>
+                  <ul>
+                     <li>
+                        <input id="q24a" name="q24" type="checkbox" value="A" /> A- L’échographie thyroïdienne. </li>
+                     <li>
+                        <input id="q24b" name="q24" type="checkbox" value="B" /> B- La Cytoponction du nodule guidée par l’échographie. </li>
+                     <li>
+                        <input id="q24c" name="q24" type="checkbox" value="C" /> C- La Cytoponction du nodule guidée par la scintigraphie </li>
+                     <li>
+                        <input id="q24d" name="q24" type="checkbox" value="D" /> D- La microbiopsie du nodule thyroïdien. </li>
+                     <li>
+                        <input id="q24e" name="q24" type="checkbox" value="E" /> E- Le dosage de la TSH </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q24')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q24')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="24"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_24" onclick="toggleCommentSection('AP2022_24', event)"> 💬 <span class="badge" data-comment-id="AP2022_24">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-25">
+               <div class="question">
+                  <p> 25.) Quelles sont les principes de la prise en charge macroscopique des pièces opératoires de thyroidectomies ? </p>
+                  <ul>
+                     <li>
+                        <input id="q25a" name="q25" type="checkbox" value="A" /> A- Séparation de chaque lobe </li>
+                     <li>
+                        <input id="q25b" name="q25" type="checkbox" value="B" /> B- Section de chaque lobe en tranches parallèles horizontales de 2 à 3 mm d’épaisseur </li>
+                     <li>
+                        <input id="q25c" name="q25" type="checkbox" value="C" /> C- Section de chaque lobe en tranches verticales de 5 à 10 mm d’épaisseur </li>
+                     <li>
+                        <input id="q25d" name="q25" type="checkbox" value="D" /> D- Analyse des pièces opératoires en totalité </li>
+                     <li>
+                        <input id="q25e" name="q25" type="checkbox" value="E" /> E- Echantillonnage pour analyse histologique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q25')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q25')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="25"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_25" onclick="toggleCommentSection('AP2022_25', event)"> 💬 <span class="badge" data-comment-id="AP2022_25">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-26">
+               <div class="question">
+                  <p> 26.) Décrire les anomalies nucléaires pathognomoniques du carcinome papillaire de la thyroïde </p>
+                  <ul>
+                     <li>
+                        <input id="q26a" name="q26" type="checkbox" value="A" /> A- Les noyaux volumineux </li>
+                     <li>
+                        <input id="q26b" name="q26" type="checkbox" value="B" /> B- Les noyaux vésiculeux </li>
+                     <li>
+                        <input id="q26c" name="q26" type="checkbox" value="C" /> C- Les noyaux d’aspect en « verre dépoli » </li>
+                     <li>
+                        <input id="q26d" name="q26" type="checkbox" value="D" /> D- Les incisions nucléaires (en grain de café) </li>
+                     <li>
+                        <input id="q26e" name="q26" type="checkbox" value="E" /> E- Les mitoses atypiques </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q26')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q26')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="26"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_26" onclick="toggleCommentSection('AP2022_26', event)"> 💬 <span class="badge" data-comment-id="AP2022_26">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-27">
+               <div class="question">
+                  <p> 27.) Quelles sont les aspects anatomopathologiques des goitres multi-nodulaires de la thyroïde ? </p>
+                  <ul>
+                     <li>
+                        <input id="q27a" name="q27" type="checkbox" value="A" /> A- La glande thyroïd est augmentée de volume avec présence d’un seul nodule </li>
+                     <li>
+                        <input id="q27b" name="q27" type="checkbox" value="B" /> B- La glande thyroïde est augmentée de volume avec présence de nombreux nodules </li>
+                     <li>
+                        <input id="q27c" name="q27" type="checkbox" value="C" /> C- Histologiquement, Les nodules sont faits de vésicules thyroïdiennes et délimités par une capsule faite de lamelles conjonctives adossées
+                        les unes aux autres. </li>
+                     <li>
+                        <input id="q27d" name="q27" type="checkbox" value="D" /> D- Les noyaux des vésicules thyroïdiennes présentent des empilements et des clarifications. </li>
+                     <li>
+                        <input id="q27e" name="q27" type="checkbox" value="E" /> E- Les noyaux des vésicules thyroïdiennes sont normaux </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q27')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q27')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="27"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_27" onclick="toggleCommentSection('AP2022_27', event)"> 💬 <span class="badge" data-comment-id="AP2022_27">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-28">
+               <div class="question">
+                  <p> 28.) Quelles sont les entités histologiques de tumeurs osseuses bénignes ? </p>
+                  <ul>
+                     <li>
+                        <input id="q28a" name="q28" type="checkbox" value="A" /> A- Ostéosarcome </li>
+                     <li>
+                        <input id="q28b" name="q28" type="checkbox" value="B" /> B- Ostéoblastome </li>
+                     <li>
+                        <input id="q28c" name="q28" type="checkbox" value="C" /> C- Fibrome chondromyxoïde </li>
+                     <li>
+                        <input id="q28d" name="q28" type="checkbox" value="D" /> D- Chondroblastome </li>
+                     <li>
+                        <input id="q28e" name="q28" type="checkbox" value="E" /> E- Chondrosarcome </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q28')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q28')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="28"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_28" onclick="toggleCommentSection('AP2022_28', event)"> 💬 <span class="badge" data-comment-id="AP2022_28">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-29">
+               <div class="question">
+                  <p> 29.) Quelles sont les caractéristiques du sarcome d’Ewing ? </p>
+                  <ul>
+                     <li>
+                        <input id="q29a" name="q29" type="checkbox" value="A" /> A- La localisation essentielle est les os plats </li>
+                     <li>
+                        <input id="q29b" name="q29" type="checkbox" value="B" /> B- Tumeur à petites cellules rondes et bleues </li>
+                     <li>
+                        <input id="q29c" name="q29" type="checkbox" value="C" /> C- Les cellules présentent des mitoses nombreuses et nécrose </li>
+                     <li>
+                        <input id="q29d" name="q29" type="checkbox" value="D" /> D- Les cellules tumorales sécrètent de l’ostéoïde </li>
+                     <li>
+                        <input id="q29e" name="q29" type="checkbox" value="E" /> E- L’anomalie cytogénétique la plus commune est la translocation (11,22) </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q29')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q29')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="29"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_29" onclick="toggleCommentSection('AP2022_29', event)"> 💬 <span class="badge" data-comment-id="AP2022_29">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-30">
+               <div class="question">
+                  <p> 30.) Quels types de prélèvements utilise-t-on pour le diagnostic des tumeurs osseuses ? </p>
+                  <ul>
+                     <li>
+                        <input id="q30a" name="q30" type="checkbox" value="A" /> A- La cytoponction </li>
+                     <li>
+                        <input id="q30b" name="q30" type="checkbox" value="B" /> B- La biopsie à l’aiguille fine </li>
+                     <li>
+                        <input id="q30c" name="q30" type="checkbox" value="C" /> C- La biopsie au tru-cut </li>
+                     <li>
+                        <input id="q30d" name="q30" type="checkbox" value="D" /> D- La biopsie chirurgicale </li>
+                     <li>
+                        <input id="q30e" name="q30" type="checkbox" value="E" /> E- La pièce opératoire chirurgicale </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q30')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q30')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="30"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_30" onclick="toggleCommentSection('AP2022_30', event)"> 💬 <span class="badge" data-comment-id="AP2022_30">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-31">
+               <div class="question">
+                  <p> 31.) Quel est le score le plus utilisé dans les hépatites chroniques ? </p>
+                  <ul>
+                     <li>
+                        <input id="q31a" name="q31" type="checkbox" value="A" /> A- Système de Sydney </li>
+                     <li>
+                        <input id="q31b" name="q31" type="checkbox" value="B" /> B- Score de Métavir </li>
+                     <li>
+                        <input id="q31c" name="q31" type="checkbox" value="C" /> C- Score de Gleason </li>
+                     <li>
+                        <input id="q31d" name="q31" type="checkbox" value="D" /> D- Score de Marsh modifié </li>
+                     <li>
+                        <input id="q31e" name="q31" type="checkbox" value="E" /> E- Score de Sheuer </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q31')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q31')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="31"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_31" onclick="toggleCommentSection('AP2022_31', event)"> 💬 <span class="badge" data-comment-id="AP2022_31">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-32">
+               <div class="question">
+                  <p> 32.) Quelle est la place de la biopsie hépatique dans les hépatites chroniques ? </p>
+                  <ul>
+                     <li>
+                        <input id="q32a" name="q32" type="checkbox" value="A" /> A- Le seul moyen de déterminer l’étiologie </li>
+                     <li>
+                        <input id="q32b" name="q32" type="checkbox" value="B" /> B- Surveillance spontanée et sous traitement </li>
+                     <li>
+                        <input id="q32c" name="q32" type="checkbox" value="C" /> C- Déterminer le grade d’activité </li>
+                     <li>
+                        <input id="q32d" name="q32" type="checkbox" value="D" /> D- Préciser le stade de fibrose </li>
+                     <li>
+                        <input id="q32e" name="q32" type="checkbox" value="E" /> E- Rechercher une autre hépatopathie associée </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q32')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q32')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="32"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_32" onclick="toggleCommentSection('AP2022_32', event)"> 💬 <span class="badge" data-comment-id="AP2022_32">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-33">
+               <div class="question">
+                  <p> 33.) Quelles sont les étiologies de la cirrhose du foie : </p>
+                  <ul>
+                     <li>
+                        <input id="q33a" name="q33" type="checkbox" value="A" /> A- Stéatohépatite non alcoolique </li>
+                     <li>
+                        <input id="q33b" name="q33" type="checkbox" value="B" /> B- Hépatites auto-immunes </li>
+                     <li>
+                        <input id="q33c" name="q33" type="checkbox" value="C" /> C- Hépatites bactériennes </li>
+                     <li>
+                        <input id="q33d" name="q33" type="checkbox" value="D" /> D- Hépatites aiguës virales </li>
+                     <li>
+                        <input id="q33e" name="q33" type="checkbox" value="E" /> E- Hépatites médicamenteuses </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q33')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q33')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="33"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_33" onclick="toggleCommentSection('AP2022_33', event)"> 💬 <span class="badge" data-comment-id="AP2022_33">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-34">
+               <div class="question">
+                  <p> 34.) Quelles sont les caractéristiques anatomocliniques du carcinome hépatocellulaire fibro-lamellaire ? </p>
+                  <ul>
+                     <li>
+                        <input id="q34a" name="q34" type="checkbox" value="A" /> A- Tumeur de l’enfant et adulte jeune </li>
+                     <li>
+                        <input id="q34b" name="q34" type="checkbox" value="B" /> B- Complication fréquente de l’hépatite chronique virale </li>
+                     <li>
+                        <input id="q34c" name="q34" type="checkbox" value="C" /> C- α foetoprotéine normale </li>
+                     <li>
+                        <input id="q34d" name="q34" type="checkbox" value="D" /> D- Survenue de métastases exceptionnelles </li>
+                     <li>
+                        <input id="q34e" name="q34" type="checkbox" value="E" /> E- Prolifération de glandes tumorales avec stroma fibreux </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q34')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q34')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="34"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_34" onclick="toggleCommentSection('AP2022_34', event)"> 💬 <span class="badge" data-comment-id="AP2022_34">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-35">
+               <div class="question">
+                  <p> 35.) Quel est ou les aspects histologiques de l’endobrachyoesophage ? </p>
+                  <ul>
+                     <li>
+                        <input id="q35a" name="q35" type="checkbox" value="A" /> A- Métaplasie glandulaire de la muqueuse gastrique </li>
+                     <li>
+                        <input id="q35b" name="q35" type="checkbox" value="B" /> B- Métaplasie glandulaire de la muqueuse œsophagienne </li>
+                     <li>
+                        <input id="q35c" name="q35" type="checkbox" value="C" /> C- Ulcération de la muqueuse œsophagienne </li>
+                     <li>
+                        <input id="q35d" name="q35" type="checkbox" value="D" /> D- Infiltrat inflammatoire du chorion </li>
+                     <li>
+                        <input id="q35e" name="q35" type="checkbox" value="E" /> E- Œdème et exocytose de cellules inflammatoires au niveau de l’épithélium malpighien </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q35')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q35')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="35"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_35" onclick="toggleCommentSection('AP2022_35', event)"> 💬 <span class="badge" data-comment-id="AP2022_35">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-36">
+               <div class="question">
+                  <p> 36.) Quel est le sous type histologique le plus fréquent des cancers de l’œsophage ? </p>
+                  <ul>
+                     <li>
+                        <input id="q36a" name="q36" type="checkbox" value="A" /> A- Adénocarcinome </li>
+                     <li>
+                        <input id="q36b" name="q36" type="checkbox" value="B" /> B- Carcinome épidermoïde </li>
+                     <li>
+                        <input id="q36c" name="q36" type="checkbox" value="C" /> C- Tumeur neuroendocrine </li>
+                     <li>
+                        <input id="q36d" name="q36" type="checkbox" value="D" /> D- Angiosarcome </li>
+                     <li>
+                        <input id="q36e" name="q36" type="checkbox" value="E" /> E- Lymphome non-hodgkinien </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q36')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q36')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="36"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_36" onclick="toggleCommentSection('AP2022_36', event)"> 💬 <span class="badge" data-comment-id="AP2022_36">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-37">
+               <div class="question">
+                  <p> 37.) Quelles sont les gastrites chroniques atrophiantes ? </p>
+                  <ul>
+                     <li>
+                        <input id="q37a" name="q37" type="checkbox" value="A" /> A- Gastrite lymphocytaire </li>
+                     <li>
+                        <input id="q37b" name="q37" type="checkbox" value="B" /> B- Gastrite à éosinophiles </li>
+                     <li>
+                        <input id="q37c" name="q37" type="checkbox" value="C" /> C- Gastrite chronique à Helicobacter Pylori </li>
+                     <li>
+                        <input id="q37d" name="q37" type="checkbox" value="D" /> D- Gastrite auto-immune </li>
+                     <li>
+                        <input id="q37e" name="q37" type="checkbox" value="E" /> E- Gastrite granulomateuse </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q37')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q37')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="37"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_37" onclick="toggleCommentSection('AP2022_37', event)"> 💬 <span class="badge" data-comment-id="AP2022_37">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-38">
+               <div class="question">
+                  <p> 38.) Quelles sont les aspects histologiques de la maladie coeliaque ? </p>
+                  <ul>
+                     <li>
+                        <input id="q38a" name="q38" type="checkbox" value="A" /> A- Atrophie des glandes du chorion </li>
+                     <li>
+                        <input id="q38b" name="q38" type="checkbox" value="B" /> B- Atrophie des villosités intestinales </li>
+                     <li>
+                        <input id="q38c" name="q38" type="checkbox" value="C" /> C- Hyperplasie des villosités intestinales </li>
+                     <li>
+                        <input id="q38d" name="q38" type="checkbox" value="D" /> D- Infiltrat inflammatoire des cellules au niveau du chorion </li>
+                     <li>
+                        <input id="q38e" name="q38" type="checkbox" value="E" /> E- Lymphocytes intraépithéliaux très augmentés </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q38')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q38')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="38"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_38" onclick="toggleCommentSection('AP2022_38', event)"> 💬 <span class="badge" data-comment-id="AP2022_38">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-39">
+               <div class="question">
+                  <p> 39.) Comment peut-on définir un méningiome ? </p>
+                  <ul>
+                     <li>
+                        <input id="q39a" name="q39" type="checkbox" value="A" /> A- Tumeur neurale </li>
+                     <li>
+                        <input id="q39b" name="q39" type="checkbox" value="B" /> B- Tumeur gliale </li>
+                     <li>
+                        <input id="q39c" name="q39" type="checkbox" value="C" /> C- Tumeur glioneurale </li>
+                     <li>
+                        <input id="q39d" name="q39" type="checkbox" value="D" /> D- Tumeur dérivant des cellules arachnodiennes </li>
+                     <li>
+                        <input id="q39e" name="q39" type="checkbox" value="E" /> E- Tumeur à développement extra cérébral </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q39')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q39')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="39"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_39" onclick="toggleCommentSection('AP2022_39', event)"> 💬 <span class="badge" data-comment-id="AP2022_39">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-40">
+               <div class="question">
+                  <p> 40.) Quelles sont les caractéristiques anatomocliniques des méningiomes ? </p>
+                  <ul>
+                     <li>
+                        <input id="q40a" name="q40" type="checkbox" value="A" /> A- Plus fréquent chez la femme </li>
+                     <li>
+                        <input id="q40b" name="q40" type="checkbox" value="B" /> B- Fréquent chez l’enfant et l’adulte d’âge moyen </li>
+                     <li>
+                        <input id="q40c" name="q40" type="checkbox" value="C" /> C- Développé le plus souvent au niveau de la base du crâne </li>
+                     <li>
+                        <input id="q40d" name="q40" type="checkbox" value="D" /> D- Toujours de comportement bénin </li>
+                     <li>
+                        <input id="q40e" name="q40" type="checkbox" value="E" /> E- Tumeur avec un potentiel de récidive </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q40')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q40')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="40"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_40" onclick="toggleCommentSection('AP2022_40', event)"> 💬 <span class="badge" data-comment-id="AP2022_40">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-41">
+               <div class="question">
+                  <p> 41.) Quels sont les aspects macroscopiques des méningiomes ? </p>
+                  <ul>
+                     <li>
+                        <input id="q41a" name="q41" type="checkbox" value="A" /> A- Tumeurs bien limitées </li>
+                     <li>
+                        <input id="q41b" name="q41" type="checkbox" value="B" /> B- Implantées sur la dure-mère </li>
+                     <li>
+                        <input id="q41c" name="q41" type="checkbox" value="C" /> C- Consistance molle </li>
+                     <li>
+                        <input id="q41d" name="q41" type="checkbox" value="D" /> D- Consistance ferme </li>
+                     <li>
+                        <input id="q41e" name="q41" type="checkbox" value="E" /> E- Infiltration fréquente de la dure-mère </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q41')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q41')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="41"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_41" onclick="toggleCommentSection('AP2022_41', event)"> 💬 <span class="badge" data-comment-id="AP2022_41">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-42">
+               <div class="question">
+                  <p> 42.) Quelles sont les caractéristiques des métastases cérébrales ? </p>
+                  <ul>
+                     <li>
+                        <input id="q42a" name="q42" type="checkbox" value="A" /> A- Les tumeurs les plus fréquentes du cerveau </li>
+                     <li>
+                        <input id="q42b" name="q42" type="checkbox" value="B" /> B- Localisées le plus souvent au niveau des hémisphères cérébraux </li>
+                     <li>
+                        <input id="q42c" name="q42" type="checkbox" value="C" /> C- Le plus souvent d’origine colorectale chez l’adulte </li>
+                     <li>
+                        <input id="q42d" name="q42" type="checkbox" value="D" /> D- Les lymphomes et les leucémies sont les tumeurs qui donnent le plus souvent de métastases chez l’enfant </li>
+                     <li>
+                        <input id="q42e" name="q42" type="checkbox" value="E" /> E- Les métastases cérébrales font le choix pour le diagnostic des gliomes diffus </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q42')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q42')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="42"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_42" onclick="toggleCommentSection('AP2022_42', event)"> 💬 <span class="badge" data-comment-id="AP2022_42">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-43">
+               <div class="question">
+                  <p> 43.) Quels sont les prélèvements de choix pour le diagnostic des gliomes diffus ? </p>
+                  <ul>
+                     <li>
+                        <input id="q43a" name="q43" type="checkbox" value="A" /> A- Cytoponction </li>
+                     <li>
+                        <input id="q43b" name="q43" type="checkbox" value="B" /> B- Biopsie stéréotaxique </li>
+                     <li>
+                        <input id="q43c" name="q43" type="checkbox" value="C" /> C- Biopsie conventionnelle </li>
+                     <li>
+                        <input id="q43d" name="q43" type="checkbox" value="D" /> D- Pièce opératoire chirurgicale </li>
+                     <li>
+                        <input id="q43e" name="q43" type="checkbox" value="E" /> E- Examen extemporanée </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q43')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q43')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="43"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_43" onclick="toggleCommentSection('AP2022_43', event)"> 💬 <span class="badge" data-comment-id="AP2022_43">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-44">
+               <div class="question">
+                  <p> 44.) Quel est le gliome diffus ayant le plus haut grade ? </p>
+                  <ul>
+                     <li>
+                        <input id="q44a" name="q44" type="checkbox" value="A" /> A- Oligodendrogliome anaplasique </li>
+                     <li>
+                        <input id="q44b" name="q44" type="checkbox" value="B" /> B- Astrocytome anaplasique </li>
+                     <li>
+                        <input id="q44c" name="q44" type="checkbox" value="C" /> C- Glioblastome </li>
+                     <li>
+                        <input id="q44d" name="q44" type="checkbox" value="D" /> D- Astrocytome pilocytique </li>
+                     <li>
+                        <input id="q44e" name="q44" type="checkbox" value="E" /> E- Astrocytome diffus </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q44')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q44')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="44"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_44" onclick="toggleCommentSection('AP2022_44', event)"> 💬 <span class="badge" data-comment-id="AP2022_44">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-45">
+               <div class="question">
+                  <p> 45.) Quels sont les lymphomes B indolents ? </p>
+                  <ul>
+                     <li>
+                        <input id="q45a" name="q45" type="checkbox" value="A" /> A- Lymphome lymphocytaire/LLC </li>
+                     <li>
+                        <input id="q45b" name="q45" type="checkbox" value="B" /> B- Lymphome du manteau </li>
+                     <li>
+                        <input id="q45c" name="q45" type="checkbox" value="C" /> C- Lymphome folliculaire </li>
+                     <li>
+                        <input id="q45d" name="q45" type="checkbox" value="D" /> D- Lymphome de la zone marginale </li>
+                     <li>
+                        <input id="q45e" name="q45" type="checkbox" value="E" /> E- Lymphome lymphoplasmocytaire </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q45')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q45')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="45"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_45" onclick="toggleCommentSection('AP2022_45', event)"> 💬 <span class="badge" data-comment-id="AP2022_45">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-46">
+               <div class="question">
+                  <p> 46.) Quelles sont les étiologies des lymphadénites nodulaires abcédées ? </p>
+                  <ul>
+                     <li>
+                        <input id="q46a" name="q46" type="checkbox" value="A" /> A- Maladie des griffes du chat </li>
+                     <li>
+                        <input id="q46b" name="q46" type="checkbox" value="B" /> B- Maladie de Nicolas-Favre </li>
+                     <li>
+                        <input id="q46c" name="q46" type="checkbox" value="C" /> C- Lèpre </li>
+                     <li>
+                        <input id="q46d" name="q46" type="checkbox" value="D" /> D- Tularémie </li>
+                     <li>
+                        <input id="q46e" name="q46" type="checkbox" value="E" /> E- Tuberculose </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q46')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q46')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="46"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_46" onclick="toggleCommentSection('AP2022_46', event)"> 💬 <span class="badge" data-comment-id="AP2022_46">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-47">
+               <div class="question">
+                  <p> 47.) Quels sont les outils anatomopathologiques pour le diagnostic positif des lymphomes ? </p>
+                  <ul>
+                     <li>
+                        <input id="q47a" name="q47" type="checkbox" value="A" /> A- Histologie </li>
+                     <li>
+                        <input id="q47b" name="q47" type="checkbox" value="B" /> B- Microbiologie </li>
+                     <li>
+                        <input id="q47c" name="q47" type="checkbox" value="C" /> C- Immunohistochimie </li>
+                     <li>
+                        <input id="q47d" name="q47" type="checkbox" value="D" /> D- Cytogénétique </li>
+                     <li>
+                        <input id="q47e" name="q47" type="checkbox" value="E" /> E- Biologie moléculaire </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q47')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q47')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="47"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_47" onclick="toggleCommentSection('AP2022_47', event)"> 💬 <span class="badge" data-comment-id="AP2022_47">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-48">
+               <div class="question">
+                  <p> 48.) Quel est le profil immunohistochimique du lymphome B du manteau ? </p>
+                  <ul>
+                     <li>
+                        <input id="q48a" name="q48" type="checkbox" value="A" /> A- CD20 positif </li>
+                     <li>
+                        <input id="q48b" name="q48" type="checkbox" value="B" /> B- CD5 positif </li>
+                     <li>
+                        <input id="q48c" name="q48" type="checkbox" value="C" /> C- BCL 6 négatif </li>
+                     <li>
+                        <input id="q48d" name="q48" type="checkbox" value="D" /> D- CD10 positif </li>
+                     <li>
+                        <input id="q48e" name="q48" type="checkbox" value="E" /> E- Cycline D1 positif </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q48')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q48')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="48"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_48" onclick="toggleCommentSection('AP2022_48', event)"> 💬 <span class="badge" data-comment-id="AP2022_48">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-49">
+               <div class="question">
+                  <p> 49.) Lymphome de Hodgkin classique scléronodulaire </p>
+                  <ul>
+                     <li>
+                        <input id="q49a" name="q49" type="checkbox" value="A" /> A- Le sous-type le plus fréquent des lymphomes de Hodgkin classique </li>
+                     <li>
+                        <input id="q49b" name="q49" type="checkbox" value="B" /> B- Caractérisé par des bandes fibreuses formant des nodules </li>
+                     <li>
+                        <input id="q49c" name="q49" type="checkbox" value="C" /> C- Comporte des cellules tumorales pop-corn </li>
+                     <li>
+                        <input id="q49d" name="q49" type="checkbox" value="D" /> D- Dérive des cellules B du centre germinatif </li>
+                     <li>
+                        <input id="q49e" name="q49" type="checkbox" value="E" /> E- Les cellules tumorales expriment parfois le CD30 et le CD15 </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q49')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q49')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="49"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_49" onclick="toggleCommentSection('AP2022_49', event)"> 💬 <span class="badge" data-comment-id="AP2022_49">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-50">
+               <div class="question">
+                  <p> 50.) Quelles sont les cellules tumorales caractéristiques du lymphome de Hodgkin nodulaire à prédominance lymphocytaire ? </p>
+                  <ul>
+                     <li>
+                        <input id="q50a" name="q50" type="checkbox" value="A" /> A- Les cellules popcorn </li>
+                     <li>
+                        <input id="q50b" name="q50" type="checkbox" value="B" /> B- Les cellules de Reed Sternberg </li>
+                     <li>
+                        <input id="q50c" name="q50" type="checkbox" value="C" /> C- Des cellules lacunaires </li>
+                     <li>
+                        <input id="q50d" name="q50" type="checkbox" value="D" /> D- Les cellules épithélioïdes </li>
+                     <li>
+                        <input id="q50e" name="q50" type="checkbox" value="E" /> E- Les immunoblastes </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q50')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q50')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="50"> ❤ </button>
+                  <button class="comment-button" data-question-id="AP2022_50" onclick="toggleCommentSection('AP2022_50', event)"> 💬 <span class="badge" data-comment-id="AP2022_50">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="button-container">
+               <button class="submit-quiz-button" onclick="submitQuiz()" type="button"> Soumettre tout le Quiz </button>
+               <button class="favorite-button" id="voir-favoris-btn" onclick="voirFavoris()"> Voir Favoris </button>
+               <!-- Nouveau bouton -->
+            </div>
+            <div class="blur-background" id="blur-background"> </div>
+            <div class="result-popup" id="result-popup">
+               <h3>
+Résultat du Quiz
+</h3>
+               <div id="result"> </div>
+               <button class="close-button" id="close-result" onclick="closeResult(event)"> Fermer </button>
+               <button class="detail-button" id="voir-detail-btn" onclick="afficherDetails(event)" style="display: none;"> Voir Détail </button>
+               <button class="reset-quiz-button" onclick="resetAll()" type="button"> Réessayer tout le Quiz </button>
+            </div>
+            <div class="details-section" id="details-section" style="display: none;">
+               <h3>
+Tableau des questions
+</h3>
+               <div class="question-links" id="question-links"> </div>
+            </div>
+            <div id="timer-container"> <span id="timer">
+60:00
+</span> </div>
+<div class="comments-section" id="comments-section">
+    <h3>Commentaires</h3>
+    <textarea id="new-comment" placeholder="Écrire un commentaire..."></textarea>
+    <button type="button" onclick="addComment(event)">Ajouter</button>
+    <div id="comment-alert" class="alert" style="display: none;"></div>
+    <div id="comments-list"></div>
+</div>
+
+    <div id="comments-list"></div>
+</div>
+
+<!-- Boutons flottants -->
+<div id="floating-buttons" class="floating-buttons" style="position: fixed; bottom: 50px; right: 50px; z-index: 1000;">
+    <!-- Bouton pour afficher le cours -->
+    <button id="show-course-btn" class="floating-btn" type="button" 
+            onclick="window.open('https://drive.google.com/drive/folders/1Xd_FaJbPk4FJv3G5-96L7G0UlQnUZuSf', '_blank');">📚</button>
+    <!-- Bouton pour afficher le contact -->
+<button id="open-contact-modal" class="floating-btn" type="button">
+    ✉️
+</button>
+
+</div>
+
+
+
+
+
+<div class="message-container" id="message-container" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#f9f9f9; padding:40px; box-shadow:0 4px 12px rgba(0,0,0,0.15); border-radius:12px; z-index:1001; width:600px; max-width:90%; font-family:Arial, sans-serif;">
+    <div style="text-align:center; margin-bottom:30px;">
+        <h2 style="margin:0; font-size:24px; font-weight:bold; color:#333;">Posez vos observations <span>📝</span></h2>
+        <p style="margin:10px 0 0; font-size:16px; color:#666;">Nous sommes à votre écoute</p>
+    </div>
+    <div class="mb-3" style="margin-bottom:30px;">
+        <p style="font-size:16px; color:#333; margin:0;">En tant Que :</p>
+        <div style="margin-top:10px;">
+            <input type="radio" id="username" name="mode" value="username" style="margin-right:8px;">
+            <label for="username" style="font-size:16px; color:#333; cursor:pointer;">{{ user_full_name}}</label>
+            <br>
+            <input type="radio" id="anonymous" name="mode" value="anonymous" checked style="margin-right:8px; margin-top:10px;">
+            <label for="anonymous" style="font-size:16px; color:#333; cursor:pointer;">Anonyme</label>
+        </div>
+    </div>
+    <div class="mb-3">
+        <label for="message" class="form-label" style="font-size:18px; font-weight:bold; color:#333; margin-bottom:10px; display:block;">Votre message :</label>
+        <textarea class="form-control" id="message" rows="6" placeholder="Precisez l'examen si c'est en rapport avec une question..." style="width:100%; font-size:16px; padding:15px; border:1px solid #ccc; border-radius:8px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.1); background:#fff;"></textarea>
+    </div>
+<span class="close-btn" id="close-btn" style="cursor:pointer; position:absolute; top:15px; right:15px; font-size:51px; color:#ff0000; font-weight:bold;">&times;</span>
+<!-- Bouton Envoyer stylé -->
+<div style="text-align:center; margin-top:30px;">
+    <button type="button" class="btn btn-primary" id="send-message" style="background-color:#007bff; color:white; border:none; padding:12px 30px; border-radius:8px; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 4px 8px rgba(0, 0, 0, 0.2); transition:all 0.3s ease;">
+        Envoyer
+    </button>
+</div>
+</div>
+
+
+
+
+<div id="blur-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;"></div>
+
+
+
+<script src="{% static 'java/contact.js' %}"></script>
+            </div>
+            <script>
+            // Réponses correctes pour les questions
+            const correctAnswers = {
+               q1: ['A', 'B', 'C', 'D'],
+               q2: ['B', 'C', 'D'],
+               q3: ['A', 'B', 'C', 'D'],
+               q4: ['A', 'C', 'D', 'E'],
+               q5: ['B', 'C', 'D', 'E'],
+               q6: ['C', 'E'],
+               q7: ['A', 'B', 'C', 'D', 'E'],
+               q8: ['A', 'B', 'C', 'D', 'E'],
+               q9: ['A', 'B', 'C', 'D', 'E'],
+               q10: ['A', 'B', 'C', 'D', 'E'],
+               q11: ['A', 'B', 'C', 'D', 'E'],
+               q12: ['A', 'B', 'C', 'D', 'E'],
+               q13: ['A', 'B', 'C', 'D', 'E'],
+               q14: ['A'],
+               q15: ['A', 'B', 'C', 'D', 'E'],
+               q16: ['A', 'B', 'C', 'D', 'E'],
+               q17: ['B', 'C', 'E'],
+               q18: ['A', 'B', 'D'],
+               q19: ['A', 'B', 'E'],
+               q20: ['B', 'C'],
+               q21: ['C', 'D', 'E'],
+               q22: ['A'],
+               q23: ['A', 'B', 'C'],
+               q24: ['B', 'E'],
+               q25: ['A', 'D', 'E'],
+               q26: ['D', 'C'],
+               q27: ['B', 'C'],
+               q28: ['B', 'C', 'D'],
+               q29: ['B', 'E'],
+               q30: ['A', 'B', 'C', 'D', 'E'],
+               q31: ['B'],
+               q32: ['C', 'D', 'E'],
+               q33: ['A', 'B', 'C', 'E'],
+               q34: ['C', 'E'],
+               q35: ['B'],
+               q36: ['B'],
+               q37: ['C', 'D'],
+               q38: ['B', 'D', 'E'],
+               q39: ['D'],
+               q40: ['A', 'C', 'E'],
+               q41: ['A', 'B', 'D'],
+               q42: ['A', 'B'],
+               q43: ['B', 'C', 'D', 'E'],
+               q44: ['C'],
+               q45: ['A', 'D', 'E'],
+               q46: ['A', 'B'],
+               q47: ['A', 'C', 'D', 'E'],
+               q48: ['A', 'B'],
+               q49: ['A', 'B'],
+               q50: ['B', 'C', 'D'],
+            };
+            // Contenu du fichier JavaScript
+            // Variable globale pour stocker l'intervalle du timer
+            let timerInterval;
+            const userAnswers = {}; // Object pour stocker les réponses de l'utilisateur
+            // Fonction pour démarrer le timer
+            function startTimer(duration, display) {
+               let timer = duration,
+                  minutes, seconds;
+               timerInterval = setInterval(() => {
+                  minutes = parseInt(timer / 60, 10);
+                  seconds = parseInt(timer % 60, 10);
+                  minutes = minutes < 10 ? "0" + minutes : minutes;
+                  seconds = seconds < 10 ? "0" + seconds : seconds;
+                  display.textContent = minutes + ":" + seconds;
+                  // Vérifie si le temps est écoulé
+                  if (--timer < 0) {
+                     clearInterval(timerInterval);
+                     showEndMessage();
+                  }
+               }, 1000);
+            }
+            // Fonction pour afficher le message de fin de test
+            function showEndMessage() {
+               const blurBackground = document.createElement('div');
+               blurBackground.id = 'test-end-blur';
+               blurBackground.style.position = 'fixed';
+               blurBackground.style.top = '0';
+               blurBackground.style.left = '0';
+               blurBackground.style.width = '100%';
+               blurBackground.style.height = '100%';
+               blurBackground.style.background = 'rgba(0, 0, 0, 0.5)';
+               blurBackground.style.zIndex = '100';
+               blurBackground.style.display = 'flex';
+               blurBackground.style.alignItems = 'center';
+               blurBackground.style.justifyContent = 'center';
+               const endMessage = document.createElement('div');
+               endMessage.id = 'test-end-message';
+               endMessage.style.padding = '40px';
+               endMessage.style.background = '#ffffff';
+               endMessage.style.borderRadius = '8px';
+               endMessage.style.textAlign = 'center';
+               endMessage.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+               endMessage.innerHTML = '<h2>Test terminé</h2><p>Le temps imparti est écoulé.</p><button onclick="location.reload()">Recommencer</button>';
+               blurBackground.appendChild(endMessage);
+               document.body.appendChild(blurBackground);
+               // Optionnel : masquer le conteneur de timer
+               const timerContainer = document.getElementById('timer-container');
+               timerContainer.classList.add('hide');
+            }
+ // Fonction pour réinitialiser une seule question
+            function resetQuestion(questionName) {
+               const form = document.getElementById('quiz-form');
+               const questionDiv = document.querySelector(`input[name="${questionName}"]`).closest('.question-container');
+               // Décocher toutes les cases de cette question
+               const inputs = Array.from(form.elements[questionName]);
+               inputs.forEach(input => {
+                  input.checked = false;
+               });
+               // Supprimer les styles correct/incorrect et remettre les couleurs par défaut
+               questionDiv.classList.remove('correct', 'incorrect');
+               questionDiv.querySelectorAll('li').forEach(li => {
+                  li.style.color = ''; // Réinitialiser la couleur
+                  li.style.fontWeight = ''; // Réinitialiser le texte en gras
+                  li.style.textShadow = ''; // Réinitialiser l'ombre du texte
+                  li.style.backgroundColor = ''; // Réinitialiser le fond
+                  li.style.border = ''; // Réinitialiser la bordure
+               });
+               // Supprimer les informations enregistrées sur la réponse de cette question
+               delete userAnswers[questionName];
+            }
+            // Fonction pour soumettre le quiz et afficher le résultat
+            
+// Fonction pour soumettre le quiz et afficher le résultat
+async function submitQuiz() {
+    console.log("Début de la soumission du quiz.");
+
+    const form = document.getElementById('quiz-form');
+    if (!form) {
+        console.error("Erreur : Formulaire introuvable.");
+        alert("Formulaire introuvable. Veuillez réessayer.");
+        return;
+    }
+
+    let score = 0;
+
+    // Évaluer les réponses utilisateur
+    for (const question of Object.keys(correctAnswers)) {
+        correctQuestion(question); // Fonction pour corriger chaque question
+        const userAnswer = userAnswers[question]?.isCorrect;
+        if (userAnswer) {
+            score++;
+        }
+    }
+
+    console.log("Score brut calculé (frontend) :", score);
+    console.log("Réponses utilisateur envoyées :", userAnswers);
+
+    // Lancer les confettis et afficher le message de félicitations si le score est parfait (50 sur 50)
+    lancerConfettisEtMessage(score);
+
+    // Mise à jour du résultat dans la boîte de dialogue
+    const resultDiv = document.getElementById('result'); // Assure-toi que tu as un div avec l'id 'result' dans ton HTML
+
+    if (score === 0) { resultDiv.innerHTML = `<p>Vous avez aucune réponse juste, bozo !</p>`; } else if  (score === 50) {
+        // Liste des messages de félicitations
+        const messages = [
+"Félicitations ! Votre compréhension des processus pathologiques est exceptionnelle !",
+"Bravo ! Vous excellez dans l'interprétation des échantillons tissulaires.",
+"Incroyable ! Votre aptitude à identifier les lésions est impressionnante.",
+"Parfait ! Vous êtes sur le chemin pour devenir un(e) expert(e) en diagnostic pathologique.",
+"Votre rigueur dans l'analyse des tissus pathologiques est admirable.",
+"Impressionnant ! Vous appliquez les concepts d'anatomie pathologique avec précision.",
+"Bravo ! Votre aptitude à relier les anomalies cellulaires aux maladies est exceptionnelle.",
+"Extraordinaire ! Votre compréhension des processus tumoraux est inspirante.",
+"Félicitations ! Vous démontrez une maîtrise impressionnante des techniques histopathologiques.",
+"Votre capacité à analyser les tissus en profondeur est remarquable.",
+"Impressionnant ! Vous explorez les pathologies complexes avec aisance.",
+"Bravo ! Votre passion pour l'étude des processus pathologiques est évidente.",
+"Votre expertise en biopsies et prélèvements est un véritable atout.",
+"Parfait ! Vous démontrez une aptitude exceptionnelle pour diagnostiquer les maladies à l'échelle cellulaire.",
+"Félicitations ! Vous êtes prêt(e) à devenir un(e) pilier en anatomie pathologique.",
+"Votre précision dans l'analyse des coupes histologiques est exemplaire.",
+"Bravo ! Vous appliquez les connaissances pathologiques avec rigueur et précision.",
+"Incroyable ! Vous identifiez les maladies avec une précision clinique impressionnante.",
+"Félicitations ! Votre curiosité pour les mécanismes pathologiques est une source d'inspiration.",
+"Votre capacité à interpréter les anomalies microscopiques est impressionnante.",
+
+        ];
+        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+        resultDiv.innerHTML = `<p>${randomMessage}</p>`;
+    } else {
+        resultDiv.innerHTML = `Vous avez obtenu ${score} bonnes réponses sur ${Object.keys(correctAnswers).length}.`;
+    }
+
+    // Afficher la boîte de résultat avec animation
+    const resultPopup = document.getElementById('result-popup');
+    const blurBackground = document.getElementById('blur-background');
+
+    blurBackground.style.display = 'block';
+    resultPopup.style.display = 'block';
+
+    setTimeout(() => {
+        blurBackground.classList.add('show'); // Ajoute l'animation de fondu sur le fond flouté
+        resultPopup.classList.add('show'); // Ajoute l'animation de zoom sur la boîte de résultat
+    }, 100); // Légère pause pour plus de fluidité
+
+    document.getElementById('voir-detail-btn').style.display = 'inline-block';
+
+    // Envoi des données au backend
+    try {
+        console.log("Préparation de l'enregistrement au backend...");
+
+        const response = await fetch("/soumettre-quiz/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}" // Inclure le token CSRF
+            },
+            body: JSON.stringify({
+                exam_name: "AP2022", // Remplacez par le nom réel de l'examen
+                score: score,
+                userAnswers: userAnswers
+            })
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+            console.log("Score enregistré avec succès :", result);
+        } else {
+            console.error("Erreur du serveur :", result.message);
+            alert(`Erreur : ${result.message}`);
+        }
+    } catch (error) {
+        console.error("Erreur lors de l'envoi des données :", error);
+        alert("Une erreur s'est produite lors de la soumission. Veuillez réessayer.");
+    }
+}
+
+            function resetAll() {
+               const form = document.getElementById('quiz-form');
+               // Réinitialiser toutes les questions
+               for (const question of Object.keys(correctAnswers)) {
+                  const questionDiv = document.querySelector(`input[name="${question}"]`).closest('.question-container');
+                  form.elements[question].forEach(input => {
+                     input.checked = false; // Décocher toutes les cases
+                  });
+                  // Supprimer les styles correct/incorrect sans toucher au style des bonnes réponses
+                  questionDiv.classList.remove('correct', 'incorrect');
+                  questionDiv.querySelectorAll('li').forEach(li => {
+                     li.style.color = ''; // Réinitialiser la couleur du texte
+                     li.style.fontWeight = ''; // Supprimer les styles ajoutés
+                     li.style.textShadow = ''; // Réinitialiser l'ombre du texte
+                     li.style.backgroundColor = ''; // Remettre le fond par défaut
+                     li.style.border = ''; // Réinitialiser la bordure
+                  });
+               }
+               // Réinitialiser l'affichage du timer
+               const timerDuration = 60 * 60; // Remettre à 60 minutes (ou 10 secondes pour le test)
+               const display = document.querySelector('#timer');
+               startTimer(timerDuration, display); // Redémarrer le timer
+               // Masquer la boîte de résultat
+               const resultPopup = document.getElementById('result-popup');
+               const blurBackground = document.getElementById('blur-background');
+               resultPopup.classList.remove('show');
+               blurBackground.classList.remove('show');
+               setTimeout(() => {
+                  resultPopup.style.display = 'none';
+                  blurBackground.style.display = 'none';
+               }, 500);
+               // Remonter en haut de la page
+               window.scrollTo({
+                  top: 0,
+                  behavior: 'smooth'
+               });
+               document.getElementById('voir-detail-btn').style.display = 'none'; // Masquer le bouton "Voir Détail"
+            }
+            // Fonction pour fermer la popup et garder les couleurs des bonnes/mauvaises réponses
+            function closeResult(event) {
+               event.preventDefault(); // Empêche le comportement par défaut du bouton
+               const resultPopup = document.getElementById('result-popup');
+               const blurBackground = document.getElementById('blur-background');
+               // Masquer la boîte de résultat
+               resultPopup.classList.remove('show');
+               blurBackground.classList.remove('show');
+               setTimeout(() => {
+                  resultPopup.style.display = 'none';
+                  blurBackground.style.display = 'none';
+               }, 500);
+               // Décocher toutes les cases sans changer la couleur des bonnes/mauvaises réponses
+               const form = document.getElementById('quiz-form');
+               for (const question of Object.keys(correctAnswers)) {
+                  form.elements[question].forEach(input => {
+                     input.checked = false; // Décocher toutes les cases
+                  });
+               }
+            }
+            // Fonction pour afficher les détails et rediriger vers SyntAP2022
+            function afficherDetails(event) {
+               event.preventDefault(); // Empêche le comportement par défaut du bouton
+               saveUserAnswers(); // Enregistrer les réponses avant de quitter la page
+               window.location.href = '{% url 'dynamic_view' 'S5' 'Anatomie_Pathologique_generale' 'syntAP2022' %}'; // Redirection vers SyntAP2022
+            }
+            // Fonction pour défiler jusqu'à la question
+            function scrollToQuestion(questionNumber) {
+               const questionDiv = document.querySelector(`.question-container:nth-of-type(${questionNumber})`);
+               if (questionDiv) {
+                  questionDiv.scrollIntoView({
+                     behavior: 'smooth'
+                  });
+               }
+            }
+
+            function saveUserAnswers() {
+               // Change la clé pour la version 2022
+               localStorage.setItem('userAnswersAP2022', JSON.stringify(userAnswers));
+            }
+            // Fonction pour afficher les confettis et ajouter le message de félicitations dans la popup de résultats
+            function lancerConfettisEtMessage(score) {
+    if (score === 50) {
+                  // Lancer les confettis
+                  confetti({
+                     particleCount: 200,
+                     spread: 70,
+                     origin: {
+                        y: 0.6
+                     },
+                     colors: ['#bb0000', '#ffffff'], // Couleurs de confettis
+                  });
+                  // Ajouter un message de félicitations à la boîte de résultat
+                  const resultDiv = document.getElementById('result');
+                  const felicitationMessage = `<p>Félicitations! Vous avez obtenu ${score} bonnes réponses. Vous serez un grand médecin !</p>`;
+                  // Ajouter le message à la fin du résultat
+                  resultDiv.innerHTML += felicitationMessage;
+               }
+            }
+            // Partie favori pour Anatomie2020
+            // Tableau pour stocker les questions favorites, récupéré depuis le localStorage (Anatomie2022)
+            let favoriteQuestionsAP2022 = JSON.parse(localStorage.getItem('favoriteQuestionsAP2022')) || [];
+            console.log('Favorite questions loaded from localStorage:', favoriteQuestionsAP2022);
+
+            function toggleFavorite(event, questionNumber) {
+               event.preventDefault(); // Empêche le rafraîchissement de la page
+               const button = document.querySelector(`.favorite-button[data-question="${questionNumber}"]`);
+               const questionContent = document.querySelector(`#question-${questionNumber}`).innerHTML; // Récupère le contenu HTML de la question
+               // Vérifie si la question est déjà dans les favoris
+               const isFavorited = favoriteQuestionsAP2022.includes(questionNumber);
+               if (isFavorited) {
+                  // Si elle est déjà favorisée, on la retire des favoris
+                  favoriteQuestionsAP2022 = favoriteQuestionsAP2022.filter(q => q !== questionNumber);
+                  button.classList.remove('favorited'); // Retire la classe favori
+                  localStorage.removeItem(`favoriteContent2022-${questionNumber}`); // Supprime le contenu de la question
+               } else {
+                  // Si elle n'est pas favorisée, on l'ajoute
+                  favoriteQuestionsAP2022.push(questionNumber);
+                  button.classList.add('favorited'); // Ajoute la classe favori
+                  localStorage.setItem(`favoriteContent2022-${questionNumber}`, questionContent); // Stocke le contenu de la question dans le localStorage
+               }
+               // Sauvegarde uniquement les favoris
+               saveFavoriteState2022(); // <== Remplacez par saveFavoriteState2022
+               // Mise à jour du bouton "Voir Favori" sans rafraîchir la page
+               showFavoriteButton();
+            }
+
+            function saveFavoriteState2022() {
+               localStorage.setItem('favoriteQuestionsAP2022', JSON.stringify(favoriteQuestionsAP2022)); // Sauvegarde les questions favorites
+            }
+
+            function initializeFavoriteButtons() {
+               const allFavoriteButtons = document.querySelectorAll('.favorite-button');
+               allFavoriteButtons.forEach(button => {
+                  const questionNumber = parseInt(button.getAttribute('data-question'), 10);
+                  // Vérifie si cette question est dans les favoris et applique la classe
+                  if (favoriteQuestionsAP2022.includes(questionNumber)) {
+                     button.classList.add('favorited'); // Ajoute l'état favori
+                  } else {
+                     button.classList.remove('favorited'); // Retire l'état favori
+                  }
+                  // Ajoute un événement de clic pour chaque bouton et empêche le rafraîchissement
+                  button.addEventListener('click', (event) => toggleFavorite(event, questionNumber));
+               });
+            }
+
+            function showFavoriteButton() {
+               const voirFavorisBtn = document.getElementById('voir-favoris-btn');
+               if (favoriteQuestionsAP2022.length > 0) {
+                  voirFavorisBtn.style.display = 'inline-block'; // Affiche le bouton si des questions sont favorisées
+               } else {
+                  voirFavorisBtn.style.display = 'none'; // Cache le bouton si aucun favori
+               }
+            }
+            // Appelle cette fonction après avoir ajouté ou retiré des favoris
+            window.onload = function() {
+               console.log('Page loaded, initializing favorite buttons for 2022.');
+               initializeFavoriteButtons(); // Charger les boutons de favoris
+               showFavoriteButton(); // Afficher le bouton "Voir Favori" si des favoris existent
+               const timerDuration = 60 * 60; // 60 minutes
+               const display = document.querySelector('#timer');
+               startTimer(timerDuration, display);
+               // Récupère toutes les listes (li) qui contiennent des propositions
+               const propositions = document.querySelectorAll('li');
+               propositions.forEach(function(proposition) {
+                  // Trouve la checkbox dans chaque liste
+                  const checkbox = proposition.querySelector('input[type="checkbox"]');
+                  if (checkbox) {
+                     // Créer un label
+                     const label = document.createElement('label');
+                     // Donner un id à la checkbox si elle n'en a pas
+                     if (!checkbox.id) {
+                        checkbox.id = checkbox.name + '-' + checkbox.value; // Ex: q1-A
+                     }
+                     // Déplacer le texte de la proposition dans le label
+                     label.htmlFor = checkbox.id; // Le 'for' du label correspond à l'id de la checkbox
+                     label.appendChild(checkbox); // Déplacer la checkbox dans le label
+                     label.appendChild(document.createTextNode(proposition.textContent.trim())); // Ajouter le texte de la proposition
+                     // Remplacer le contenu original par le nouveau label
+                     proposition.innerHTML = ''; // Vider le contenu de l'élément <li>
+                     proposition.appendChild(label); // Ajouter le label modifié
+                  }
+               });
+            };
+            try {
+               localStorage.setItem('testKey', 'testValue');
+               const testValue = localStorage.getItem('testKey');
+               if (testValue !== 'testValue') {
+                  console.error('localStorage is not functioning as expected.');
+               }
+            } catch (error) {
+               console.error('localStorage error:', error);
+            }
+
+            function voirFavoris() {
+               console.log('Redirection vers la page des favoris');
+               window.location.href = "{% url 'render_favorite' 'S5' 'favori11' %}";
+            }
+
+
+            </script>
+            <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js">
+
+
+            </script>
+         </form>
+      </div>
+      
+   </body>
+
+</html>      <script>
+// Fonction pour corriger une question
+function correctQuestion(questionName) {
+    const form = document.getElementById('quiz-form');
+    const questionDiv = document.querySelector(`input[name="${questionName}"]`).closest('.question-container');
+    const selected = Array.from(form.elements[questionName]).filter(input => input.checked).map(input => input.value);
+
+    // Calculer si la réponse est correcte
+    const isCorrect = JSON.stringify(correctAnswers[questionName].sort()) === JSON.stringify(selected.sort());
+
+    // Enregistre si la réponse est correcte ou incorrecte
+    userAnswers[questionName] = {
+        selected: selected,
+        isCorrect: isCorrect
+    };
+
+    // Supprimer les styles précédents
+    questionDiv.classList.remove('correct', 'incorrect');
+    questionDiv.querySelectorAll('li').forEach(li => li.style.color = '');
+
+    // Applique les couleurs selon la validité des réponses
+    questionDiv.querySelectorAll('li').forEach(li => {
+        const isChoiceCorrect = correctAnswers[questionName].includes(li.querySelector('input').value);
+        const isSelected = selected.includes(li.querySelector('input').value);
+
+        if (isChoiceCorrect) {
+            // Appliquer le style vert aux bonnes réponses
+            li.style.color = 'green';
+            li.style.fontWeight = 'bold';
+            li.style.textShadow = '1px 1px 2px rgba(0, 128, 0, 0.7)';
+        }
+
+        if (isSelected && !isChoiceCorrect) {
+            // Appliquer le style rouge pour les mauvaises réponses sélectionnées
+            li.style.color = 'red';
+        }
+    });
+
+    console.log(`Début de la correction pour la question ${questionName}`);
+    console.log(`Réponses sélectionnées pour ${questionName}: ${selected.join(', ')}`);
+    console.log(`Résultat pour ${questionName}: ${isCorrect ? 'Correct' : 'Incorrect'}`);
+
+    // Déterminer le nom de l'examen et l'ID complet de la question
+    const examNameElement = document.getElementById('exam_name');
+    const examName = examNameElement.value; // Nom de l'examen (par exemple, Anatomie2023)
+    const fullChoiceIds = selected.map(choice => `${examName}_${questionName.substring(1)}_${choice.toLowerCase()}`);
+    console.log(`IDs complets générés pour les choix : ${fullChoiceIds.join(', ')}`);
+
+    // Envoyer les données au serveur
+    fetch('/track_attempts/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            question_name: questionName,
+            full_choice_ids: fullChoiceIds
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log(`Données reçues du serveur : ${JSON.stringify(data)}`);
+            handleAlert(data.alert, questionDiv);
+            updateStatisticalAlerts(data, questionDiv);
+        })
+        .catch(error => console.error('Erreur lors de l’envoi des données:', error));
+}
+
+// Fonction pour gérer les alertes
+function handleAlert(alertData, questionDiv) {
+    const existingAlert = questionDiv.querySelector('.alert-indicator');
+    if (existingAlert) {
+        existingAlert.remove();
+    }
+
+    if (alertData) {
+        const alertIndicator = document.createElement('div');
+        alertIndicator.className = 'alert-indicator';
+        alertIndicator.style.backgroundColor = alertData.color || '#f8d7da';
+        alertIndicator.style.padding = '10px';
+        alertIndicator.style.marginTop = '10px';
+        alertIndicator.style.borderRadius = '5px';
+        alertIndicator.style.fontWeight = 'bold';
+        alertIndicator.style.color = '#721c24';
+        alertIndicator.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.1)';
+        alertIndicator.textContent = alertData.message;
+
+        questionDiv.appendChild(alertIndicator);
+        saveAlertToLocalStorage(questionDiv.getAttribute('data-question-id'), alertData);
+    } else {
+        removeAlertFromLocalStorage(questionDiv.getAttribute('data-question-id'));
+    }
+}
+
+// Charger les alertes persistantes
+function loadAlertsFromLocalStorage() {
+    const storedAlerts = JSON.parse(localStorage.getItem('alerts')) || {};
+    Object.keys(storedAlerts).forEach(questionId => {
+        const questionDiv = document.querySelector(`.question-container[data-question-id="${questionId}"]`);
+        if (questionDiv) {
+            handleAlert(storedAlerts[questionId], questionDiv);
+        }
+    });
+}
+
+// Sauvegarder les alertes dans localStorage
+function saveAlertToLocalStorage(questionId, alertData) {
+    const storedAlerts = JSON.parse(localStorage.getItem('alerts')) || {};
+    storedAlerts[questionId] = alertData;
+    localStorage.setItem('alerts', JSON.stringify(storedAlerts));
+}
+
+// Supprimer une alerte de localStorage
+function removeAlertFromLocalStorage(questionId) {
+    const storedAlerts = JSON.parse(localStorage.getItem('alerts')) || {};
+    delete storedAlerts[questionId];
+    localStorage.setItem('alerts', JSON.stringify(storedAlerts));
+}
+
+// Mise à jour des alertes statistiques
+function updateStatisticalAlerts(data, questionDiv) {
+    const existingStatisticalAlerts = questionDiv.querySelectorAll('.statistical-alert');
+    existingStatisticalAlerts.forEach(alert => alert.remove());
+
+    if (data.failure_rate > 0.6) {
+        const failureRateAlert = document.createElement('div');
+        failureRateAlert.className = 'statistical-alert';
+        failureRateAlert.style.backgroundColor = '#add8e6';
+        failureRateAlert.style.padding = '10px';
+        failureRateAlert.style.marginTop = '10px';
+        failureRateAlert.style.borderRadius = '5px';
+        failureRateAlert.style.fontWeight = 'bold';
+        failureRateAlert.style.color = '#004085';
+        failureRateAlert.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.1)';
+        failureRateAlert.textContent = `🔵 Votre taux d'échec est de ${(data.failure_rate * 100).toFixed(0)}%. Revoir cette question est conseillé.`;
+
+        questionDiv.appendChild(failureRateAlert);
+    }
+}
+
+// Charger les alertes au démarrage
+document.addEventListener('DOMContentLoaded', () => {
+    loadAlertsFromLocalStorage();
+});
+
+</script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+    <script src="{% static 'java/comment.js' %}"></script>

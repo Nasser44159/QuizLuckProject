@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Nephrologie</h1>
+            </div>
+            <form id="quiz-form">
+                <input type="hidden" id='exam_name' name="exam_name" value="NP2023R">
+    {% csrf_token %}>
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Les facteurs de risque de la mole hydatiforme :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- L'âge supérieur à 40 ans</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- L'antécédent de mole</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- L'antécédent d'avortements spontanés</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- L'antécédent d'accouchements par césarienne</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- L'antécédent de chirurgie pelvienne</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Les signes cliniques d’une mole hydatiforme complète peuvent être :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Vomissements</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Métrorragies du troisième trimestre</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Utérus de petit volume par rapport à l’âge gestationnel</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Masses annexielles bilatérales</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Expulsion de vésicules</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Les examens clés pour faire le diagnostic de mole hydatiforme:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- La numération formule sanguine</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Le dosage de béta HCG plasmatique</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Le bilan d’hémostase</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- L’échographie pelvienne</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Le bilan hépatique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) La surveillance d’une mole hydatiforme traitée se fait par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- La clinique</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- L’échographie pelvienne</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- L’IRM</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Dosage de Béta HCG plasmatique</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Dosage de CA 15.3</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Dans une tumeur trophoblastique gestationnelle on peut noter :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- La persistance de l’hémorragie</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- L’apparition de métastases vaginales</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- L’apparition de métastases pulmonaires</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- La négativation du taux de béta HCG</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Une altération de la fertilité de la femme</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Le cancer de l’endomètre :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Est plus fréquent dans les pays sous-développés</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Survient surtout chez la femme ménopausée</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Est hormonodépendant</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- L’IRM est utile pour sa classification</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Son traitement est chirurgical aux stades précoces</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Les examens utiles pour faire le diagnostic du cancer de l’endomètre:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Clinique</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- L’hystérographie</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- L’hystéroscopie</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- L’échographie</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- La biopsie de l’endomètre</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Les facteurs de risque de cancer de l’ovaire sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- La nulliparité</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- La mutation des gènes BCRA1 ou BRCA2</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Les règles précoces</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Les stimulations ovariennes</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- La contraception</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Les complications d’une tumeur bénigne de l’ovaire peuvent être:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- La torsion de l’annexe</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- L’hémopéritoine</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Compression vésicale</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Métastases pulmonaires</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Obstacle praevia à l’accouchement</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Le traitement du cancer de l’ovaire est basé sur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- La chirurgie</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- La radiothérapie externe</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- La chimiothérapie</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- L’hormonothérapie</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- La curiethérapie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) A propos du cycle menstruel, quelles sont les propositions correctes ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Une femme a une moyenne de 1000 ovulations au cours de sa vie</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Le stock définitif des follicules est constitué pendant la vie intra utérine</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Les follicules primaires constituent le pool de réserve</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- L’œstrogène est secrété au niveau de la thèque externe</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- L’ovulation se produit 36 heures après le pic de LH</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) A propos de la ménopause, quelles sont les propositions correctes ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Elle survient normalement à 40 ans</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Elle peut s’accompagner de bouffées de chaleur</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Elle s’accompagne habituellement d’une perte de poids</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Elle protège contre l’athérosclérose</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Le traitement hormonal est indiqué en cas de ménopause précoce</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) La révision utérine est un acte qui :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Peut renseigner sur la rétention placentaire</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Peut renseigner sur l’atonie utérine</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Permet de faire le diagnostic de rupture utérine</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Peut favoriser une infection du post partum</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Se fait avant l'expulsion du placenta</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) L’endométrite non compliquée du post partum se manifeste cliniquement par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Une fièvre à 38,5</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Une dissociation du pouls et de la température</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Des lochies fétides</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Une défense pelvienne</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Un utérus douloureux à la mobilisation</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Concernant la thrombophlébite pelvienne du post partum:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Elle peut compliquer une endométrite</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Elle peut se compliquer d'embolie pulmonaire</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Son diagnostic clinique se fait par la perception au TV d'un cordon veineux iliaque induré</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Son traitement associe obligatoirement l'héparine</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Elle ne nécessite pas d'antibiotiques pour son traitement</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) L’endométriose :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Est une ectopie du tissu endométrial au sein du myomètre</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Le traitement est toujours chirurgical</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- S’accompagne d’une baisse de la réserve ovarienne</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Guérit après la ménopause</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Le traitement médical repose principalement sur les progestatifs</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Les indications chirurgicales du fibrome utérin :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Le fibrome sous séreux</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Le fibrome intracavitaire</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Le fibrome en nécrobiose aseptique après traitement médical</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Le fibrome avec des ménorragies abondantes résistantes au traitement médical</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Le fibrome associé à une grossesse</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Quels sont les premiers examens complémentaires à demander chez un couple infertile?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- L’hystérosalpingographie</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Le spermogramme</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Un frottis cervico utérin</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Une hystéroscopie</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- L’échographie pelvienne de la femme</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) A propos de l’avortement spontané :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- La palpation trouve une défense abdominale</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- La cinétique des b HCG est obligatoire avant tout traitement</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- En cas de saignements abondants avec avortement incomplet l’évacuation utérine hémostatique est indiquée</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- L’aberration chromosomique est la 1ère cause d’avortement spontané</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- En cas de rhésus négatif la prophylaxie par le sérum anti D est systématique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Parmi les contre-indications de la contraception œstroprogestative :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- L’hypertension artérielle</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Une thrombophilie connue</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- ATCD de grossesse extra utérine</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Patiente sportive</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Cardiopathie valvulaire connue</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Une patiente âgée de 28 ans, consulte pour des ménométrorragies, de moyenne abondance. L’hémoglobine est à 9 g/dL. L’échographie pelvienne retrouve un fibrome interstitiel mesurant cinq centimètres. Quel est votre CAT ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Un traitement martial</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Une hystérectomie subtotale</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Un traitement hormonal par des estrogènes</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- Un traitement hormonal, par progestatif</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Une résection sous hystéroscopie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Quels sont les diagnostics différentiels d’un avortement ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Une grossesse intra utérine évolutive qui saigne</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Une grossesse extra utérine</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Une mole hydatiforme</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Un hématome retro placentaire</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Une lésion cervico vaginale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Quels examens biologiques à demander en consultation prénatale ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Sérologie toxoplasmose</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Recherche d’anticorps anti ADN</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Sérologie rubéole</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Groupage ABO Rh</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Sérologie syphilitique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Lesquels de ces complications de kyste de l’ovaire sont responsables de douleur brutale ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- La torsion</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- L’hémorragie intrakystique</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- La compression de la vessie</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- La compression du rectum</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- La rupture du kyste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) On parle d’infection génitale haute quand il s’agit de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Endométrite</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Salpingite</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Exocervicite</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Pyosalpinx</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Leucorrhées</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+
+            
+                 
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S5" "Radiologie" "Rd2022" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['D'],
+    q2: ['D'],
+    q3: ['D'],
+    q4: ['A', 'E'],
+    q5: ['D'],
+    q6: ['A'],
+    q7: ['C'],
+    q8: ['B', 'C', 'D'],
+    q9: ['B', 'C'],
+    q10: ['A', 'B', 'C', 'E'],
+    q11: ['A', 'C'],
+    q12: ['B', 'C', 'D'],
+    q13: ['B', 'C', 'D'],
+    q14: ['A', 'D'],
+    q15: ['A', 'B', 'D'],
+    q16: ['A', 'B'],
+    q17: ['B', 'D', 'E'],
+    q18: ['B', 'D'],
+    q19: ['A', 'C'],
+    q20: ['A', 'C'],
+    q21: ['C', 'D', 'E'],
+    q22: ['C'],
+    q23: ['C'],
+    q24: ['C'],
+    q25: ['B'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersRd2022'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

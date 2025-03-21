@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="CC2021R">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) La circulation extra-corporelle est un dispositif qui :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- A permis le développement de la chirurgie à cœur ouvert</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Collecte le sang dans les veines et le réinjecte dans le système artériel</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Expose à des complications</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Dérive la circulation sanguine en dehors du corps et shunte le cœur et les poumons</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Expose à de l'insuffisance rénale en post-opératoire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) La cardioplégie permet :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- De protéger le cerveau</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- D'arrêter le cœur</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- D'assurer la perfusion rénale</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Utilise une solution riche en potassium</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Prévient la formation de radicaux libres</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Le pontage coronaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Est une technique chirurgicale</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Est une technique non chirurgicale</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Est indiqué en cas de sténose serrée du tronc commun gauche</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Est un pont, entre l'aorte ou l'une de ses branches et l'artère coronaire en aval des lésions occlusives ou sténosantes</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Peut être réalisé à cœur battant</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Quel est le meilleur conduit utilisé en chirurgie coronarienne :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Prothèse synthétique</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Veine saphène interne</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Artère mammaire interne gauche</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Artère radiale droite</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Artère gastro-épiploïque</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Quel substitut valvulaire proposez-vous à un patient de 76 ans, sans antécédents, candidat à un remplacement valvulaire aortique pour un rétrécissement valvulaire aortique ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Une dilatation par ballonnet avec mise en place d'un stent</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Une prothèse valvulaire biologique aortique</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Un anneau prothétique mitral</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Une prothèse valvulaire mécanique à double ailettes</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Aucune de ces réponses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Cochez les affirmations exactes à propos d'un nourrisson de 6 mois (6 kg) porteur d'une communication inter-ventriculaire (CIV) large :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Il s'agit de la cardiopathie congénitale la plus fréquente</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Une fermeture de communication inter-ventriculaire par patch est indiquée</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Est responsable d'un shunt gauche-droit</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- La CIV peut être périmembraneuse ou musculaire</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- La réparation complète doit être réalisée sous CEC avec clampage aortique à travers une atriotomie droite ou une ventriculotomie droite</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Cochez les affirmations exactes à propos d'un patient de 56 ans porteur d'un anévrysme de l'aorte ascendante (segment 0 et 1) d'un diamètre maximal de 70 mm avec à l'échocardiographie une insuffisance valvulaire aortique importante :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Vous posez une indication chirurgicale</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Le traitement chirurgical consiste à mettre à plat l'anévrysme et son remplacement par une prothèse en Dacron</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Vous pouvez proposer un remplacement valvulaire aortique par prothèse mécanique simple sans remplacement de l'aorte ascendante</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Vous pouvez proposer un remplacement de l'aorte ascendante et de la valve aortique par un tube valvé avec réimplantation des artères coronaires sur le tube (intervention de Bentall)</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Aucune réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Chez un patient qui présente une artériopathie des membres inférieurs, l'athérosclérose :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Est une étiologie rare</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Est la principale étiologie</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Est évolutive si on ne maîtrise pas les facteurs de risque cardiovasculaire</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Peut être à l'origine d'une coronaropathie concomitante</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Peut être à l'origine d'un accident vasculaire cérébral concomitant</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Une ischémie critique des membres inférieurs peut se manifester par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Des douleurs des membres inférieurs intenses, aiguës qui régressent spontanément sous antalgiques</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Des troubles trophiques</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Des claudications des membres inférieurs</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Une gangrène des orteils</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Une douleur progressive des membres inférieurs qui persiste plus de 15 jours</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Dans les indications thérapeutiques (TASC) concernant les artériopathies des membres inférieurs, le choix entre le traitement chirurgical et le traitement endovasculaire dépend de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- L'âge du patient</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Du sexe du patient</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- De l'étendue des lésions</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Du type de lésions</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Du nombre de lésions</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) L'insuffisance mésentérique chronique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Peut être en rapport avec une thrombose aiguë de l'artère mésentérique supérieure</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Peut être en rapport avec une sténose de l'artère mésentérique supérieure</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Peut se manifester par un syndrome occlusif</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Peut se manifester par des douleurs post-prandiales avec amaigrissement important</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Est une véritable urgence médico-chirurgicale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Parmi ces pathologies, lesquelles nécessitent un transfert urgent au bloc opératoire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Une ischémie aiguë d'origine embolique des membres inférieurs</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Une claudication des membres inférieurs</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Un faux anévrysme poplité post-traumatique sur luxation du genou</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Un syndrome de Leriche</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Une ischémie critique des membres inférieurs</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Les anévrysmes de l'aorte abdominale (AAA) sous-rénaux peuvent se manifester par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Une dysphonie</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Une dysphagie</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Une dysarthrie</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Une dyspnée</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Des cruralgies</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Parmi les complications des anévrysmes de l'aorte abdominale, on peut trouver :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Une rupture</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Une fistule aorto-cave</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Une fissuration</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Une embolie artérielle distale</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Une embolie pulmonaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Le diagnostic d'un anévrysme de l'aorte abdominale sous-rénale repose sur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Un signe de Debakey positif à la palpation</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Un signe de Homens positif</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Une échographie abdominale</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- La palpation d'une masse abdominale battante et expansive</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Un angioscanner abdominal</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S6" "Pathologie_respiratoire" "CC2021R" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['A', 'B', 'C', 'D', 'E'],
+    q2: ['A', 'B', 'D', 'E'],
+    q3: ['A', 'C', 'D', 'E'],
+    q4: ['C'],
+    q5: ['D'],
+    q6: ['A', 'B', 'C', 'D', 'E'],
+    q7: ['B', 'C', 'D'],
+    q8: ['B', 'C', 'E'],
+    q9: ['A', 'C', 'D'],
+    q10: ['C', 'D', 'E'],
+    q11: ['B', 'D'],
+    q12: ['A', 'C', 'E'],
+    q13: ['E'],
+    q14: ['A', 'B', 'C', 'D', 'E'],
+    q15: ['A', 'C', 'D'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersCC2021R'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

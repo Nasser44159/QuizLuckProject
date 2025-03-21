@@ -1,0 +1,100 @@
+# Configurez le logger
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+def start_challenge(request):
+    if request.method == "POST":
+        logger.debug("Requête POST reçue dans `start_challenge`.")
+
+        # Récupérer les matières sélectionnées
+        selected_subjects = request.POST.getlist('subjects')
+        logger.debug(f"Matières sélectionnées (IDs) : {selected_subjects}")
+
+        if not selected_subjects:
+            logger.error("Aucune matière sélectionnée dans le formulaire.")
+            return HttpResponse("Erreur : Vous devez sélectionner une matière.", status=400)
+
+        # Récupérer le nombre global de questions
+        num_questions = int(request.POST.get('num_questions', 0))
+        if num_questions < 1 or num_questions > 10:
+            logger.error(f"Nombre de questions invalide : {num_questions}")
+            return HttpResponse("Erreur : Le nombre de questions doit être compris entre 1 et 10.", status=400)
+
+        # Enregistrer les matières et le nombre global de questions dans la session
+        request.session['selected_subjects'] = selected_subjects
+        request.session['num_questions'] = num_questions
+        logger.debug(f"Matières sélectionnées : {selected_subjects}")
+        logger.debug(f"Nombre de questions par matière enregistré : {num_questions}")
+
+        # Rediriger vers la vue `challenge`
+        return redirect('challenge')
+
+    # Si la méthode est GET, afficher le formulaire
+    logger.debug("Requête GET reçue dans `start_challenge`. Chargement des matières.")
+    subjects = Subject.objects.all()  # Récupérer toutes les matières
+    logger.debug(f"Matières disponibles : {[subject.name for subject in subjects]}")
+
+    return render(request, 'start_challenge.html', {'subjects': subjects})
+
+
+def challenge(request):
+    if request.method == "GET":
+        logger.debug("Requête GET reçue dans `challenge`.")
+
+        # Récupérer les matières sélectionnées dans la session
+        selected_subjects = request.session.get('selected_subjects', [])
+        num_questions_per_subject = request.session.get('num_questions', 10)
+
+        if not selected_subjects or num_questions_per_subject < 1:
+            logger.error("Aucune matière ou nombre de questions valide trouvé dans la session.")
+            return render(request, 'challenge.html', {
+                'error': "Aucune matière ou nombre de questions valide trouvé. Veuillez recommencer."
+            })
+
+        try:
+            # Récupérer les matières sélectionnées depuis la base de données
+            subjects = Subject.objects.filter(id__in=selected_subjects)
+            logger.debug(f"Matières sélectionnées (codes) : {[subject.code for subject in subjects]}")
+
+            # Préparer les questions pour chaque matière
+            questions = []
+            for subject in subjects:
+                subject_questions = Question.objects.filter(id__startswith=subject.code).order_by('?')[:num_questions_per_subject]
+                questions.extend(subject_questions)
+
+            # Vérification du total de questions générées
+            if not questions:
+                logger.error("Aucune question générée pour les matières sélectionnées.")
+                return render(request, 'challenge.html', {
+                    'error': "Aucune question disponible pour les matières sélectionnées."
+                })
+
+            # Préparer les données des questions pour le frontend
+            questions_data = []
+            for question in questions:
+                choices = question.choices.all()
+                correct_choices = question.choices.filter(is_correct=True).values_list('id', flat=True)
+                questions_data.append({
+                    'id': question.id,
+                    'text': question.text,
+                    'choices': [{'id': choice.id, 'text': choice.text} for choice in choices],
+                    'correct_choices': list(correct_choices),
+                })
+
+            # Déterminer la source pour la première question
+            first_question = questions_data[0]
+            first_question['source'] = first_question['id'].split('_')[0]
+
+            # Renvoyer la première question et toutes les questions au frontend
+            return render(request, 'challenge.html', {
+                'first_question': first_question,
+                'questions': questions_data
+            })
+
+        except Exception as e:
+            logger.error(f"Erreur dans la vue `challenge` : {e}")
+            return render(request, 'challenge.html', {
+                'error': "Une erreur s'est produite lors de la génération des questions."
+            })
+
+    return JsonResponse({"error": "Méthode non autorisée."}, status=405)

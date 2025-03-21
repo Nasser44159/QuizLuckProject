@@ -1,0 +1,2504 @@
+<!DOCTYPE html>
+{% load static %}
+
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'css/stylequiz.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+
+</head>
+<body>
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+
+    <div id="content">
+
+         <div class="quiz-title">
+            <h1>
+Maladies Respiratoires 2018
+</h1>
+         </div>
+         <form id="quiz-form">
+    <input type="hidden" id='exam_name' name="exam_name" value="MR2018">
+    {% csrf_token %}
+            <div class="question-container" id="question-1">
+               <div class="question">
+                  <p> 1.) L'étiologie la plus fréquente des traumatismes directs du thorax : </p>
+                  <ul>
+                     <li>
+                        <input id="q1a" name="q1" type="checkbox" value="A" /> A- Les agressions </li>
+                     <li>
+                        <input id="q1b" name="q1" type="checkbox" value="B" /> B- L'autolyse </li>
+                     <li>
+                        <input id="q1c" name="q1" type="checkbox" value="C" /> C- Les accidents de la voie publique </li>
+                     <li>
+                        <input id="q1d" name="q1" type="checkbox" value="D" /> D- Les explosions </li>
+                     <li>
+                        <input id="q1e" name="q1" type="checkbox" value="E" /> E- Les accidents de travail </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q1')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q1')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="1"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_1" onclick="toggleCommentSection('MR2018_1', event)"> 💬 <span class="badge" data-comment-id="MR2018_1">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-2">
+               <div class="question">
+                  <p> 2.) Après une agression du parenchyme pulmonaire par une arme blanche : </p>
+                  <ul>
+                     <li>
+                        <input id="q2a" name="q2" type="checkbox" value="A" /> A- Il y a un tunnel lésionnel </li>
+                     <li>
+                        <input id="q2b" name="q2" type="checkbox" value="B" /> B- Il y a une cavitation </li>
+                     <li>
+                        <input id="q2c" name="q2" type="checkbox" value="C" /> C- Il y a un écrasement </li>
+                     <li>
+                        <input id="q2d" name="q2" type="checkbox" value="D" /> D- Il y a une onde de choc </li>
+                     <li>
+                        <input id="q2e" name="q2" type="checkbox" value="E" /> E- Il y a une fragmentation </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q2')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q2')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="2"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_2" onclick="toggleCommentSection('MR2018_2', event)"> 💬 <span class="badge" data-comment-id="MR2018_2">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-3">
+               <div class="question">
+                  <p> 3.) Les traumatismes thoraciques indirects sont dus aux : </p>
+                  <ul>
+                     <li>
+                        <input id="q3a" name="q3" type="checkbox" value="A" /> A- Décélérations brutales </li>
+                     <li>
+                        <input id="q3b" name="q3" type="checkbox" value="B" /> B- Explosions avec effets de souffle </li>
+                     <li>
+                        <input id="q3c" name="q3" type="checkbox" value="C" /> C- Écrasements </li>
+                     <li>
+                        <input id="q3d" name="q3" type="checkbox" value="D" /> D- Agressions par armes blanches </li>
+                     <li>
+                        <input id="q3e" name="q3" type="checkbox" value="E" /> E- Suicide par strangulation </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q3')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q3')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="3"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_3" onclick="toggleCommentSection('MR2018_3', event)"> 💬 <span class="badge" data-comment-id="MR2018_3">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-4">
+               <div class="question">
+                  <p> 4.) Après un traumatisme thoracique, la respiration paradoxale est en rapport avec : </p>
+                  <ul>
+                     <li>
+                        <input id="q4a" name="q4" type="checkbox" value="A" /> A- Un volet thoracique </li>
+                     <li>
+                        <input id="q4b" name="q4" type="checkbox" value="B" /> B- Un pneumothorax post-traumatique </li>
+                     <li>
+                        <input id="q4c" name="q4" type="checkbox" value="C" /> C- Des contusions pulmonaires </li>
+                     <li>
+                        <input id="q4d" name="q4" type="checkbox" value="D" /> D- Une plaie diaphragmatique </li>
+                     <li>
+                        <input id="q4e" name="q4" type="checkbox" value="E" /> E- Une rupture trachéo-bronchique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q4')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q4')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="4"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_4" onclick="toggleCommentSection('MR2018_4', event)"> 💬 <span class="badge" data-comment-id="MR2018_4">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-5">
+               <div class="question">
+                  <p> 5.) Le volet thoracique post-traumatique est dû à : </p>
+                  <ul>
+                     <li>
+                        <input id="q5a" name="q5" type="checkbox" value="A" /> A- Plusieurs fractures complexes d'une seule côte </li>
+                     <li>
+                        <input id="q5b" name="q5" type="checkbox" value="B" /> B- Plusieurs fractures du corps sternal </li>
+                     <li>
+                        <input id="q5c" name="q5" type="checkbox" value="C" /> C- Une double série de fractures costales étagées </li>
+                     <li>
+                        <input id="q5d" name="q5" type="checkbox" value="D" /> D- Une double fracture des vertèbres thoraciques </li>
+                     <li>
+                        <input id="q5e" name="q5" type="checkbox" value="E" /> E- Une disjonction sterno-claviculaire </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q5')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q5')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="5"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_5" onclick="toggleCommentSection('MR2018_5', event)"> 💬 <span class="badge" data-comment-id="MR2018_5">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-6">
+               <div class="question">
+                  <p> 6.) Le caractère compressif d'un pneumothorax post-traumatique, est jugé sur : </p>
+                  <ul>
+                     <li>
+                        <input id="q6a" name="q6" type="checkbox" value="A" /> A- La fracture sternale associée </li>
+                     <li>
+                        <input id="q6b" name="q6" type="checkbox" value="B" /> B- L'abaissement de la coupole diaphragmatique </li>
+                     <li>
+                        <input id="q6c" name="q6" type="checkbox" value="C" /> C- Le déplacement des structures médiastinales </li>
+                     <li>
+                        <input id="q6d" name="q6" type="checkbox" value="D" /> D- L'emphysème sous-cutané </li>
+                     <li>
+                        <input id="q6e" name="q6" type="checkbox" value="E" /> E- Le pneumopéritoine associé </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q6')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q6')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="6"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_6" onclick="toggleCommentSection('MR2018_6', event)"> 💬 <span class="badge" data-comment-id="MR2018_6">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-7">
+               <div class="question">
+                  <p> 7.) Après un traumatisme thoracique, penser à une lésion diaphragmatique devant : </p>
+                  <ul>
+                     <li>
+                        <input id="q7a" name="q7" type="checkbox" value="A" /> A- Une détresse respiratoire </li>
+                     <li>
+                        <input id="q7b" name="q7" type="checkbox" value="B" /> B- Un déplacement médiastinal </li>
+                     <li>
+                        <input id="q7c" name="q7" type="checkbox" value="C" /> C- Des bruits péristaltiques au niveau du thorax </li>
+                     <li>
+                        <input id="q7d" name="q7" type="checkbox" value="D" /> D- Un emphysème sous-cutané </li>
+                     <li>
+                        <input id="q7e" name="q7" type="checkbox" value="E" /> E- Des ecchymoses abdominales </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q7')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q7')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="7"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_7" onclick="toggleCommentSection('MR2018_7', event)"> 💬 <span class="badge" data-comment-id="MR2018_7">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-8">
+               <div class="question">
+                  <p> 8.) En cas de cancer bronchique, le meilleur moyen de la confirmation de l'atteinte ganglionnaire médiastinale (N2 ou N3) : </p>
+                  <ul>
+                     <li>
+                        <input id="q8a" name="q8" type="checkbox" value="A" /> A- TDM thoracique </li>
+                     <li>
+                        <input id="q8b" name="q8" type="checkbox" value="B" /> B- Échographie thoracique </li>
+                     <li>
+                        <input id="q8c" name="q8" type="checkbox" value="C" /> C- Bronchoscopie souple </li>
+                     <li>
+                        <input id="q8d" name="q8" type="checkbox" value="D" /> D- Médiastinoscopie </li>
+                     <li>
+                        <input id="q8e" name="q8" type="checkbox" value="E" /> E- Radiographie thoracique de profil </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q8')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q8')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="8"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_8" onclick="toggleCommentSection('MR2018_8', event)"> 💬 <span class="badge" data-comment-id="MR2018_8">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-9">
+               <div class="question">
+                  <p> 9.) Lors d'un cancer bronchique, les contre-indications à la chirurgie sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q9a" name="q9" type="checkbox" value="A" /> A- Absence d'atteinte ganglionnaire </li>
+                     <li>
+                        <input id="q9b" name="q9" type="checkbox" value="B" /> B- Atteinte directe du cœur </li>
+                     <li>
+                        <input id="q9c" name="q9" type="checkbox" value="C" /> C- Médiastinite tumorale </li>
+                     <li>
+                        <input id="q9d" name="q9" type="checkbox" value="D" /> D- Pleurésie réactionnelle </li>
+                     <li>
+                        <input id="q9e" name="q9" type="checkbox" value="E" /> E- Plusieurs métastases extra-thoraciques </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q9')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q9')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="9"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_9" onclick="toggleCommentSection('MR2018_9', event)"> 💬 <span class="badge" data-comment-id="MR2018_9">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-10">
+               <div class="question">
+                  <p> 10.) Un cancer bronchique de stade précoce IA ou IB est une indication à : </p>
+                  <ul>
+                     <li>
+                        <input id="q10a" name="q10" type="checkbox" value="A" /> A- Une lobectomie </li>
+                     <li>
+                        <input id="q10b" name="q10" type="checkbox" value="B" /> B- Une radiothérapie médiastinale exclusive </li>
+                     <li>
+                        <input id="q10c" name="q10" type="checkbox" value="C" /> C- Un curage ganglionnaire médiastinal </li>
+                     <li>
+                        <input id="q10d" name="q10" type="checkbox" value="D" /> D- Un curage ganglionnaire cervical </li>
+                     <li>
+                        <input id="q10e" name="q10" type="checkbox" value="E" /> E- Une chimiothérapie néo-adjuvante </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q10')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q10')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="10"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_10" onclick="toggleCommentSection('MR2018_10', event)"> 💬 <span class="badge" data-comment-id="MR2018_10">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-11">
+               <div class="question">
+                  <p> 11.) La chirurgie des bronchectasies a pour buts : </p>
+                  <ul>
+                     <li>
+                        <input id="q11a" name="q11" type="checkbox" value="A" /> A- Éviter le traitement antibiotique </li>
+                     <li>
+                        <input id="q11b" name="q11" type="checkbox" value="B" /> B- Éviter les hémoptysies </li>
+                     <li>
+                        <input id="q11c" name="q11" type="checkbox" value="C" /> C- Éviter les infections récidivantes </li>
+                     <li>
+                        <input id="q11d" name="q11" type="checkbox" value="D" /> D- Enlever une cause locale </li>
+                     <li>
+                        <input id="q11e" name="q11" type="checkbox" value="E" /> E- Éviter la kinésithérapie </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q11')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q11')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="11"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_11" onclick="toggleCommentSection('MR2018_11', event)"> 💬 <span class="badge" data-comment-id="MR2018_11">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-12">
+               <div class="question">
+                  <p> 12.) Les indications chirurgicales au cours des bronchectasies sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q12a" name="q12" type="checkbox" value="A" /> A- Bronchectasies localisées </li>
+                     <li>
+                        <input id="q12b" name="q12" type="checkbox" value="B" /> B- Bronchectasies diffuses </li>
+                     <li>
+                        <input id="q12c" name="q12" type="checkbox" value="C" /> C- Bronchorrhée invalidante </li>
+                     <li>
+                        <input id="q12d" name="q12" type="checkbox" value="D" /> D- Hémoptysie récidivante </li>
+                     <li>
+                        <input id="q12e" name="q12" type="checkbox" value="E" /> E- Échec du traitement médical </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q12')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q12')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="12"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_12" onclick="toggleCommentSection('MR2018_12', event)"> 💬 <span class="badge" data-comment-id="MR2018_12">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-13">
+               <div class="question">
+                  <p> 13.) Les aspergillomes simples se caractérisent par : </p>
+                  <ul>
+                     <li>
+                        <input id="q13a" name="q13" type="checkbox" value="A" /> A- Des cavités à bords fins </li>
+                     <li>
+                        <input id="q13b" name="q13" type="checkbox" value="B" /> B- Un parenchyme pulmonaire sain </li>
+                     <li>
+                        <input id="q13c" name="q13" type="checkbox" value="C" /> C- Des hémoptysies récidivantes </li>
+                     <li>
+                        <input id="q13d" name="q13" type="checkbox" value="D" /> D- Un patient très symptomatique </li>
+                     <li>
+                        <input id="q13e" name="q13" type="checkbox" value="E" /> E- Une insuffisance respiratoire </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q13')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q13')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="13"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_13" onclick="toggleCommentSection('MR2018_13', event)"> 💬 <span class="badge" data-comment-id="MR2018_13">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-14">
+               <div class="question">
+                  <p> 14.) Le patient idéal pour traitement chirurgical d'un aspergillome : </p>
+                  <ul>
+                     <li>
+                        <input id="q14a" name="q14" type="checkbox" value="A" /> A- Jeune &lt; 50 ans </li>
+                     <li>
+                        <input id="q14b" name="q14" type="checkbox" value="B" /> B- Bonne fonction respiratoire. </li>
+                     <li>
+                        <input id="q14c" name="q14" type="checkbox" value="C" /> C- Absence d'hémoptysie </li>
+                     <li>
+                        <input id="q14d" name="q14" type="checkbox" value="D" /> D- Poumons détruits par aspergillome </li>
+                     <li>
+                        <input id="q14e" name="q14" type="checkbox" value="E" /> E- Possibilité d'une résection limitée </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q14')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q14')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="14"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_14" onclick="toggleCommentSection('MR2018_14', event)"> 💬 <span class="badge" data-comment-id="MR2018_14">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-15">
+               <div class="question">
+                  <p> 15.) La gravité anatomique des kystes hydatiques pulmonaires est jugée sur : </p>
+                  <ul>
+                     <li>
+                        <input id="q15a" name="q15" type="checkbox" value="A" /> A- La taille du kyste </li>
+                     <li>
+                        <input id="q15b" name="q15" type="checkbox" value="B" /> B- La topographie du kyste </li>
+                     <li>
+                        <input id="q15c" name="q15" type="checkbox" value="C" /> C- Le nombre des kystes </li>
+                     <li>
+                        <input id="q15d" name="q15" type="checkbox" value="D" /> D- L'observance d'un traitement médical antifongique </li>
+                     <li>
+                        <input id="q15e" name="q15" type="checkbox" value="E" /> E- Les fistules bronchovasculaires. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q15')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q15')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="15"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_15" onclick="toggleCommentSection('MR2018_15', event)"> 💬 <span class="badge" data-comment-id="MR2018_15">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-16">
+               <div class="question">
+                  <p> 16.) Devant un kyste hydatique géant (énorme), le meilleur traitement est : </p>
+                  <ul>
+                     <li>
+                        <input id="q16a" name="q16" type="checkbox" value="A" /> A- Un traitement conservateur par ponction aspiration. </li>
+                     <li>
+                        <input id="q16b" name="q16" type="checkbox" value="B" /> B- Un traitement d'exérèse radicale </li>
+                     <li>
+                        <input id="q16c" name="q16" type="checkbox" value="C" /> C- Un traitement médical antifongique </li>
+                     <li>
+                        <input id="q16d" name="q16" type="checkbox" value="D" /> D- Une ponction à l'aiguille </li>
+                     <li>
+                        <input id="q16e" name="q16" type="checkbox" value="E" /> E- Un drainage thoracique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q16')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q16')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="16"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_16" onclick="toggleCommentSection('MR2018_16', event)"> 💬 <span class="badge" data-comment-id="MR2018_16">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-17">
+               <div class="question">
+                  <p> 17.) Mr. H. Ahmed, 42 ans, tabagique (15 PA), pèse 47 kg, consulte pour une douleur thoracique droite avec toux. A cette étape de l'histoire clinique
+                     vous évoquez : </p>
+                  <ul>
+                     <li>
+                        <input id="q17a" name="q17" type="checkbox" value="A" /> A- Hydro pneumothorax droit. </li>
+                     <li>
+                        <input id="q17b" name="q17" type="checkbox" value="B" /> B- Pleurésie droite. </li>
+                     <li>
+                        <input id="q17c" name="q17" type="checkbox" value="C" /> C- Kyste hydatique pulmonaire droit. </li>
+                     <li>
+                        <input id="q17d" name="q17" type="checkbox" value="D" /> D- Pneumonie aiguë droite. </li>
+                     <li>
+                        <input id="q17e" name="q17" type="checkbox" value="E" /> E- Pneumothorax droit. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q17')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q17')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="17"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_17" onclick="toggleCommentSection('MR2018_17', event)"> 💬 <span class="badge" data-comment-id="MR2018_17">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-18">
+               <div class="question">
+                  <p> 18.) L'examen clinique trouve un syndrome d'épanchement liquidien de la base droite. À cette étape de l'histoire clinique vous évoquez : </p>
+                  <ul>
+                     <li>
+                        <input id="q18a" name="q18" type="checkbox" value="A" /> A- Hydro pneumothorax droit. </li>
+                     <li>
+                        <input id="q18b" name="q18" type="checkbox" value="B" /> B- Pleurésie droite. </li>
+                     <li>
+                        <input id="q18c" name="q18" type="checkbox" value="C" /> C- Kyste hydatique pulmonaire droit. </li>
+                     <li>
+                        <input id="q18d" name="q18" type="checkbox" value="D" /> D- Pneumonie aiguë droite. </li>
+                     <li>
+                        <input id="q18e" name="q18" type="checkbox" value="E" /> E- Pneumothorax droit. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q18')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q18')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="18"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_18" onclick="toggleCommentSection('MR2018_18', event)"> 💬 <span class="badge" data-comment-id="MR2018_18">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-19">
+               <div class="question">
+                  <p> 19.) La radiographie thoracique montre une image évocatrice. Vous évoquez comme diagnostic : </p>
+                  <ul>
+                     <li>
+                        <input id="q19a" name="q19" type="checkbox" value="A" /> A- Hydro pneumothorax droit. </li>
+                     <li>
+                        <input id="q19b" name="q19" type="checkbox" value="B" /> B- Pleurésie droite. </li>
+                     <li>
+                        <input id="q19c" name="q19" type="checkbox" value="C" /> C- Kyste hydatique pulmonaire droit. </li>
+                     <li>
+                        <input id="q19d" name="q19" type="checkbox" value="D" /> D- Pneumonie aiguë droite. </li>
+                     <li>
+                        <input id="q19e" name="q19" type="checkbox" value="E" /> E- Pneumothorax droit. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q19')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q19')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="19"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_19" onclick="toggleCommentSection('MR2018_19', event)"> 💬 <span class="badge" data-comment-id="MR2018_19">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-20">
+               <div class="question">
+                  <p> 20.) Après la radiographie du thorax, vous complétez le bilan de ce patient en priorité par : </p>
+                  <ul>
+                     <li>
+                        <input id="q20a" name="q20" type="checkbox" value="A" /> A- TDM thoracique. </li>
+                     <li>
+                        <input id="q20b" name="q20" type="checkbox" value="B" /> B- Fibroscopie bronchique. </li>
+                     <li>
+                        <input id="q20c" name="q20" type="checkbox" value="C" /> C- Ponction pleurale. </li>
+                     <li>
+                        <input id="q20d" name="q20" type="checkbox" value="D" /> D- IDR à la tuberculine. </li>
+                     <li>
+                        <input id="q20e" name="q20" type="checkbox" value="E" /> E- Thoracoscopie. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q20')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q20')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="20"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_20" onclick="toggleCommentSection('MR2018_20', event)"> 💬 <span class="badge" data-comment-id="MR2018_20">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-21">
+               <div class="question">
+                  <p> 21.) Vous suspectez en première intention une tuberculose pleurale isolée chez ce patient. Quels examens proposez-vous pour confirmer le diagnostic
+                     : </p>
+                  <ul>
+                     <li>
+                        <input id="q21a" name="q21" type="checkbox" value="A" /> A- Cytologie du liquide pleural. </li>
+                     <li>
+                        <input id="q21b" name="q21" type="checkbox" value="B" /> B- Recherche de BK dans les expectorations. </li>
+                     <li>
+                        <input id="q21c" name="q21" type="checkbox" value="C" /> C- IDR à la tuberculine. </li>
+                     <li>
+                        <input id="q21d" name="q21" type="checkbox" value="D" /> D- Ponction biopsie pleurale. </li>
+                     <li>
+                        <input id="q21e" name="q21" type="checkbox" value="E" /> E- LDH dans le liquide pleural. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q21')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q21')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="21"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_21" onclick="toggleCommentSection('MR2018_21', event)"> 💬 <span class="badge" data-comment-id="MR2018_21">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-22">
+               <div class="question">
+                  <p> 22.) La tuberculose pleurale est confirmée. Selon le programme national de la LAT, ce patient doit recevoir le régime : </p>
+                  <ul>
+                     <li>
+                        <input id="q22a" name="q22" type="checkbox" value="A" /> A- 2SRHZ/4RH. </li>
+                     <li>
+                        <input id="q22b" name="q22" type="checkbox" value="B" /> B- 2RHZE/5RH. </li>
+                     <li>
+                        <input id="q22c" name="q22" type="checkbox" value="C" /> C- 2RHZE/6RH. </li>
+                     <li>
+                        <input id="q22d" name="q22" type="checkbox" value="D" /> D- 2RHZE/4RH. </li>
+                     <li>
+                        <input id="q22e" name="q22" type="checkbox" value="E" /> E- 2RHZE/7RH. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q22')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q22')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="22"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_22" onclick="toggleCommentSection('MR2018_22', event)"> 💬 <span class="badge" data-comment-id="MR2018_22">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-23">
+               <div class="question">
+                  <p> 23.) Vous avez décidé de prescrire pendant la première phase du traitement, une association de quatre antibacillaires (ERIP-K4). Vous proposez
+                     à ce patient : </p>
+                  <ul>
+                     <li>
+                        <input id="q23a" name="q23" type="checkbox" value="A" /> A- 2 comprimés par jour. </li>
+                     <li>
+                        <input id="q23b" name="q23" type="checkbox" value="B" /> B- 2.5 comprimés par jour. </li>
+                     <li>
+                        <input id="q23c" name="q23" type="checkbox" value="C" /> C- 3 comprimés par jour. </li>
+                     <li>
+                        <input id="q23d" name="q23" type="checkbox" value="D" /> D- 4 comprimés par jour. </li>
+                     <li>
+                        <input id="q23e" name="q23" type="checkbox" value="E" /> E- Pas de réponse juste. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q23')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q23')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="23"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_23" onclick="toggleCommentSection('MR2018_23', event)"> 💬 <span class="badge" data-comment-id="MR2018_23">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-24">
+               <div class="question">
+                  <p> 24.) Pour le reste de la prise en charge, vous associez au traitement antibacillaire : </p>
+                  <ul>
+                     <li>
+                        <input id="q24a" name="q24" type="checkbox" value="A" /> A- Ponction pleurale. </li>
+                     <li>
+                        <input id="q24b" name="q24" type="checkbox" value="B" /> B- Corticoïdes. </li>
+                     <li>
+                        <input id="q24c" name="q24" type="checkbox" value="C" /> C- Aide au sevrage tabagique. </li>
+                     <li>
+                        <input id="q24d" name="q24" type="checkbox" value="D" /> D- Vaccination par le BCG. </li>
+                     <li>
+                        <input id="q24e" name="q24" type="checkbox" value="E" /> E- Kinésithérapie. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q24')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q24')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="24"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_24" onclick="toggleCommentSection('MR2018_24', event)"> 💬 <span class="badge" data-comment-id="MR2018_24">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-25">
+               <div class="question">
+                  <p> 25.) Au CDTMR, pendant la phase d'entretien, le médecin a prescrit au patient le RHINIZIDE 300 à raison de 2 gélules par jour (à cette date le
+                     poids de Mr. Ahmed est de 50 kg). Vous pensez que le patient : </p>
+                  <ul>
+                     <li>
+                        <input id="q25a" name="q25" type="checkbox" value="A" /> A- Reçoit une dose correcte en R et H. </li>
+                     <li>
+                        <input id="q25b" name="q25" type="checkbox" value="B" /> B- Est sous-dosé en R et en H. </li>
+                     <li>
+                        <input id="q25c" name="q25" type="checkbox" value="C" /> C- Est surdosé en R et en H. </li>
+                     <li>
+                        <input id="q25d" name="q25" type="checkbox" value="D" /> D- Est surdosé en H seulement. </li>
+                     <li>
+                        <input id="q25e" name="q25" type="checkbox" value="E" /> E- Est surdosé en R seulement. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q25')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q25')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="25"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_25" onclick="toggleCommentSection('MR2018_25', event)"> 💬 <span class="badge" data-comment-id="MR2018_25">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-26">
+               <div class="question">
+                  <p> 26.) Les moyens de surveillance à la prochaine consultation de Mr Ahmed sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q26a" name="q26" type="checkbox" value="A" /> A- Le poids. </li>
+                     <li>
+                        <input id="q26b" name="q26" type="checkbox" value="B" /> B- La taille. </li>
+                     <li>
+                        <input id="q26c" name="q26" type="checkbox" value="C" /> C- L'IDR. </li>
+                     <li>
+                        <input id="q26d" name="q26" type="checkbox" value="D" /> D- Les BK dans les expectorations. </li>
+                     <li>
+                        <input id="q26e" name="q26" type="checkbox" value="E" /> E- La radiographie thoracique. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q26')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q26')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="26"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_26" onclick="toggleCommentSection('MR2018_26', event)"> 💬 <span class="badge" data-comment-id="MR2018_26">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-27">
+               <div class="question">
+                  <p> 27.) Précisez la ou les propositions exactes : </p>
+                  <ul>
+                     <li>
+                        <input id="q27a" name="q27" type="checkbox" value="A" /> A- Les recherches de BK dans les expectorations peuvent être positives en cas de primo-infection. </li>
+                     <li>
+                        <input id="q27b" name="q27" type="checkbox" value="B" /> B- L'IDR est toujours positive en cas de tuberculose pulmonaire commune. </li>
+                     <li>
+                        <input id="q27c" name="q27" type="checkbox" value="C" /> C- La tuberculose des séreuses est une tuberculose de réinfection. </li>
+                     <li>
+                        <input id="q27d" name="q27" type="checkbox" value="D" /> D- Le fond d'œil et la ponction lombaire sont systématiques dans la pneumonie caséeuse. </li>
+                     <li>
+                        <input id="q27e" name="q27" type="checkbox" value="E" /> E- Pas de réponse juste. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q27')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q27')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="27"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_27" onclick="toggleCommentSection('MR2018_27', event)"> 💬 <span class="badge" data-comment-id="MR2018_27">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-28">
+               <div class="question">
+                  <p> 28.) Parmi les six mesures MPOWER de l'OMS, précisez les propositions exactes parmi les suivantes : </p>
+                  <ul>
+                     <li>
+                        <input id="q28a" name="q28" type="checkbox" value="A" /> A- Monitoring : Surveiller la consommation de tabac et les politiques de prévention. </li>
+                     <li>
+                        <input id="q28b" name="q28" type="checkbox" value="B" /> B- Protecting : Protéger la population contre la fumée du tabac. </li>
+                     <li>
+                        <input id="q28c" name="q28" type="checkbox" value="C" /> C- Offering : Offrir une aide à ceux qui veulent arrêter de fumer. </li>
+                     <li>
+                        <input id="q28d" name="q28" type="checkbox" value="D" /> D- Enforcing : Interdire la vente du tabac aux mineurs. </li>
+                     <li>
+                        <input id="q28e" name="q28" type="checkbox" value="E" /> E- Raising : Augmenter les taxes sur le tabac. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q28')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q28')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="28"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_28" onclick="toggleCommentSection('MR2018_28', event)"> 💬 <span class="badge" data-comment-id="MR2018_28">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-29">
+               <div class="question">
+                  <p> 29.) Les conditions d'efficacité des substituts nicotiniques chez un fumeur marié sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q29a" name="q29" type="checkbox" value="A" /> A- Décision du couple. </li>
+                     <li>
+                        <input id="q29b" name="q29" type="checkbox" value="B" /> B- Décision prise immédiatement après la consultation. </li>
+                     <li>
+                        <input id="q29c" name="q29" type="checkbox" value="C" /> C- Fagerström &lt;4. </li>
+                     <li>
+                        <input id="q29d" name="q29" type="checkbox" value="D" /> D- Arrêt progressif du tabagisme. </li>
+                     <li>
+                        <input id="q29e" name="q29" type="checkbox" value="E" /> E- Pas de réponse juste. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q29')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q29')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="29"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_29" onclick="toggleCommentSection('MR2018_29', event)"> 💬 <span class="badge" data-comment-id="MR2018_29">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-30">
+               <div class="question">
+                  <p> 30.) Parmi les propositions suivantes concernant l'hydatidose pulmonaire multiple, lesquelles sont justes : </p>
+                  <ul>
+                     <li>
+                        <input id="q30a" name="q30" type="checkbox" value="A" /> A- L'état général peut être altéré. </li>
+                     <li>
+                        <input id="q30b" name="q30" type="checkbox" value="B" /> B- Les kystes hydatiques peuvent être rompus. </li>
+                     <li>
+                        <input id="q30c" name="q30" type="checkbox" value="C" /> C- L'aspect radiologique est celui d'une image en lâcher de ballons. </li>
+                     <li>
+                        <input id="q30d" name="q30" type="checkbox" value="D" /> D- Les métastases pulmonaires sont un diagnostic différentiel. </li>
+                     <li>
+                        <input id="q30e" name="q30" type="checkbox" value="E" /> E- Le traitement est toujours chirurgical. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q30')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q30')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="30"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_30" onclick="toggleCommentSection('MR2018_30', event)"> 💬 <span class="badge" data-comment-id="MR2018_30">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-31">
+               <div class="question">
+                  <p> 31.) Au cours d'un pneumothorax tuberculeux, l'absence du retour du poumon à la paroi malgré le drainage thoracique pleural peut être due à : </p>
+                  <ul>
+                     <li>
+                        <input id="q31a" name="q31" type="checkbox" value="A" /> A- Une bride pleurale. </li>
+                     <li>
+                        <input id="q31b" name="q31" type="checkbox" value="B" /> B- Une destruction du poumon sous-jacent. </li>
+                     <li>
+                        <input id="q31c" name="q31" type="checkbox" value="C" /> C- Un mauvais état général. </li>
+                     <li>
+                        <input id="q31d" name="q31" type="checkbox" value="D" /> D- Une fistule broncho-pleurale. </li>
+                     <li>
+                        <input id="q31e" name="q31" type="checkbox" value="E" /> E- Un diabète mal équilibré. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q31')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q31')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="31"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_31" onclick="toggleCommentSection('MR2018_31', event)"> 💬 <span class="badge" data-comment-id="MR2018_31">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-32">
+               <div class="question">
+                  <p> 32.) Le traitement d'une pleurésie purulente au stade de début peut faire appel à : </p>
+                  <ul>
+                     <li>
+                        <input id="q32a" name="q32" type="checkbox" value="A" /> A- Une antibiothérapie par voie générale. </li>
+                     <li>
+                        <input id="q32b" name="q32" type="checkbox" value="B" /> B- Une corticothérapie per os. </li>
+                     <li>
+                        <input id="q32c" name="q32" type="checkbox" value="C" /> C- Un drainage pleural. </li>
+                     <li>
+                        <input id="q32d" name="q32" type="checkbox" value="D" /> D- Des ponctions pleurales évacuatrices. </li>
+                     <li>
+                        <input id="q32e" name="q32" type="checkbox" value="E" /> E- Une décortication pleurale. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q32')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q32')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="32"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_32" onclick="toggleCommentSection('MR2018_32', event)"> 💬 <span class="badge" data-comment-id="MR2018_32">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-33">
+               <div class="question">
+                  <p> 33.) Parmi les étiologies suivantes, quelles sont celles qui peuvent se compliquer de pneumothorax ? </p>
+                  <ul>
+                     <li>
+                        <input id="q33a" name="q33" type="checkbox" value="A" /> A- Les DDB. </li>
+                     <li>
+                        <input id="q33b" name="q33" type="checkbox" value="B" /> B- La tuberculose. </li>
+                     <li>
+                        <input id="q33c" name="q33" type="checkbox" value="C" /> C- L'emphysème pulmonaire. </li>
+                     <li>
+                        <input id="q33d" name="q33" type="checkbox" value="D" /> D- L'abcès pulmonaire. </li>
+                     <li>
+                        <input id="q33e" name="q33" type="checkbox" value="E" /> E- Pas de réponse juste. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q33')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q33')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="33"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_33" onclick="toggleCommentSection('MR2018_33', event)"> 💬 <span class="badge" data-comment-id="MR2018_33">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-34">
+               <div class="question">
+                  <p> 34.) Au cours de l'aspergillome intra-cavitaire : </p>
+                  <ul>
+                     <li>
+                        <input id="q34a" name="q34" type="checkbox" value="A" /> A- La radiographie thoracique montre une opacité ronde. </li>
+                     <li>
+                        <input id="q34b" name="q34" type="checkbox" value="B" /> B- L'hémoptysie est un symptôme habituel. </li>
+                     <li>
+                        <input id="q34c" name="q34" type="checkbox" value="C" /> C- La sérologie aspergillaire confirme le diagnostic. </li>
+                     <li>
+                        <input id="q34d" name="q34" type="checkbox" value="D" /> D- L'évolution est souvent favorable. </li>
+                     <li>
+                        <input id="q34e" name="q34" type="checkbox" value="E" /> E- Le traitement est toujours médical. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q34')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q34')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="34"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_34" onclick="toggleCommentSection('MR2018_34', event)"> 💬 <span class="badge" data-comment-id="MR2018_34">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-35">
+               <div class="question">
+                  <p> 35.) La survenue d'une pneumopathie interstitielle fébrile chez un sujet infecté par le VIH peut être due à : </p>
+                  <ul>
+                     <li>
+                        <input id="q35a" name="q35" type="checkbox" value="A" /> A- Une pneumocystose. </li>
+                     <li>
+                        <input id="q35b" name="q35" type="checkbox" value="B" /> B- Une tuberculose. </li>
+                     <li>
+                        <input id="q35c" name="q35" type="checkbox" value="C" /> C- Un sarcome de Kaposi. </li>
+                     <li>
+                        <input id="q35d" name="q35" type="checkbox" value="D" /> D- Une infection à pneumocoque. </li>
+                     <li>
+                        <input id="q35e" name="q35" type="checkbox" value="E" /> E- Une toxoplasmose. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q35')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q35')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="35"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_35" onclick="toggleCommentSection('MR2018_35', event)"> 💬 <span class="badge" data-comment-id="MR2018_35">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-36">
+               <div class="question">
+                  <p> 36.) La ponction biopsie pleurale est systématique en cas de : </p>
+                  <ul>
+                     <li>
+                        <input id="q36a" name="q36" type="checkbox" value="A" /> A- Pleurésie purulente. </li>
+                     <li>
+                        <input id="q36b" name="q36" type="checkbox" value="B" /> B- Pleurésie sérofibrineuse. </li>
+                     <li>
+                        <input id="q36c" name="q36" type="checkbox" value="C" /> C- Pleurésie transudative. </li>
+                     <li>
+                        <input id="q36d" name="q36" type="checkbox" value="D" /> D- Pleurésie hémorragique. </li>
+                     <li>
+                        <input id="q36e" name="q36" type="checkbox" value="E" /> E- Pyopneumothorax. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q36')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q36')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="36"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_36" onclick="toggleCommentSection('MR2018_36', event)"> 💬 <span class="badge" data-comment-id="MR2018_36">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-37">
+               <div class="question">
+                  <p> 37.) Parmi les propositions suivantes concernant la BPCO, laquelle (lesquelles) est (sont) correcte(s) : </p>
+                  <ul>
+                     <li>
+                        <input id="q37a" name="q37" type="checkbox" value="A" /> A- L'âge de début des symptômes remonte à l'enfance. </li>
+                     <li>
+                        <input id="q37b" name="q37" type="checkbox" value="B" /> B- La dyspnée est évaluée par l'échelle mMRC. </li>
+                     <li>
+                        <input id="q37c" name="q37" type="checkbox" value="C" /> C- Le tabagisme est le principal facteur de risque. </li>
+                     <li>
+                        <input id="q37d" name="q37" type="checkbox" value="D" /> D- Elle s'accompagne d'une inflammation systémique. </li>
+                     <li>
+                        <input id="q37e" name="q37" type="checkbox" value="E" /> E- L'interrogatoire retrouve des signes d'atopie. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q37')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q37')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="37"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_37" onclick="toggleCommentSection('MR2018_37', event)"> 💬 <span class="badge" data-comment-id="MR2018_37">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-38">
+               <div class="question">
+                  <p> 38.) Les critères d'hospitalisation d'une exacerbation de BPCO sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q38a" name="q38" type="checkbox" value="A" /> A- La présence de comorbidité cardio-vasculaire. </li>
+                     <li>
+                        <input id="q38b" name="q38" type="checkbox" value="B" /> B- L'âge &gt; 65 ans. </li>
+                     <li>
+                        <input id="q38c" name="q38" type="checkbox" value="C" /> C- L'oxygénothérapie au long cours. </li>
+                     <li>
+                        <input id="q38d" name="q38" type="checkbox" value="D" /> D- La fièvre. </li>
+                     <li>
+                        <input id="q38e" name="q38" type="checkbox" value="E" /> E- Le tabagisme. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q38')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q38')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="38"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_38" onclick="toggleCommentSection('MR2018_38', event)"> 💬 <span class="badge" data-comment-id="MR2018_38">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-39">
+               <div class="question">
+                  <p> 39.) Les signes de sévérité d'une exacerbation d'asthme sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q39a" name="q39" type="checkbox" value="A" /> A- La fréquence respiratoire &gt;30 cycles/mn. </li>
+                     <li>
+                        <input id="q39b" name="q39" type="checkbox" value="B" /> B- La cyanose. </li>
+                     <li>
+                        <input id="q39c" name="q39" type="checkbox" value="C" /> C- La fièvre. </li>
+                     <li>
+                        <input id="q39d" name="q39" type="checkbox" value="D" /> D- La parole saccadée. </li>
+                     <li>
+                        <input id="q39e" name="q39" type="checkbox" value="E" /> E- Les râles sibilants. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q39')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q39')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="39"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_39" onclick="toggleCommentSection('MR2018_39', event)"> 💬 <span class="badge" data-comment-id="MR2018_39">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-40">
+               <div class="question">
+                  <p> 40.) Le Syndrome d'apnées obstructives du sommeil : </p>
+                  <ul>
+                     <li>
+                        <input id="q40a" name="q40" type="checkbox" value="A" /> A- Est une pathologie sous-diagnostiquée. </li>
+                     <li>
+                        <input id="q40b" name="q40" type="checkbox" value="B" /> B- Peut se compliquer d'hypertension artérielle. </li>
+                     <li>
+                        <input id="q40c" name="q40" type="checkbox" value="C" /> C- Est une cause fréquente d'accidents de la voie publique. </li>
+                     <li>
+                        <input id="q40d" name="q40" type="checkbox" value="D" /> D- Est le plus fréquent trouble respiratoire du sommeil. </li>
+                     <li>
+                        <input id="q40e" name="q40" type="checkbox" value="E" /> E- Est toujours secondaire à des anomalies anatomiques des voies aériennes supérieures. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q40')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q40')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="40"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_40" onclick="toggleCommentSection('MR2018_40', event)"> 💬 <span class="badge" data-comment-id="MR2018_40">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-41">
+               <div class="question">
+                  <p> 41.) Une jeune patiente de 25 ans se présente pour une toux sèche, une dyspnée et un syndrome cave supérieur. Quel(s) est (sont) le(s) diagnostic(s)
+                     possible(s) ? </p>
+                  <ul>
+                     <li>
+                        <input id="q41a" name="q41" type="checkbox" value="A" /> A- Tumeur de l'œsophage. </li>
+                     <li>
+                        <input id="q41b" name="q41" type="checkbox" value="B" /> B- Goitre endothoracique. </li>
+                     <li>
+                        <input id="q41c" name="q41" type="checkbox" value="C" /> C- Thymome. </li>
+                     <li>
+                        <input id="q41d" name="q41" type="checkbox" value="D" /> D- Tumeur nerveuse. </li>
+                     <li>
+                        <input id="q41e" name="q41" type="checkbox" value="E" /> E- Kyste pleuro-péricardique. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q41')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q41')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="41"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_41" onclick="toggleCommentSection('MR2018_41', event)"> 💬 <span class="badge" data-comment-id="MR2018_41">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-42">
+               <div class="question">
+                  <p> 42.) La TDM thoracique objective une masse médiastinale antérieure et supérieure. Quel est le diagnostic le plus probable ? </p>
+                  <ul>
+                     <li>
+                        <input id="q42a" name="q42" type="checkbox" value="A" /> A- Tumeur de l'œsophage. </li>
+                     <li>
+                        <input id="q42b" name="q42" type="checkbox" value="B" /> B- Goitre endothoracique. </li>
+                     <li>
+                        <input id="q42c" name="q42" type="checkbox" value="C" /> C- Thymome. </li>
+                     <li>
+                        <input id="q42d" name="q42" type="checkbox" value="D" /> D- Tumeur nerveuse. </li>
+                     <li>
+                        <input id="q42e" name="q42" type="checkbox" value="E" /> E- Kyste pleuro-péricardique. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q42')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q42')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="42"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_42" onclick="toggleCommentSection('MR2018_42', event)"> 💬 <span class="badge" data-comment-id="MR2018_42">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-43">
+               <div class="question">
+                  <p> 43.) Les signes circulatoires d'un syndrome médiastinal sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q43a" name="q43" type="checkbox" value="A" /> A- La voix bitonale. </li>
+                     <li>
+                        <input id="q43b" name="q43" type="checkbox" value="B" /> B- La dyspnée. </li>
+                     <li>
+                        <input id="q43c" name="q43" type="checkbox" value="C" /> C- Le syndrome cave supérieur. </li>
+                     <li>
+                        <input id="q43d" name="q43" type="checkbox" value="D" /> D- Le hoquet. </li>
+                     <li>
+                        <input id="q43e" name="q43" type="checkbox" value="E" /> E- Le syndrome de Claude Bernard Horner. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q43')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q43')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="43"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_43" onclick="toggleCommentSection('MR2018_43', event)"> 💬 <span class="badge" data-comment-id="MR2018_43">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-44">
+               <div class="question">
+                  <p> 44.) Patient de 67 ans, tabagique, avec antécédents de splénectomie présente brutalement, suite à la sortie d'un bain maure, des frissons, sensations
+                     fébriles, toux minime avec expectoration striée de sang, céphalées, douleur thoracique sous mamelonaire droite et gêne respiratoire. A l'examen
+                     : polypnée, fréquence respiratoire à 33 cycles/mn, Température à 39°, TA: 130/60 mm Hg; matité thoracique latéro-basale droite avec râles crépitants
+                     et souffle tubaire. La radiographie thoracique montre une opacité dense homogène systématisée au lobe moyen et lobe inférieur droit avec comblement
+                     du cul de sac externe droit. Le tableau radio clinique fait retenir le diagnostic de (un seul choix) : </p>
+                  <ul>
+                     <li>
+                        <input id="q44a" name="q44" type="checkbox" value="A" /> A- Bronchite virale sévère surinfectée. </li>
+                     <li>
+                        <input id="q44b" name="q44" type="checkbox" value="B" /> B- Bronchopneumonie. </li>
+                     <li>
+                        <input id="q44c" name="q44" type="checkbox" value="C" /> C- Pneumonie franche alvéolaire systématisée. </li>
+                     <li>
+                        <input id="q44d" name="q44" type="checkbox" value="D" /> D- Abcès pulmonaire. </li>
+                     <li>
+                        <input id="q44e" name="q44" type="checkbox" value="E" /> E- Pneumonie atypique. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q44')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q44')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="44"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_44" onclick="toggleCommentSection('MR2018_44', event)"> 💬 <span class="badge" data-comment-id="MR2018_44">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-45">
+               <div class="question">
+                  <p> 45.) L'agent infectieux incriminé le plus probable est (un seul choix) : </p>
+                  <ul>
+                     <li>
+                        <input id="q45a" name="q45" type="checkbox" value="A" /> A- Staphylocoque. </li>
+                     <li>
+                        <input id="q45b" name="q45" type="checkbox" value="B" /> B- Anaérobie. </li>
+                     <li>
+                        <input id="q45c" name="q45" type="checkbox" value="C" /> C- Mycoplasma pneumoniae. </li>
+                     <li>
+                        <input id="q45d" name="q45" type="checkbox" value="D" /> D- Streptocoque pneumoniae. </li>
+                     <li>
+                        <input id="q45e" name="q45" type="checkbox" value="E" /> E- Myxovirus influenzae. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q45')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q45')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="45"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_45" onclick="toggleCommentSection('MR2018_45', event)"> 💬 <span class="badge" data-comment-id="MR2018_45">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-46">
+               <div class="question">
+                  <p> 46.) Les éléments qui justifient l'hospitalisation du patient atteint de cette infection respiratoire sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q46a" name="q46" type="checkbox" value="A" /> A- Fréquence respiratoire à 33 cycles/minute. </li>
+                     <li>
+                        <input id="q46b" name="q46" type="checkbox" value="B" /> B- Température à 39°. </li>
+                     <li>
+                        <input id="q46c" name="q46" type="checkbox" value="C" /> C- Céphalées. </li>
+                     <li>
+                        <input id="q46d" name="q46" type="checkbox" value="D" /> D- Âge de 67 ans. </li>
+                     <li>
+                        <input id="q46e" name="q46" type="checkbox" value="E" /> E- Souffle tubaire. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q46')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q46')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="46"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_46" onclick="toggleCommentSection('MR2018_46', event)"> 💬 <span class="badge" data-comment-id="MR2018_46">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-47">
+               <div class="question">
+                  <p> 47.) On décide d'hospitaliser le patient dans un service de médecine ; l'antibiothérapie comportera (un seul choix) : </p>
+                  <ul>
+                     <li>
+                        <input id="q47a" name="q47" type="checkbox" value="A" /> A- Macrolide. </li>
+                     <li>
+                        <input id="q47b" name="q47" type="checkbox" value="B" /> B- Aminoside. </li>
+                     <li>
+                        <input id="q47c" name="q47" type="checkbox" value="C" /> C- Céphalosporine injectable de 3ème génération plus fluoroquinolone. </li>
+                     <li>
+                        <input id="q47d" name="q47" type="checkbox" value="D" /> D- Carbapénème. </li>
+                     <li>
+                        <input id="q47e" name="q47" type="checkbox" value="E" /> E- Amoxicilline en intraveineux. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q47')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q47')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="47"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_47" onclick="toggleCommentSection('MR2018_47', event)"> 💬 <span class="badge" data-comment-id="MR2018_47">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-48">
+               <div class="question">
+                  <p> 48.) La dilatation des bronches localisées a pour causes : </p>
+                  <ul>
+                     <li>
+                        <input id="q48a" name="q48" type="checkbox" value="A" /> A- Compression extrinsèque par des adénopathies médiastinales. </li>
+                     <li>
+                        <input id="q48b" name="q48" type="checkbox" value="B" /> B- Primo infection tuberculeuse. </li>
+                     <li>
+                        <input id="q48c" name="q48" type="checkbox" value="C" /> C- Rougeole. </li>
+                     <li>
+                        <input id="q48d" name="q48" type="checkbox" value="D" /> D- Mucoviscidose. </li>
+                     <li>
+                        <input id="q48e" name="q48" type="checkbox" value="E" /> E- Corps étranger bronchique. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q48')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q48')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="48"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_48" onclick="toggleCommentSection('MR2018_48', event)"> 💬 <span class="badge" data-comment-id="MR2018_48">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-49">
+               <div class="question">
+                  <p> 49.) La dilatation des bronches est fréquemment révélée par (un seul choix) : </p>
+                  <ul>
+                     <li>
+                        <input id="q49a" name="q49" type="checkbox" value="A" /> A- Des hémoptysies. </li>
+                     <li>
+                        <input id="q49b" name="q49" type="checkbox" value="B" /> B- Une dyspnée. </li>
+                     <li>
+                        <input id="q49c" name="q49" type="checkbox" value="C" /> C- Une bronchorrhée chronique. </li>
+                     <li>
+                        <input id="q49d" name="q49" type="checkbox" value="D" /> D- Une pneumonie. </li>
+                     <li>
+                        <input id="q49e" name="q49" type="checkbox" value="E" /> E- Un abcès pulmonaire. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q49')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q49')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="49"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_49" onclick="toggleCommentSection('MR2018_49', event)"> 💬 <span class="badge" data-comment-id="MR2018_49">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-50">
+               <div class="question">
+                  <p> 50.) Patient, un opéré récent pour affection des voies biliaires, présente des expectorations purulentes, sensations fébriles et douleurs thoraciques
+                     droites avec à la radiographie thoracique une image aérique hydro-aérique droite. Il peut s'agir : </p>
+                  <ul>
+                     <li>
+                        <input id="q50a" name="q50" type="checkbox" value="A" /> A- D'un pyo pneumothorax enkysté avec fistule bronchopleurale. </li>
+                     <li>
+                        <input id="q50b" name="q50" type="checkbox" value="B" /> B- D'un kyste hydatique pulmonaire sain. </li>
+                     <li>
+                        <input id="q50c" name="q50" type="checkbox" value="C" /> C- D'un abcès pulmonaire à pyogènes. </li>
+                     <li>
+                        <input id="q50d" name="q50" type="checkbox" value="D" /> D- D'un abcès sous phrénique. </li>
+                     <li>
+                        <input id="q50e" name="q50" type="checkbox" value="E" /> E- D'une bulle d'emphysème surinfectée. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q50')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q50')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="50"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_50" onclick="toggleCommentSection('MR2018_50', event)"> 💬 <span class="badge" data-comment-id="MR2018_50">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-51">
+               <div class="question">
+                  <p> 51.) La pneumopathie à myxovirus influenzae peut se compliquer de : </p>
+                  <ul>
+                     <li>
+                        <input id="q51a" name="q51" type="checkbox" value="A" /> A- Pneumothorax. </li>
+                     <li>
+                        <input id="q51b" name="q51" type="checkbox" value="B" /> B- Surinfection bronchique bactérienne. </li>
+                     <li>
+                        <input id="q51c" name="q51" type="checkbox" value="C" /> C- Œdème pulmonaire lésionnel. </li>
+                     <li>
+                        <input id="q51d" name="q51" type="checkbox" value="D" /> D- Amylose secondaire. </li>
+                     <li>
+                        <input id="q51e" name="q51" type="checkbox" value="E" /> E- Décès. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q51')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q51')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="51"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_51" onclick="toggleCommentSection('MR2018_51', event)"> 💬 <span class="badge" data-comment-id="MR2018_51">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-52">
+               <div class="question">
+                  <p> 52.) La bronchite aiguë virale simple peut se compliquer à court terme de : </p>
+                  <ul>
+                     <li>
+                        <input id="q52a" name="q52" type="checkbox" value="A" /> A- Surinfection bronchique. </li>
+                     <li>
+                        <input id="q52b" name="q52" type="checkbox" value="B" /> B- Pneumonie. </li>
+                     <li>
+                        <input id="q52c" name="q52" type="checkbox" value="C" /> C- Décompensation d'une BPCO. </li>
+                     <li>
+                        <input id="q52d" name="q52" type="checkbox" value="D" /> D- Greffe aspergillaire. </li>
+                     <li>
+                        <input id="q52e" name="q52" type="checkbox" value="E" /> E- Décompensation d'un asthme. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q52')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q52')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="52"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_52" onclick="toggleCommentSection('MR2018_52', event)"> 💬 <span class="badge" data-comment-id="MR2018_52">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-53">
+               <div class="question">
+                  <p> 53.) Les critères de guérison d'un abcès pulmonaire à pyogènes sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q53a" name="q53" type="checkbox" value="A" /> A- Régression des expectorations purulentes. </li>
+                     <li>
+                        <input id="q53b" name="q53" type="checkbox" value="B" /> B- Persistance d'une cavité pulmonaire à paroi épaisse. </li>
+                     <li>
+                        <input id="q53c" name="q53" type="checkbox" value="C" /> C- Persistance d'une opacité étoilée (stellaire). </li>
+                     <li>
+                        <input id="q53d" name="q53" type="checkbox" value="D" /> D- Apyrexie. </li>
+                     <li>
+                        <input id="q53e" name="q53" type="checkbox" value="E" /> E- Persistance d'une cavité avec une opacité à son bas fond. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q53')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q53')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="53"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_53" onclick="toggleCommentSection('MR2018_53', event)"> 💬 <span class="badge" data-comment-id="MR2018_53">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-54">
+               <div class="question">
+                  <p> 54.) Le bilan pré-thérapeutique d'un adénocarcinome bronchique doit comporter le (s) examen (s) suivant (s) : </p>
+                  <ul>
+                     <li>
+                        <input id="q54a" name="q54" type="checkbox" value="A" /> A- Un TEP scanner (tomographie par émission de positons) seul. </li>
+                     <li>
+                        <input id="q54b" name="q54" type="checkbox" value="B" /> B- Un TEP scanner + IRM cérébrale. </li>
+                     <li>
+                        <input id="q54c" name="q54" type="checkbox" value="C" /> C- Un TEP scanner + scintigraphie osseuse. </li>
+                     <li>
+                        <input id="q54d" name="q54" type="checkbox" value="D" /> D- Un TEP scanner + TDM abdominale. </li>
+                     <li>
+                        <input id="q54e" name="q54" type="checkbox" value="E" /> E- Un TEP scanner + IRM thoracique. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q54')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q54')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="54"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_54" onclick="toggleCommentSection('MR2018_54', event)"> 💬 <span class="badge" data-comment-id="MR2018_54">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-55">
+               <div class="question">
+                  <p> 55.) Quel est le meilleur traitement curatif à proposer pour un carcinome épidermoïde bronchique classé stade IIA : </p>
+                  <ul>
+                     <li>
+                        <input id="q55a" name="q55" type="checkbox" value="A" /> A- La radio-chimiothérapie. </li>
+                     <li>
+                        <input id="q55b" name="q55" type="checkbox" value="B" /> B- L'abstention thérapeutique. </li>
+                     <li>
+                        <input id="q55c" name="q55" type="checkbox" value="C" /> C- La chimiothérapie seule. </li>
+                     <li>
+                        <input id="q55d" name="q55" type="checkbox" value="D" /> D- La chirurgie. </li>
+                     <li>
+                        <input id="q55e" name="q55" type="checkbox" value="E" /> E- La radiothérapie seule. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q55')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q55')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="55"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_55" onclick="toggleCommentSection('MR2018_55', event)"> 💬 <span class="badge" data-comment-id="MR2018_55">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-56">
+               <div class="question">
+                  <p> 56.) Devant des adénopathies médiastinales, quelle (s) est (sont) la (les) proposition(s) en faveur de la sarcoïdose ? </p>
+                  <ul>
+                     <li>
+                        <input id="q56a" name="q56" type="checkbox" value="A" /> A- Conservation de l'état général. </li>
+                     <li>
+                        <input id="q56b" name="q56" type="checkbox" value="B" /> B- Intradermo-réaction à la tuberculine positive. </li>
+                     <li>
+                        <input id="q56c" name="q56" type="checkbox" value="C" /> C- Caractère compressif et nécrosé des adénopathies. </li>
+                     <li>
+                        <input id="q56d" name="q56" type="checkbox" value="D" /> D- Association à une paralysie faciale avec hypertrophie parotidienne. </li>
+                     <li>
+                        <input id="q56e" name="q56" type="checkbox" value="E" /> E- Association à une uvéite. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q56')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q56')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="56"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_56" onclick="toggleCommentSection('MR2018_56', event)"> 💬 <span class="badge" data-comment-id="MR2018_56">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-57">
+               <div class="question">
+                  <p> 57.) Parmi les propositions suivantes, laquelle (lesquelles) correspond (ent) aux indications de la corticothérapie prolongée par voie orale dans
+                     la sarcoïdose : </p>
+                  <ul>
+                     <li>
+                        <input id="q57a" name="q57" type="checkbox" value="A" /> A- Syndrome de Löfgren. </li>
+                     <li>
+                        <input id="q57b" name="q57" type="checkbox" value="B" /> B- Atteinte neurologique. </li>
+                     <li>
+                        <input id="q57c" name="q57" type="checkbox" value="C" /> C- Atteinte hématologique. </li>
+                     <li>
+                        <input id="q57d" name="q57" type="checkbox" value="D" /> D- Uvéite postérieure. </li>
+                     <li>
+                        <input id="q57e" name="q57" type="checkbox" value="E" /> E- Élévation importante de l'enzyme de conversion de l'angiotensine. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q57')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q57')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="57"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_57" onclick="toggleCommentSection('MR2018_57', event)"> 💬 <span class="badge" data-comment-id="MR2018_57">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-58">
+               <div class="question">
+                  <p> 58.) Parmi les propositions suivantes, laquelle (lesquelles) correspond (ent) à la maladie du poumon de fermier : </p>
+                  <ul>
+                     <li>
+                        <input id="q58a" name="q58" type="checkbox" value="A" /> A- Peut-être secondaire à l'inhalation de spores d'absidia corymbifira. </li>
+                     <li>
+                        <input id="q58b" name="q58" type="checkbox" value="B" /> B- Résulte d'une réaction d'hypersensibilité semi-retardée. </li>
+                     <li>
+                        <input id="q58c" name="q58" type="checkbox" value="C" /> C- Est la plus fréquente des pneumopathies d'hypersensibilité. </li>
+                     <li>
+                        <input id="q58d" name="q58" type="checkbox" value="D" /> D- Le LBA montre habituellement une hyper lymphocytose. </li>
+                     <li>
+                        <input id="q58e" name="q58" type="checkbox" value="E" /> E- Le traitement est basé sur les antifongiques. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q58')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q58')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="58"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_58" onclick="toggleCommentSection('MR2018_58', event)"> 💬 <span class="badge" data-comment-id="MR2018_58">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-59">
+               <div class="question">
+                  <p> 59.) Quelle (s) est (sont) les pathologies liées à l'amiante : </p>
+                  <ul>
+                     <li>
+                        <input id="q59a" name="q59" type="checkbox" value="A" /> A- Asbestose pulmonaire. </li>
+                     <li>
+                        <input id="q59b" name="q59" type="checkbox" value="B" /> B- Mésothéliome péritonéal malin. </li>
+                     <li>
+                        <input id="q59c" name="q59" type="checkbox" value="C" /> C- Plaques pleurales calcifiées. </li>
+                     <li>
+                        <input id="q59d" name="q59" type="checkbox" value="D" /> D- Asthme professionnel. </li>
+                     <li>
+                        <input id="q59e" name="q59" type="checkbox" value="E" /> E- Carcinome bronchogénique. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q59')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q59')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="59"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_59" onclick="toggleCommentSection('MR2018_59', event)"> 💬 <span class="badge" data-comment-id="MR2018_59">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-60">
+               <div class="question">
+                  <p> 60.) Dans le cadre du bilan d'une pneumopathie infiltrante diffuse (PID) : </p>
+                  <ul>
+                     <li>
+                        <input id="q60a" name="q60" type="checkbox" value="A" /> A- La radiographie thoracique est parfois à la limite de la normale. </li>
+                     <li>
+                        <input id="q60b" name="q60" type="checkbox" value="B" /> B- La TDM thoracique avec coupes fines est un examen clé pour le diagnostic étiologique. </li>
+                     <li>
+                        <input id="q60c" name="q60" type="checkbox" value="C" /> C- L'élévation des polynucléaires éosinophiles au LBA oriente vers la fibrose. </li>
+                     <li>
+                        <input id="q60d" name="q60" type="checkbox" value="D" /> D- L'évolution vers l'insuffisance respiratoire chronique est exceptionnelle. </li>
+                     <li>
+                        <input id="q60e" name="q60" type="checkbox" value="E" /> E- La gazométrie reste normale dans les formes évoluées. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q60')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q60')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="60"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_60" onclick="toggleCommentSection('MR2018_60', event)"> 💬 <span class="badge" data-comment-id="MR2018_60">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-61">
+               <div class="question">
+                  <p> 61.) Cochez les bonnes réponses sur les affirmations suivantes concernant le traitement de la toux : </p>
+                  <ul>
+                     <li>
+                        <input id="q61a" name="q61" type="checkbox" value="A" /> A- Le Dextrométhorphane présente une action mucolytique. </li>
+                     <li>
+                        <input id="q61b" name="q61" type="checkbox" value="B" /> B- Le Dextrométhorphane inhibe la recapture de la sérotonine. </li>
+                     <li>
+                        <input id="q61c" name="q61" type="checkbox" value="C" /> C- La Noscapine est un agoniste des récepteurs kappa +/-. </li>
+                     <li>
+                        <input id="q61d" name="q61" type="checkbox" value="D" /> D- La Noscapine est un inhibiteur non compétitif de la bradykinine. </li>
+                     <li>
+                        <input id="q61e" name="q61" type="checkbox" value="E" /> E- Le Butamirate possède une action sur le centre de la toux et aussi une action périphérique. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q61')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q61')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="61"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_61" onclick="toggleCommentSection('MR2018_61', event)"> 💬 <span class="badge" data-comment-id="MR2018_61">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-62">
+               <div class="question">
+                  <p> 62.) Les antitussifs antihistaminiques : </p>
+                  <ul>
+                     <li>
+                        <input id="q62a" name="q62" type="checkbox" value="A" /> A- Possèdent des effets stimulants. </li>
+                     <li>
+                        <input id="q62b" name="q62" type="checkbox" value="B" /> B- Sont orexigènes (stimulent l'appétit). </li>
+                     <li>
+                        <input id="q62c" name="q62" type="checkbox" value="C" /> C- Peuvent entraîner une sécheresse de la bouche et des muqueuses. </li>
+                     <li>
+                        <input id="q62d" name="q62" type="checkbox" value="D" /> D- Peuvent être responsables d'apnée chez les nourrissons dont l'âge est &lt; 1 an. </li>
+                     <li>
+                        <input id="q62e" name="q62" type="checkbox" value="E" /> E- Peuvent être prescrits en association avec les fluidifiants. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q62')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q62')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="62"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_62" onclick="toggleCommentSection('MR2018_62', event)"> 💬 <span class="badge" data-comment-id="MR2018_62">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-63">
+               <div class="question">
+                  <p> 63.) Les antitussifs antihistaminiques : </p>
+                  <ul>
+                     <li>
+                        <input id="q63a" name="q63" type="checkbox" value="A" /> A- Peuvent être prescrits en association avec des médicaments dépresseurs du SNC. </li>
+                     <li>
+                        <input id="q63b" name="q63" type="checkbox" value="B" /> B- Sont indiqués en présence d'une toux productive. </li>
+                     <li>
+                        <input id="q63c" name="q63" type="checkbox" value="C" /> C- Peuvent être prescrits chez les patients présentant une rétention urinaire. </li>
+                     <li>
+                        <input id="q63d" name="q63" type="checkbox" value="D" /> D- Sont déconseillés chez les nourrissons de moins d'un an car risque d'apnée et de mort subite. </li>
+                     <li>
+                        <input id="q63e" name="q63" type="checkbox" value="E" /> E- Sont déconseillés chez les conducteurs de machines et de voitures. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q63')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q63')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="63"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_63" onclick="toggleCommentSection('MR2018_63', event)"> 💬 <span class="badge" data-comment-id="MR2018_63">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-64">
+               <div class="question">
+                  <p> 64.) Les antiasthmatiques sous forme inhalée : </p>
+                  <ul>
+                     <li>
+                        <input id="q64a" name="q64" type="checkbox" value="A" /> A- Présentent des effets secondaires locaux (toux, candidose, raucité de la voix). </li>
+                     <li>
+                        <input id="q64b" name="q64" type="checkbox" value="B" /> B- Nécessitent pour leur meilleure utilisation un apprentissage de coordination inspiratoire. </li>
+                     <li>
+                        <input id="q64c" name="q64" type="checkbox" value="C" /> C- Présentent un coût plus faible (que les formes orales). </li>
+                     <li>
+                        <input id="q64d" name="q64" type="checkbox" value="D" /> D- Permettent la diminution des effets secondaires généraux (faible passage systémique). </li>
+                     <li>
+                        <input id="q64e" name="q64" type="checkbox" value="E" /> E- Renforcent l'augmentation de l'efficacité locale. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q64')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q64')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="64"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_64" onclick="toggleCommentSection('MR2018_64', event)"> 💬 <span class="badge" data-comment-id="MR2018_64">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-65">
+               <div class="question">
+                  <p> 65.) La rifampicine (R) est un antibacillaire : </p>
+                  <ul>
+                     <li>
+                        <input id="q65a" name="q65" type="checkbox" value="A" /> A- Excrétée dans les urines. </li>
+                     <li>
+                        <input id="q65b" name="q65" type="checkbox" value="B" /> B- Passe dans le lait maternel. </li>
+                     <li>
+                        <input id="q65c" name="q65" type="checkbox" value="C" /> C- Agit sur BK extracellulaire. </li>
+                     <li>
+                        <input id="q65d" name="q65" type="checkbox" value="D" /> D- Agit sur BK intracellulaire. </li>
+                     <li>
+                        <input id="q65e" name="q65" type="checkbox" value="E" /> E- Contre-indication : trouble psychique. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q65')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q65')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="65"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_65" onclick="toggleCommentSection('MR2018_65', event)"> 💬 <span class="badge" data-comment-id="MR2018_65">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-66">
+               <div class="question">
+                  <p> 66.) L’éthambutol (E) est un antibacillaire : </p>
+                  <ul>
+                     <li>
+                        <input id="q66a" name="q66" type="checkbox" value="A" /> A- Bactériostatique. </li>
+                     <li>
+                        <input id="q66b" name="q66" type="checkbox" value="B" /> B- Éliminé par le rein. </li>
+                     <li>
+                        <input id="q66c" name="q66" type="checkbox" value="C" /> C- Traverse le placenta. </li>
+                     <li>
+                        <input id="q66d" name="q66" type="checkbox" value="D" /> D- Diffuse peu dans le LCR et dans les épanchements. </li>
+                     <li>
+                        <input id="q66e" name="q66" type="checkbox" value="E" /> E- Contre-indiqué en cas de cécité. </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q66')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q66')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="66"> ❤ </button>
+                  <button class="comment-button" data-question-id="MR2018_66" onclick="toggleCommentSection('MR2018_66', event)"> 💬 <span class="badge" data-comment-id="MR2018_66">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="button-container">
+               <button class="submit-quiz-button" onclick="submitQuiz()" type="button"> Soumettre tout le Quiz </button>
+               <button class="favorite-button" id="voir-favoris-btn" onclick="voirFavoris()"> Voir Favoris </button>
+               <!-- Nouveau bouton -->
+            </div>
+            <div class="blur-background" id="blur-background"> </div>
+            <div class="result-popup" id="result-popup">
+               <h3>
+Résultat du Quiz
+</h3>
+               <div id="result"> </div>
+               <button class="close-button" id="close-result" onclick="closeResult(event)"> Fermer </button>
+               <button class="detail-button" id="voir-detail-btn" onclick="afficherDetails(event)" style="display: none;"> Voir Détail </button>
+               <button class="reset-quiz-button" onclick="resetAll()" type="button"> Réessayer tout le Quiz </button>
+            </div>
+            <div class="details-section" id="details-section" style="display: none;">
+               <h3>
+Tableau des questions
+</h3>
+               <div class="question-links" id="question-links"> </div>
+            </div>
+            <div id="timer-container"> <span id="timer">
+60:00
+</span> </div>
+<div class="comments-section" id="comments-section">
+    <h3>Commentaires</h3>
+    <textarea id="new-comment" placeholder="Écrire un commentaire..."></textarea>
+    <button type="button" onclick="addComment(event)">Ajouter</button>
+    <div id="comment-alert" class="alert" style="display: none;"></div>
+    <div id="comments-list"></div>
+</div>
+
+    <div id="comments-list"></div>
+</div>
+
+<!-- Boutons flottants -->
+<div id="floating-buttons" class="floating-buttons" style="position: fixed; bottom: 50px; right: 50px; z-index: 1000;">
+    <!-- Bouton pour afficher le cours -->
+    <button id="show-course-btn" class="floating-btn" type="button" 
+            onclick="window.open('https://drive.google.com/drive/folders/1Xd_FaJbPk4FJv3G5-96L7G0UlQnUZuSf', '_blank');">📚</button>
+    <!-- Bouton pour afficher le contact -->
+<button id="open-contact-modal" class="floating-btn" type="button">
+    ✉️
+</button>
+
+</div>
+
+
+
+
+
+<div class="message-container" id="message-container" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#f9f9f9; padding:40px; box-shadow:0 4px 12px rgba(0,0,0,0.15); border-radius:12px; z-index:1001; width:600px; max-width:90%; font-family:Arial, sans-serif;">
+    <div style="text-align:center; margin-bottom:30px;">
+        <h2 style="margin:0; font-size:24px; font-weight:bold; color:#333;">Posez vos observations <span>📝</span></h2>
+        <p style="margin:10px 0 0; font-size:16px; color:#666;">Nous sommes à votre écoute</p>
+    </div>
+    <div class="mb-3" style="margin-bottom:30px;">
+        <p style="font-size:16px; color:#333; margin:0;">En tant Que :</p>
+        <div style="margin-top:10px;">
+            <input type="radio" id="username" name="mode" value="username" style="margin-right:8px;">
+            <label for="username" style="font-size:16px; color:#333; cursor:pointer;">{{ user_full_name}}</label>
+            <br>
+            <input type="radio" id="anonymous" name="mode" value="anonymous" checked style="margin-right:8px; margin-top:10px;">
+            <label for="anonymous" style="font-size:16px; color:#333; cursor:pointer;">Anonyme</label>
+        </div>
+    </div>
+    <div class="mb-3">
+        <label for="message" class="form-label" style="font-size:18px; font-weight:bold; color:#333; margin-bottom:10px; display:block;">Votre message :</label>
+        <textarea class="form-control" id="message" rows="6" placeholder="Precisez l'examen si c'est en rapport avec une question..." style="width:100%; font-size:16px; padding:15px; border:1px solid #ccc; border-radius:8px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.1); background:#fff;"></textarea>
+    </div>
+<span class="close-btn" id="close-btn" style="cursor:pointer; position:absolute; top:15px; right:15px; font-size:51px; color:#ff0000; font-weight:bold;">&times;</span>
+<!-- Bouton Envoyer stylé -->
+<div style="text-align:center; margin-top:30px;">
+    <button type="button" class="btn btn-primary" id="send-message" style="background-color:#007bff; color:white; border:none; padding:12px 30px; border-radius:8px; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 4px 8px rgba(0, 0, 0, 0.2); transition:all 0.3s ease;">
+        Envoyer
+    </button>
+</div>
+</div>
+
+
+
+
+<div id="blur-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;"></div>
+
+
+
+<script src="{% static 'java/contact.js' %}"></script>
+            </div>
+            <script>
+            // Réponses correctes pour les questions
+            const correctAnswers = {
+               q1: ['C'],
+               q2: ['A'],
+               q3: ['A', 'B'],
+               q4: ['A'],
+               q5: ['C'],
+               q6: ['B', 'C'],
+               q7: ['A', 'B', 'C'],
+               q8: ['D'],
+               q9: ['B', 'C', 'E'],
+               q10: ['A', 'C'],
+               q11: ['B', 'C', 'D'],
+               q12: ['A', 'C', 'D', 'E'],
+               q13: ['A', 'B'],
+               q14: ['A', 'B', 'C', 'E'],
+               q15: ['A', 'B', 'C', 'E'],
+               q16: ['B'],
+               q17: ['A', 'B', 'C', 'D', 'E'],
+               q18: ['A', 'B', 'C'],
+               q19: ['B'],
+               q20: ['C', 'D'],
+               q21: ['D'],
+               q22: ['D'],
+               q23: ['C'],
+               q24: ['A', 'C', 'E'],
+               q25: ['A'],
+               q26: ['A', 'E'],
+               q27: ['A'],
+               q28: ['A', 'B', 'E'],
+               q29: ['E'],
+               q30: ['A', 'B', 'C', 'D'],
+               q31: ['A', 'B', 'D'],
+               q32: ['A', 'D'],
+               q33: ['B', 'C'],
+               q34: ['B', 'C'],
+               q35: ['A', 'B', 'C', 'E'],
+               q36: ['B', 'D'],
+               q37: ['B', 'C', 'D'],
+               q38: ['A', 'B', 'C'],
+               q39: ['A', 'B', 'D'],
+               q40: ['A', 'B', 'C', 'D'],
+               q41: ['B', 'C'],
+               q42: ['B'],
+               q43: ['C'],
+               q44: ['C'],
+               q45: ['D'],
+               q46: ['A', 'D'],
+               q47: ['E'],
+               q48: ['A', 'B', 'E'],
+               q49: ['C'],
+               q50: ['A', 'C', 'D', 'E'],
+               q51: ['A', 'B', 'C', 'E'],
+               q52: ['A', 'B', 'C', 'E'],
+               q53: ['A', 'C', 'D'],
+               q54: ['B'],
+               q55: ['D'],
+               q56: ['A', 'D', 'E'],
+               q57: ['B', 'C', 'D'],
+               q58: ['A', 'B', 'C', 'D'],
+               q59: ['A', 'B', 'C', 'E'],
+               q60: ['A', 'B'],
+               q61: ['B', 'C', 'D', 'E'],
+               q62: ['A', 'B', 'C', 'D'],
+               q63: ['A', 'C', 'D', 'E'],
+               q64: ['A', 'B', 'D', 'E'],
+               q65: ['A', 'B', 'C', 'D'],
+               q66: ['A', 'B', 'C', 'D'],
+            };
+            // Contenu du fichier JavaScript
+            // Variable globale pour stocker l'intervalle du timer
+            let timerInterval;
+            const userAnswers = {}; // Object pour stocker les réponses de l'utilisateur
+            // Fonction pour démarrer le timer
+            function startTimer(duration, display) {
+               let timer = duration,
+                  minutes, seconds;
+               timerInterval = setInterval(() => {
+                  minutes = parseInt(timer / 60, 10);
+                  seconds = parseInt(timer % 60, 10);
+                  minutes = minutes < 10 ? "0" + minutes : minutes;
+                  seconds = seconds < 10 ? "0" + seconds : seconds;
+                  display.textContent = minutes + ":" + seconds;
+                  // Vérifie si le temps est écoulé
+                  if (--timer < 0) {
+                     clearInterval(timerInterval);
+                     showEndMessage();
+                  }
+               }, 1000);
+            }
+            // Fonction pour afficher le message de fin de test
+            function showEndMessage() {
+               const blurBackground = document.createElement('div');
+               blurBackground.id = 'test-end-blur';
+               blurBackground.style.position = 'fixed';
+               blurBackground.style.top = '0';
+               blurBackground.style.left = '0';
+               blurBackground.style.width = '100%';
+               blurBackground.style.height = '100%';
+               blurBackground.style.background = 'rgba(0, 0, 0, 0.5)';
+               blurBackground.style.zIndex = '100';
+               blurBackground.style.display = 'flex';
+               blurBackground.style.alignItems = 'center';
+               blurBackground.style.justifyContent = 'center';
+               const endMessage = document.createElement('div');
+               endMessage.id = 'test-end-message';
+               endMessage.style.padding = '40px';
+               endMessage.style.background = '#ffffff';
+               endMessage.style.borderRadius = '8px';
+               endMessage.style.textAlign = 'center';
+               endMessage.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+               endMessage.innerHTML = '<h2>Test terminé</h2><p>Le temps imparti est écoulé.</p><button onclick="location.reload()">Recommencer</button>';
+               blurBackground.appendChild(endMessage);
+               document.body.appendChild(blurBackground);
+               // Optionnel : masquer le conteneur de timer
+               const timerContainer = document.getElementById('timer-container');
+               timerContainer.classList.add('hide');
+            }
+ // Fonction pour réinitialiser une seule question
+            function resetQuestion(questionName) {
+               const form = document.getElementById('quiz-form');
+               const questionDiv = document.querySelector(`input[name="${questionName}"]`).closest('.question-container');
+               // Décocher toutes les cases de cette question
+               const inputs = Array.from(form.elements[questionName]);
+               inputs.forEach(input => {
+                  input.checked = false;
+               });
+               // Supprimer les styles correct/incorrect et remettre les couleurs par défaut
+               questionDiv.classList.remove('correct', 'incorrect');
+               questionDiv.querySelectorAll('li').forEach(li => {
+                  li.style.color = ''; // Réinitialiser la couleur
+                  li.style.fontWeight = ''; // Réinitialiser le texte en gras
+                  li.style.textShadow = ''; // Réinitialiser l'ombre du texte
+                  li.style.backgroundColor = ''; // Réinitialiser le fond
+                  li.style.border = ''; // Réinitialiser la bordure
+               });
+               // Supprimer les informations enregistrées sur la réponse de cette question
+               delete userAnswers[questionName];
+            }
+            // Fonction pour soumettre le quiz et afficher le résultat
+            
+// Fonction pour soumettre le quiz et afficher le résultat
+async function submitQuiz() {
+    console.log("Début de la soumission du quiz.");
+
+    const form = document.getElementById('quiz-form');
+    if (!form) {
+        console.error("Erreur : Formulaire introuvable.");
+        alert("Formulaire introuvable. Veuillez réessayer.");
+        return;
+    }
+
+    let score = 0;
+
+    // Évaluer les réponses utilisateur
+    for (const question of Object.keys(correctAnswers)) {
+        correctQuestion(question); // Fonction pour corriger chaque question
+        const userAnswer = userAnswers[question]?.isCorrect;
+        if (userAnswer) {
+            score++;
+        }
+    }
+
+    console.log("Score brut calculé (frontend) :", score);
+    console.log("Réponses utilisateur envoyées :", userAnswers);
+
+    // Lancer les confettis et afficher le message de félicitations si le score est parfait (50 sur 50)
+    lancerConfettisEtMessage(score);
+
+    // Mise à jour du résultat dans la boîte de dialogue
+    const resultDiv = document.getElementById('result'); // Assure-toi que tu as un div avec l'id 'result' dans ton HTML
+
+    if (score === 0) { resultDiv.innerHTML = `<p>Vous avez aucune réponse juste, bozo !</p>`; } else if  (score === 14) {
+        // Liste des messages de félicitations
+        const messages = [
+"Félicitations ! Votre compréhension du système respiratoire est remarquable !",
+"Bravo ! Vous excellez dans l'analyse des pathologies pulmonaires.",
+"Incroyable ! Votre aptitude à diagnostiquer les troubles respiratoires est impressionnante.",
+"Parfait ! Vous êtes sur le chemin pour devenir un(e) expert(e) en pneumologie.",
+"Votre rigueur dans l'étude des maladies respiratoires est admirable.",
+"Impressionnant ! Vous appliquez les concepts pulmonaires avec précision.",
+"Bravo ! Votre aptitude à relier les symptômes aux maladies respiratoires est exceptionnelle.",
+"Extraordinaire ! Votre compréhension des troubles obstructifs et restrictifs est inspirante.",
+"Félicitations ! Vous démontrez une maîtrise impressionnante des diagnostics respiratoires.",
+"Votre capacité à évaluer les fonctions pulmonaires est remarquable.",
+"Impressionnant ! Vous explorez les approches thérapeutiques avec rigueur.",
+"Bravo ! Votre passion pour l'amélioration de la santé pulmonaire est évidente.",
+"Votre expertise en maladies chroniques comme l'asthme et la BPCO est un véritable atout.",
+"Parfait ! Vous démontrez une aptitude exceptionnelle pour la prise en charge des infections respiratoires.",
+"Félicitations ! Vous êtes prêt(e) à devenir un(e) spécialiste en pneumologie.",
+"Votre précision dans l'interprétation des radiographies thoraciques est exemplaire.",
+"Bravo ! Vous appliquez les connaissances respiratoires avec rigueur et efficacité.",
+"Incroyable ! Vous identifiez les troubles respiratoires complexes avec une facilité admirable.",
+"Félicitations ! Votre curiosité pour le système respiratoire est une source d'inspiration.",
+"Votre capacité à interpréter les résultats cliniques pulmonaires est impressionnante.",
+
+        ];
+        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+        resultDiv.innerHTML = `<p>${randomMessage}</p>`;
+    } else {
+        resultDiv.innerHTML = `Vous avez obtenu ${score} bonnes réponses sur ${Object.keys(correctAnswers).length}.`;
+    }
+
+    // Afficher la boîte de résultat avec animation
+    const resultPopup = document.getElementById('result-popup');
+    const blurBackground = document.getElementById('blur-background');
+
+    blurBackground.style.display = 'block';
+    resultPopup.style.display = 'block';
+
+    setTimeout(() => {
+        blurBackground.classList.add('show'); // Ajoute l'animation de fondu sur le fond flouté
+        resultPopup.classList.add('show'); // Ajoute l'animation de zoom sur la boîte de résultat
+    }, 100); // Légère pause pour plus de fluidité
+
+    document.getElementById('voir-detail-btn').style.display = 'inline-block';
+
+    // Envoi des données au backend
+    try {
+        console.log("Préparation de l'enregistrement au backend...");
+
+        const response = await fetch("/soumettre-quiz/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}" // Inclure le token CSRF
+            },
+            body: JSON.stringify({
+                exam_name: "MR2018", // Remplacez par le nom réel de l'examen
+                score: score,
+                userAnswers: userAnswers
+            })
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+            console.log("Score enregistré avec succès :", result);
+        } else {
+            console.error("Erreur du serveur :", result.message);
+            alert(`Erreur : ${result.message}`);
+        }
+    } catch (error) {
+        console.error("Erreur lors de l'envoi des données :", error);
+        alert("Une erreur s'est produite lors de la soumission. Veuillez réessayer.");
+    }
+}
+
+            function resetAll() {
+               const form = document.getElementById('quiz-form');
+               // Réinitialiser toutes les questions
+               for (const question of Object.keys(correctAnswers)) {
+                  const questionDiv = document.querySelector(`input[name="${question}"]`).closest('.question-container');
+                  form.elements[question].forEach(input => {
+                     input.checked = false; // Décocher toutes les cases
+                  });
+                  // Supprimer les styles correct/incorrect sans toucher au style des bonnes réponses
+                  questionDiv.classList.remove('correct', 'incorrect');
+                  questionDiv.querySelectorAll('li').forEach(li => {
+                     li.style.color = ''; // Réinitialiser la couleur du texte
+                     li.style.fontWeight = ''; // Supprimer les styles ajoutés
+                     li.style.textShadow = ''; // Réinitialiser l'ombre du texte
+                     li.style.backgroundColor = ''; // Remettre le fond par défaut
+                     li.style.border = ''; // Réinitialiser la bordure
+                  });
+               }
+               // Réinitialiser l'affichage du timer
+               const timerDuration = 60 * 60; // Remettre à 60 minutes (ou 10 secondes pour le test)
+               const display = document.querySelector('#timer');
+               startTimer(timerDuration, display); // Redémarrer le timer
+               // Masquer la boîte de résultat
+               const resultPopup = document.getElementById('result-popup');
+               const blurBackground = document.getElementById('blur-background');
+               resultPopup.classList.remove('show');
+               blurBackground.classList.remove('show');
+               setTimeout(() => {
+                  resultPopup.style.display = 'none';
+                  blurBackground.style.display = 'none';
+               }, 500);
+               // Remonter en haut de la page
+               window.scrollTo({
+                  top: 0,
+                  behavior: 'smooth'
+               });
+               document.getElementById('voir-detail-btn').style.display = 'none'; // Masquer le bouton "Voir Détail"
+            }
+            // Fonction pour fermer la popup et garder les couleurs des bonnes/mauvaises réponses
+            function closeResult(event) {
+               event.preventDefault(); // Empêche le comportement par défaut du bouton
+               const resultPopup = document.getElementById('result-popup');
+               const blurBackground = document.getElementById('blur-background');
+               // Masquer la boîte de résultat
+               resultPopup.classList.remove('show');
+               blurBackground.classList.remove('show');
+               setTimeout(() => {
+                  resultPopup.style.display = 'none';
+                  blurBackground.style.display = 'none';
+               }, 500);
+               // Décocher toutes les cases sans changer la couleur des bonnes/mauvaises réponses
+               const form = document.getElementById('quiz-form');
+               for (const question of Object.keys(correctAnswers)) {
+                  form.elements[question].forEach(input => {
+                     input.checked = false; // Décocher toutes les cases
+                  });
+               }
+            }
+            // Fonction pour afficher les détails et rediriger vers SyntMR2018
+            function afficherDetails(event) {
+               event.preventDefault(); // Empêche le comportement par défaut du bouton
+               saveUserAnswers(); // Enregistrer les réponses avant de quitter la page
+               window.location.href = '{% url 'dynamic_view' 'S6' 'Pathologie_respiratoire' 'syntMR2018' %}'; // Redirection vers SyntMR2018
+            }
+            // Fonction pour défiler jusqu'à la question
+            function scrollToQuestion(questionNumber) {
+               const questionDiv = document.querySelector(`.question-container:nth-of-type(${questionNumber})`);
+               if (questionDiv) {
+                  questionDiv.scrollIntoView({
+                     behavior: 'smooth'
+                  });
+               }
+            }
+
+            function saveUserAnswers() {
+               // Change la clé pour la version 2018
+               localStorage.setItem('userAnswersMR2018', JSON.stringify(userAnswers));
+            }
+            // Fonction pour afficher les confettis et ajouter le message de félicitations dans la popup de résultats
+            function lancerConfettisEtMessage(score) {
+    if (score === 14) {
+                  // Lancer les confettis
+                  confetti({
+                     particleCount: 200,
+                     spread: 70,
+                     origin: {
+                        y: 0.6
+                     },
+                     colors: ['#bb0000', '#ffffff'], // Couleurs de confettis
+                  });
+                  // Ajouter un message de félicitations à la boîte de résultat
+                  const resultDiv = document.getElementById('result');
+                  const felicitationMessage = `<p>Félicitations! Vous avez obtenu ${score} bonnes réponses. Vous serez un grand médecin !</p>`;
+                  // Ajouter le message à la fin du résultat
+                  resultDiv.innerHTML += felicitationMessage;
+               }
+            }
+            // Partie favori pour Anatomie2020
+            // Tableau pour stocker les questions favorites, récupéré depuis le localStorage (Anatomie2018)
+            let favoriteQuestionsMR2018 = JSON.parse(localStorage.getItem('favoriteQuestionsMR2018')) || [];
+            console.log('Favorite questions loaded from localStorage:', favoriteQuestionsMR2018);
+
+            function toggleFavorite(event, questionNumber) {
+               event.preventDefault(); // Empêche le rafraîchissement de la page
+               const button = document.querySelector(`.favorite-button[data-question="${questionNumber}"]`);
+               const questionContent = document.querySelector(`#question-${questionNumber}`).innerHTML; // Récupère le contenu HTML de la question
+               // Vérifie si la question est déjà dans les favoris
+               const isFavorited = favoriteQuestionsMR2018.includes(questionNumber);
+               if (isFavorited) {
+                  // Si elle est déjà favorisée, on la retire des favoris
+                  favoriteQuestionsMR2018 = favoriteQuestionsMR2018.filter(q => q !== questionNumber);
+                  button.classList.remove('favorited'); // Retire la classe favori
+                  localStorage.removeItem(`favoriteContent2018-${questionNumber}`); // Supprime le contenu de la question
+               } else {
+                  // Si elle n'est pas favorisée, on l'ajoute
+                  favoriteQuestionsMR2018.push(questionNumber);
+                  button.classList.add('favorited'); // Ajoute la classe favori
+                  localStorage.setItem(`favoriteContent2018-${questionNumber}`, questionContent); // Stocke le contenu de la question dans le localStorage
+               }
+               // Sauvegarde uniquement les favoris
+               saveFavoriteState2018(); // <== Remplacez par saveFavoriteState2018
+               // Mise à jour du bouton "Voir Favori" sans rafraîchir la page
+               showFavoriteButton();
+            }
+
+            function saveFavoriteState2018() {
+               localStorage.setItem('favoriteQuestionsMR2018', JSON.stringify(favoriteQuestionsMR2018)); // Sauvegarde les questions favorites
+            }
+
+            function initializeFavoriteButtons() {
+               const allFavoriteButtons = document.querySelectorAll('.favorite-button');
+               allFavoriteButtons.forEach(button => {
+                  const questionNumber = parseInt(button.getAttribute('data-question'), 10);
+                  // Vérifie si cette question est dans les favoris et applique la classe
+                  if (favoriteQuestionsMR2018.includes(questionNumber)) {
+                     button.classList.add('favorited'); // Ajoute l'état favori
+                  } else {
+                     button.classList.remove('favorited'); // Retire l'état favori
+                  }
+                  // Ajoute un événement de clic pour chaque bouton et empêche le rafraîchissement
+                  button.addEventListener('click', (event) => toggleFavorite(event, questionNumber));
+               });
+            }
+
+            function showFavoriteButton() {
+               const voirFavorisBtn = document.getElementById('voir-favoris-btn');
+               if (favoriteQuestionsMR2018.length > 0) {
+                  voirFavorisBtn.style.display = 'inline-block'; // Affiche le bouton si des questions sont favorisées
+               } else {
+                  voirFavorisBtn.style.display = 'none'; // Cache le bouton si aucun favori
+               }
+            }
+            // Appelle cette fonction après avoir ajouté ou retiré des favoris
+            window.onload = function() {
+               console.log('Page loaded, initializing favorite buttons for 2018.');
+               initializeFavoriteButtons(); // Charger les boutons de favoris
+               showFavoriteButton(); // Afficher le bouton "Voir Favori" si des favoris existent
+               const timerDuration = 60 * 60; // 60 minutes
+               const display = document.querySelector('#timer');
+               startTimer(timerDuration, display);
+               // Récupère toutes les listes (li) qui contiennent des propositions
+               const propositions = document.querySelectorAll('li');
+               propositions.forEach(function(proposition) {
+                  // Trouve la checkbox dans chaque liste
+                  const checkbox = proposition.querySelector('input[type="checkbox"]');
+                  if (checkbox) {
+                     // Créer un label
+                     const label = document.createElement('label');
+                     // Donner un id à la checkbox si elle n'en a pas
+                     if (!checkbox.id) {
+                        checkbox.id = checkbox.name + '-' + checkbox.value; // Ex: q1-A
+                     }
+                     // Déplacer le texte de la proposition dans le label
+                     label.htmlFor = checkbox.id; // Le 'for' du label correspond à l'id de la checkbox
+                     label.appendChild(checkbox); // Déplacer la checkbox dans le label
+                     label.appendChild(document.createTextNode(proposition.textContent.trim())); // Ajouter le texte de la proposition
+                     // Remplacer le contenu original par le nouveau label
+                     proposition.innerHTML = ''; // Vider le contenu de l'élément <li>
+                     proposition.appendChild(label); // Ajouter le label modifié
+                  }
+               });
+            };
+            try {
+               localStorage.setItem('testKey', 'testValue');
+               const testValue = localStorage.getItem('testKey');
+               if (testValue !== 'testValue') {
+                  console.error('localStorage is not functioning as expected.');
+               }
+            } catch (error) {
+               console.error('localStorage error:', error);
+            }
+
+            function voirFavoris() {
+               console.log('Redirection vers la page des favoris');
+               window.location.href = "{% url 'render_favorite' 'S6' 'Favori26' %}";
+            }
+
+
+            </script>
+            <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js">
+
+
+            </script>
+         </form>
+      </div>
+      
+   </body>
+
+</html>      <script>
+// Fonction pour corriger une question
+function correctQuestion(questionName) {
+    const form = document.getElementById('quiz-form');
+    const questionDiv = document.querySelector(`input[name="${questionName}"]`).closest('.question-container');
+    const selected = Array.from(form.elements[questionName]).filter(input => input.checked).map(input => input.value);
+
+    // Calculer si la réponse est correcte
+    const isCorrect = JSON.stringify(correctAnswers[questionName].sort()) === JSON.stringify(selected.sort());
+
+    // Enregistre si la réponse est correcte ou incorrecte
+    userAnswers[questionName] = {
+        selected: selected,
+        isCorrect: isCorrect
+    };
+
+    // Supprimer les styles précédents
+    questionDiv.classList.remove('correct', 'incorrect');
+    questionDiv.querySelectorAll('li').forEach(li => li.style.color = '');
+
+    // Applique les couleurs selon la validité des réponses
+    questionDiv.querySelectorAll('li').forEach(li => {
+        const isChoiceCorrect = correctAnswers[questionName].includes(li.querySelector('input').value);
+        const isSelected = selected.includes(li.querySelector('input').value);
+
+        if (isChoiceCorrect) {
+            // Appliquer le style vert aux bonnes réponses
+            li.style.color = 'green';
+            li.style.fontWeight = 'bold';
+            li.style.textShadow = '1px 1px 2px rgba(0, 128, 0, 0.7)';
+        }
+
+        if (isSelected && !isChoiceCorrect) {
+            // Appliquer le style rouge pour les mauvaises réponses sélectionnées
+            li.style.color = 'red';
+        }
+    });
+
+    console.log(`Début de la correction pour la question ${questionName}`);
+    console.log(`Réponses sélectionnées pour ${questionName}: ${selected.join(', ')}`);
+    console.log(`Résultat pour ${questionName}: ${isCorrect ? 'Correct' : 'Incorrect'}`);
+
+    // Déterminer le nom de l'examen et l'ID complet de la question
+    const examNameElement = document.getElementById('exam_name');
+    const examName = examNameElement.value; // Nom de l'examen (par exemple, Anatomie2023)
+    const fullChoiceIds = selected.map(choice => `${examName}_${questionName.substring(1)}_${choice.toLowerCase()}`);
+    console.log(`IDs complets générés pour les choix : ${fullChoiceIds.join(', ')}`);
+
+    // Envoyer les données au serveur
+    fetch('/track_attempts/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            question_name: questionName,
+            full_choice_ids: fullChoiceIds
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log(`Données reçues du serveur : ${JSON.stringify(data)}`);
+            handleAlert(data.alert, questionDiv);
+            updateStatisticalAlerts(data, questionDiv);
+        })
+        .catch(error => console.error('Erreur lors de l’envoi des données:', error));
+}
+
+// Fonction pour gérer les alertes
+function handleAlert(alertData, questionDiv) {
+    const existingAlert = questionDiv.querySelector('.alert-indicator');
+    if (existingAlert) {
+        existingAlert.remove();
+    }
+
+    if (alertData) {
+        const alertIndicator = document.createElement('div');
+        alertIndicator.className = 'alert-indicator';
+        alertIndicator.style.backgroundColor = alertData.color || '#f8d7da';
+        alertIndicator.style.padding = '10px';
+        alertIndicator.style.marginTop = '10px';
+        alertIndicator.style.borderRadius = '5px';
+        alertIndicator.style.fontWeight = 'bold';
+        alertIndicator.style.color = '#721c24';
+        alertIndicator.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.1)';
+        alertIndicator.textContent = alertData.message;
+
+        questionDiv.appendChild(alertIndicator);
+        saveAlertToLocalStorage(questionDiv.getAttribute('data-question-id'), alertData);
+    } else {
+        removeAlertFromLocalStorage(questionDiv.getAttribute('data-question-id'));
+    }
+}
+
+// Charger les alertes persistantes
+function loadAlertsFromLocalStorage() {
+    const storedAlerts = JSON.parse(localStorage.getItem('alerts')) || {};
+    Object.keys(storedAlerts).forEach(questionId => {
+        const questionDiv = document.querySelector(`.question-container[data-question-id="${questionId}"]`);
+        if (questionDiv) {
+            handleAlert(storedAlerts[questionId], questionDiv);
+        }
+    });
+}
+
+// Sauvegarder les alertes dans localStorage
+function saveAlertToLocalStorage(questionId, alertData) {
+    const storedAlerts = JSON.parse(localStorage.getItem('alerts')) || {};
+    storedAlerts[questionId] = alertData;
+    localStorage.setItem('alerts', JSON.stringify(storedAlerts));
+}
+
+// Supprimer une alerte de localStorage
+function removeAlertFromLocalStorage(questionId) {
+    const storedAlerts = JSON.parse(localStorage.getItem('alerts')) || {};
+    delete storedAlerts[questionId];
+    localStorage.setItem('alerts', JSON.stringify(storedAlerts));
+}
+
+// Mise à jour des alertes statistiques
+function updateStatisticalAlerts(data, questionDiv) {
+    const existingStatisticalAlerts = questionDiv.querySelectorAll('.statistical-alert');
+    existingStatisticalAlerts.forEach(alert => alert.remove());
+
+    if (data.failure_rate > 0.6) {
+        const failureRateAlert = document.createElement('div');
+        failureRateAlert.className = 'statistical-alert';
+        failureRateAlert.style.backgroundColor = '#add8e6';
+        failureRateAlert.style.padding = '10px';
+        failureRateAlert.style.marginTop = '10px';
+        failureRateAlert.style.borderRadius = '5px';
+        failureRateAlert.style.fontWeight = 'bold';
+        failureRateAlert.style.color = '#004085';
+        failureRateAlert.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.1)';
+        failureRateAlert.textContent = `🔵 Votre taux d'échec est de ${(data.failure_rate * 100).toFixed(0)}%. Revoir cette question est conseillé.`;
+
+        questionDiv.appendChild(failureRateAlert);
+    }
+}
+
+// Charger les alertes au démarrage
+document.addEventListener('DOMContentLoaded', () => {
+    loadAlertsFromLocalStorage();
+});
+
+</script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+    <script src="{% static 'java/comment.js' %}"></script>

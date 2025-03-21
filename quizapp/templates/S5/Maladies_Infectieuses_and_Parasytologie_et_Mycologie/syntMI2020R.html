@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="MI2020R">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Parmi les facteurs suivants quels sont les 4 qui constituent des facteurs de susceptibilité aux maladies infectieuses ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A-  L'âge</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B-  Le sexe</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C-  Les facteurs génétiques</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D-  L'état nutritionnel</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- La religion</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Le développement d'une maladie infectieuse au lieu d'une simple infection dépend de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A-  L'état immunitaire de l'hôte</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B-  La densité de l'inoculum</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C-  Le réservoir du virus</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D-  La susceptibilité génétique de l'hôte</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- La virulence du germe</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Parmi les éléments suivants, quels sont ceux qui sont justes dans la chaîne de transmission de Salmonella typhi ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A-  La porte d'entrée est l'appareil digestif</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B-  La porte de sortie est l'appareil urinaire</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C-  La transmission se fait par voie aérienne</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D-  La transmission peut se faire par l'eau contaminée</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- La source de l'infection est l'homme</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) La contagiosité au cours d'une maladie infectieuse dépend de deux éléments parmi les suivants, lesquels ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A-  La période de l'élimination de l'agent pathogène</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B-  La période de la maladie</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C-  La porte d'entrée du microorganisme pathogène</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D-  La porte de sortie du microorganisme pathogène</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- La virulence de l'agent pathogène</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) La déclaration des maladies infectieuses :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A-  Est obligatoire au Maroc</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B-  Ne doit être faite que par les médecins de la santé publique</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C-  Doit être faite par téléphone en cas de toxi-infection alimentaire collective</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D-  Ne doit pas être faite en cas de SIDA</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- A un faible rendement</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Quelles sont parmi les maladies suivantes, celles qui doivent être déclarées par téléphone ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A-  La fièvre typhoïde</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B-  Le choléra</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C-  La méningite à méningocoque</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D-  La rage</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Les toxi-infections alimentaires collectives</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Parmi ces éléments, quels sont les 3 qui sont des facteurs de mauvais pronostic en cas de leptospirose ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A-  La fièvre</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B-  L'insuffisance rénale aiguë</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C-  L'ictère</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D-  Une altération de la conscience</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Un âge supérieur à 60 ans</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Parmi les symptômes suivants, quel est celui qui doit faire évoquer en premier lieu le diagnostic d'une fièvre typhoïde ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A-  Une fièvre</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B-  Des céphalées</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C-  Des frissons</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D-  Une constipation</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Un pouls dissocié</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Parmi les examens suivants, quels sont ceux qui permettent de confirmer le diagnostic de la fièvre typhoïde ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A-  Hémoculture</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B-  NFS</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C-  Coproculture</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D-  Uroculture</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Myéloculture</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) L'hydrophobie est un signe pathognomonique de quelle maladie ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A-  Le paludisme</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B-  La leptospirose</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C-  La méningite</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D-  La rage</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- La tuberculose</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) En cas de morsure par un chien enragé, quel est le siège de morsure qui donne une rage rapide et grave ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A-  L'abdomen</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B-  La fesse</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C-  Le bras</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D-  La tête</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- La cuisse</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) La diarrhée au cours du choléra :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A-  Est aiguë</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B-  S'accompagne de vomissements</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C-  Eau de riz</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D-  Entraîne une déshydratation</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- S'accompagne de fièvre</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Après un AES, la victime doit faire 4 des 5 actions suivantes. Lesquelles ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A-  Presser la plaie</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B-  Nettoyer la plaie à l'eau courante et savon</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C-  Tremper la partie blessée dans l'eau de Javel dilué</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D-  Rincer à l'eau</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Contacter un médecin référent</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Quelles sont les propositions qui sont justes après un AES ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A-  Le risque de transmission du VIH est de 0,3 %</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B-  Le risque de transmission du VHB est de 30 %</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C-  Le risque de transmission du VHB est de 0,3 %</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D-  Le risque de transmission du VHC est de 3 %</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Le risque de transmission du VIH est de 10 %</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) La monothérapie est la règle en antibiothérapie. Quand il faut prescrire plus d'un antibiotique ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A-  En cas de neutropénie</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B-  En cas d'association d'infection à aérobies et d'infection à anaérobies</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C-  Si les globules blancs dépassent 18 000</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D-  Si la fièvre est supérieure à 40 °C</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- En cas de septicémie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Quel est le premier diagnostic à évoquer chez ce malade ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A-  Une tuberculose</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B-  Une amibiase intestinale</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C-  Une infection par le VIH</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D-  Une intoxication alimentaire</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Une giardiase</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Quel test biologique vous allez demander pour confirmer votre diagnostic ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A-  IDR à la tuberculine</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B-  Une sérologie d'amibiase</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C-  Un examen parasitologique des selles</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D-  Une coprocuture</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Une sérologie VIH</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Comment vous allez procéder pour vérifier si le malade a contaminé sa femme et sa fille ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A-  Faire une IDR à la tuberculine chez la mère et chez la fille</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B-  Faire une coprocuture chez la mère et chez la fille</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C-  Faire chez la fille seule le même test qui est revenu positif chez le malade</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D-  Faire chez la femme seule le même test qui est revenu positif chez le malade</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Faire chez la femme et la fille le même test qui est revenu positif chez le malade et si la femme est positive le faire chez la fille</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Quel est le premier diagnostic à évoquer chez ce malade ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A-  Fièvre typhoïde</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B-  Grippe</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C-  Paludisme</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D-  Rickettsiose</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Hépatite virale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Parmi ces examens biologiques, quel est l'examen qui vous permettra de poser avec certitude le diagnostic ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A-  Sérologie de rickettsiose</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B-  Hémoculture</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C-  Transaminases</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D-  NFS</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Goutte épaisse</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Quel est le premier diagnostic à évoquer chez ce malade ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A-  Fièvre typhoïde</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B-  Paludisme viscéral évolutif</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C-  Accès palustre grave</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D-  Accès palustre de réviviscence</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Fièvre bilieuse hémoglobinurique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Quels sont les outils diagnostiques à mettre en œuvre pour le suivi du patient après traitement :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A-  Examen parasitologique des selles</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B-  Frottis sanguin et goutte épaisse</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C-  Examen d'un culot urinaire</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D-  Sérologie</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Test de diagnostic rapide sur bandelettes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Quelle est l'autre lésion cutanée que vous devriez chercher pour confirmer votre diagnostic clinique ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A-  Un ictère</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B-  Une tache noirâtre</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C-  Une urticaire</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D-  Un purpura</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Un abcès</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Quel est l'antibiotique que vous allez prescrire à ce malade ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A-  Ceftriaxone</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B-  Amoxicilline</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C-  Aminosides</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D-  Cotrimoxazole</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Cyclines</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Cinq jours après, le malade revient vous voir avec sa sœur âgée de 3 ans, vous diagnostiquez chez elle la même maladie. Quel antibiotique vous allez lui prescrire ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A-  Ciprofloxacine</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B-  Amoxicilline</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C-  Cotrimoxazole</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D-  Josamycine</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Erythromycine</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S5" "Maladies_Infectieuses_and_Parasytologie_et_Mycologie" "MI2020R" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['A', 'B', 'C', 'D'],
+    q2: ['A', 'B', 'D', 'E'],
+    q3: ['A', 'C', 'D', 'E'],
+    q4: ['A', 'D'],
+    q5: ['A', 'C', 'E'],
+    q6: ['B', 'C', 'E'],
+    q7: ['B', 'D', 'E'],
+    q8: ['E'],
+    q9: ['A', 'C', 'D', 'E'],
+    q10: ['D'],
+    q11: ['D'],
+    q12: ['A', 'B', 'C', 'D'],
+    q13: ['B', 'C', 'D', 'E'],
+    q14: ['A', 'B', 'D'],
+    q15: ['A', 'B', 'E'],
+    q16: ['C'],
+    q17: ['E'],
+    q18: ['E'],
+    q19: ['C'],
+    q20: ['E'],
+    q21: ['A'],
+    q22: ['A', 'B'],
+    q23: ['B'],
+    q24: ['E'],
+    q25: ['D'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersMI2020R'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

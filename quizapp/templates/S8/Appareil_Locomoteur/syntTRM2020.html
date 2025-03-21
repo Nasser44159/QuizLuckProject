@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Traumatologie</h1>
+            </div>
+            <form id="quiz-form">
+                <input type="hidden" id='exam_name' name="exam_name" value="TRM2020">
+    {% csrf_token %}>
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Le mécanisme de survenue d’une luxation antéro-interne de l’épaule peut être :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Direct avec chute sur la face postérieure du moignon de l’épaule</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Indirect à l’armé du bras</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Indirect bras en abduction-rotation externe</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Direct par une force postérieure avec impact sur moignon de l’épaule</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- L’impact peut être direct et antérieur sur le moignon du bras</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Une fracture déplacée de l’extrémité supérieure de l’humérus se traduit cliniquement par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Une attitude du traumatisé du membre supérieur</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Des ecchymoses du moignon de l’épaule</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Une mobilité normale de l’épaule</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Une indolence</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Une saillie antérieure du sternum</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Parmi les complications de la fracture diaphysaire humérale, on cite :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Les lésions des nerfs destinés au membre supérieur</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- La nécrose de la tête humérale</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- L’atteinte de l’artère humérale</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- La paralysie du deltoïde</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Un arrachement des racines nerveuses au niveau rachidien</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Le diagnostic de fracture de l’extrémité inférieure de l’humérus est posé, quelles sont les attitudes thérapeutiques correctes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- L’antibiothérapie est indiquée pour les fractures fermées traitées orthopédiquement</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Le traitement orthopédique fait appel à une manchette plâtrée</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Le traitement orthopédique a pour durée 04 mois</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- La chirurgie a pour but la réduction et l’ostéosynthèse</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- La rééducation fonctionnelle est indispensable</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) La luxation postérieure du coude se traduit cliniquement par les signes suivants :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Une douleur intense du coude</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Une réduction du volume du coude</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Une attitude en flexion et pronation de l’avant-bras</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Un avant-bras d’aspect raccourci</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Une saillie antérieure de la palette humérale au coude</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Devant une fracture de la tête radiale, les propositions suivantes sont correctes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- L’examen recherche une luxation radio-cubitale distale associée</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- L’articulation radio-cubitale distale peut être atteinte</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Les repères anatomiques du coude sont modifiés</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- On note un point douloureux à la partie externe du coude</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- La mobilité de l’épaule est altérée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) La fracture de l’olécrâne peut se traduire cliniquement par les signes suivants :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Perception d’un sillon ou vide au niveau de la fracture</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Un signe de l’armée positif</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Une absence de douleur</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Une mobilité normale du coude</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Des ecchymoses en regard</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Parmi les complications d’une fracture fermée de l’extrémité inférieure du radius, on reconnait :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Le cal vicieux</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- L’arthrose</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- L’œdème sous plâtre</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Les complications infectieuses après traitement orthopédique</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- La rupture du tendon du long extenseur du pouce au contact d’une broche d’ostéosynthèse</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Les fractures de l’avant-bras :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Ce sont des fractures touchant obligatoirement les deux os de l’avant-bras</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- La fracture de Monteggia comprend également une fracture du radius</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- La fracture de Galeazzi comprend également une fracture du radius</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Le syndrome de loges est une complication redoutable</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Le traitement des fractures de l’avant-bras est essentiellement orthopédique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Les fractures de l’extrémité inférieure du radius :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Fréquentes chez le sujet jeune à os ostéoporotique</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Le mécanisme indirect est le plus fréquent</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- La fracture de Pouteau-Colles est marquée par un déplacement antérieur</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- La fracture de Pouteau-Colles est une fracture articulaire</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Le traitement peut être orthopédique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Les fractures du col du fémur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Constituent une urgence d’ordre thérapeutique</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Elles sont plus fréquentes chez l’adulte jeune</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Le type Garden IV est une fracture engrenée non déplacée</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Le vissage double est indiqué dans le type Garden III chez le sujet âgé</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- La nécrose de la tête du fémur est une complication tardive</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Les fractures du col du fémur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- De plus en plus fréquente chez le sujet âgé</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- À l’inspection on trouve une attitude vicieuse et raccourcissement dans le Garden II</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Dans le type Garden III, l’angle cervico-diaphysaire est supérieur à 125°</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Le vissage double ou triple est indiqué dans le type Garden II</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- La pseudarthrose est une complication tardive</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Les fractures du cotyle :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Ce sont des fractures intéressant l’articulation de la hanche</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Peuvent être causées par un accident de la voie publique</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Le point d’impact peut être à distance du cotyle (traumatisme tableau de bord)</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Le traitement orthopédique peut se faire par suspension en hamac</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Le pronostic fonctionnel de la hanche peut être mis en jeu</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Les fractures du bassin :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Les fractures du bassin peuvent être ouvertes</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Le mécanisme par compression peut être latéral</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Le type C de Tile correspond à une rupture complète de l’arc postérieur</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- La TDM donne un bilan imprécis des lésions osseuses</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Le type C de Tile est de traitement chirurgical</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Les fractures du bassin :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Les fractures du bassin peuvent être bénignes ou graves</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Le mécanisme par compression peut être latéral ou antérieur</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Le type A de Tile correspond à une rupture complète de l’arc postérieur</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- La scintigraphie osseuse donne un bilan précis des lésions osseuses</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Peuvent être pourvoyeuses de complications graves</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Les luxations traumatiques de la hanche :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Le traumatisme de tableau de bord ne cause pas la luxation de hanche</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Dans la luxation postéro-supérieure la hanche est en flexion adduction et rotation interne</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- La luxation postérieure de la tête fémorale est dite iliaque ou ischiatique</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Dans la luxation antéro-inférieure la hanche est en adduction et rotation interne</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- La manœuvre de réduction de Boehler se fait sous anesthésie générale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Les luxations traumatiques de la hanche :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Une abduction-extension-rotation externe correspond à une luxation antérieure et inférieure</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Une abduction-flexion-rotation externe correspond à une luxation antérieure et supérieure</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- La luxation postéro-supérieure est dite iliaque</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Une adduction-flexion-rotation interne correspond à une luxation postérieure et supérieure</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- La chirurgie peut être indiquée en cas de fracture-luxation de hanche</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Les fractures des plateaux tibiaux :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Elles touchent le sujet âgé suite à un traumatisme banal</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Les condyles fémoraux sont le principal agent vulnérant de ces fractures</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- La fracture-séparation simple peut être fixée par des vis transversales</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- La raideur du genou est une complication précoce</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Leurs complications sont toujours simples</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Les entorses du genou :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- L’entorse du genou correspond à une lésion d’un ou de plusieurs ligaments</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Le mécanisme en valgus-flexion-rotation externe est le plus fréquent</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Le mécanisme en varus-flexion-rotation interne peut entrainer une lésion du nerf sciatique poplité externe</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- La résonance magnétique nucléaire est toujours demandée en urgence</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Dans l’entorse grave le traitement est fonctionnel chez le sportif de haut niveau</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Les fractures de la patella :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Les fractures de la rotule respectent la continuité de l’appareil extenseur du genou</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Le mécanisme direct est le plus fréquent</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Le type B de la classification de Duparc correspond à une fracture pluri fragmentaire complexe</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Dans la fracture déplacée de la rotule l’extension active est impossible</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Le cal vicieux est une redoutable complication immédiate</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Les fractures de jambe :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- C’est une affection exceptionnelle chez le footballeur</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Le Type I de Cauchoix et Duparc assombrit le pronostic</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- La radiographie conventionnelle suffit au diagnostic</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- La lésion cutanée peut être une complication immédiate secondaire ou tardive</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Le parage chirurgical est un temps essentiel du traitement</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) La fracture de Maisonneuve comporte les éléments suivants :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Une atteinte de la malléole externe</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Un trait de fracture sur l’extrémité distale du péroné</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Une lésion majeure de la syndesmose tibio-fibulaire distale</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Une fracture du col de la fibula</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Une fracture du plateau tibial externe</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Devant une entorse de cheville, lesquelles des propositions sont correctes ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Une fracture déplacée nécessite un traitement chirurgical</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Une fracture non déplacée peut nécessiter un traitement orthopédique</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Un déplacement secondaire nécessite un traitement chirurgical</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Une fracture ouverte souillée ne nécessite pas de parage chirurgical</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- L’ostéosynthèse par une plaque est une bonne indication pour une fracture très souillée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Parmi les diagnostics différentiels d’une entorse de cheville :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- La fracture du pilon tibial</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- La tendinite du jambier antérieur</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Une rupture du tendon d’Achille</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- L’hallux valgus</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Une ischémie du pied</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Les fractures malléolaires sont caractérisées par les affirmations suivantes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Ce sont des fractures articulaires qui nécessitent une réduction parfaite</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- La classification de Biglow est adoptée dans les fractures malléolaires</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- La fracture de Maisonneuve comprend une fracture de la malléole interne et une fracture proximale de la fibula</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Le cal vicieux est une complication immédiate</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- La pseudarthrose est une complication tardive</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Les fractures articulaires des membres inférieurs sont caractérisées par les affirmations suivantes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- Peuvent toucher l’articulation tibio-crurale</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- Peuvent se compliquer d’un syndrome de loges</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- L’arthrite est une complication grave</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- Le cal vicieux articulaire est dû à une rééducation fonctionnelle tardive</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- L’immobilisation prolongée est pourvoyeuse de raideur</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+
+                 
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S5" "Radiologie" "Rd2022" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['A', 'B', 'C', 'D'],
+    q2: ['A', 'B'],
+    q3: ['A', 'C'],
+    q4: ['D', 'E'],
+    q5: ['A', 'C', 'D', 'E'],
+    q6: ['A', 'B', 'D'],
+    q7: ['A', 'E'],
+    q8: ['A', 'B', 'C', 'E'],
+    q9: ['C', 'D'],
+    q10: ['B', 'E'],
+    q11: ['A', 'E'],
+    q12: ['A', 'D', 'E'],
+    q13: ['A', 'B', 'C', 'D', 'E'],
+    q14: ['A', 'B', 'D', 'E'],
+    q15: ['A', 'B', 'E'],
+    q16: ['C', 'D', 'E'],
+    q17: ['C', 'E'],
+    q18: ['A', 'B', 'C'],
+    q19: ['A', 'B', 'C'],
+    q20: ['B', 'D', 'E'],
+    q21: ['C', 'D', 'E'],
+    q22: ['C', 'D'],
+    q23: ['A', 'B', 'C', 'E'],
+    q24: ['A', 'C', 'E'],
+    q25: ['A', 'C', 'E'],
+    q26: ['A', 'B', 'C', 'E'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersRd2022'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="HMT2021">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Quelle(s) est (sont) la (les) proposition(s) exacte(s) concernant l'hémophilie A :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Il s'agit d'une maladie à transmission autosomale dominante</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Le temps de céphaline avec activateur est allongé</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Le nombre de thrombocytes est normal</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Le taux de Facteur X est diminué</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Le taux de facteur Willebrand peut être diminué</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Concernant la maladie de Willebrand, quelle(s) est(sont) la(les) proposition(s) exacte(s) ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Le type 1 se définit par un déficit qualitatif modéré en facteur Willebrand</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Un allongement du TCA peut être observé secondairement au déficit en facteur VIII</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- La desmopressine (Minirin®) peut être prescrite en cas de maladie de Willebrand de type 1</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- La symptomatologie clinique est variable au sein d'une famille</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Elle se transmet le plus souvent par le mode autosomique récessif</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Concernant la Leucémie lymphoïde chronique (LLC) ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Atteint surtout les jeunes enfants</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Les lymphocytes sanguins présentent un noyau immature</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Elle concerne le plus souvent des lymphocytes T</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Peut se compliquer d'une anémie hémolytique</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- S'accompagne souvent d'une diminution des gammaglobulines sériques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Une fille de 3 ans présente depuis plusieurs mois une asthénie et une pâleur. L'examen clinique retrouve un ictère et une splénomégalie. L'hémogramme montre : GR = 3,5M/mm³ Hb = 7g/dl Ht = 23% VGM = 60µ³ CCMH = 29% TCMH = 19pg GB = 9000/mm³ Plaquettes = 400 000/mm³. Votre (vos) hypothèse(s) diagnostique(s) la (les) plus probable(s) ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Anémie par carence en fer</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Bêta-Thalassémie hétérozygote</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Bêta-Thalassémie homozygote</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Déficit en G6PD</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Drépanocytose</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Un garçon de 5 ans présente une pâleur et un ictère. Quels sont les arguments qui orientent vers le diagnostic de drépanocytose SS ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- L'origine d'Afrique Noire</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Le sexe</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- La consanguinité</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- L'absence d'infections sévères associées</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Un antécédent personnel d'ictère néonatal</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Le diagnostic est affirmé sur l'électrophorèse de l'hémoglobine qui montre : (suite de la question N° 5)</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- L'absence d'Hb A</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Un taux d'Hb S de 80 à 99 %</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Un taux d'Hb F de 20 à 99 %</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Un taux d'Hb A de 5 à 15 %</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Un taux d'Hb A de 1 à 10 %</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Sa prise en charge est basée sur : (suite de la question N° 6)</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- La prévention des crises vaso-occlusives et des infections</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- La transfusion systématique et régulière</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- L'apport de fer</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Les échanges érythrocytaires</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- L'hydroxyurée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Si l'un des parents est atteint de la drépanocytose (Hb SS) et l'autre est sain,</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Tous les garçons seront atteints de syndrome drépanocytaire majeur</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Tous les enfants seront porteurs sains</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- 50% des enfants seront porteurs sains</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- 25% des enfants seront porteurs sains</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- 50% des enfants seront indemnes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Patient de 65 ans antécédent de tabagisme chronique, qui présente une érythrose faciale, l'hémogramme retrouvait : Hémoglobine : 19 g/dl, Hématocrite 55%, VGM :86fl, GB 5 000/mm³, 50 % Polynucléaire neutrophiles 40% Lymphocytes, 8% Monocytes, 1,5% Eosinophiles, 0,5% Polynucléaires basophiles, Plaquettes :550 000/mm³. Quels sont les diagnostics à évoquer :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Polyglobulie secondaire</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Leucémie myéloïde chronique</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Fausse polyglobulie</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Maladie de Vaquez</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Hypertension portale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Quels sont les examens à demander pour la confirmation diagnostique : (Suite de la question N° 9)</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Myélogramme</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Dosage de l'érythropoïétine</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Biopsie ostéo-médullaire</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Caryotype</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Mutation JAK2 V617F</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) L'hémogramme d'une patiente de 45 ans qui présentait depuis 3 mois, une volumineuse splénomégalie retrouvait : Hb 12g/dl VGM 85fl CCMH 32%, GB 250 000/mm³ 60% de PNN, 15 % de myélocytes, 10% métamyélocytes, 5% lymphocytes, 5% polynucléaires basophiles, 3% polynucléaires éosinophiles, 2% promyélocytes, et des Plaquettes à 600 000/mm³. Quel examen demander pour confirmer le diagnostic ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Myélogramme</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Caryotype</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Immunophénotypage</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Frottis sanguin</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Biopsie ostéo-médullaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Le syndrome myélodysplasique peut se révéler par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Des adénopathies</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Un syndrome anémique</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Une splénomégalie</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Un syndrome hémorragique</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Un syndrome infectieux</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Le diagnostic positif des AHAI repose sur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- L'hémogramme</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Le frottis sanguin</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Le Test de Coombs direct</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- L'électrophorèse de l'hémoglobine</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Myélogramme</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) L'aplasie médullaire idiopathique est une hémopathie qui associe les critères suivants :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Est un diagnostic d'élimination</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Le diagnostic positif repose sur la biopsie ostéo-médullaire</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Le myélogramme retrouve une moelle riche</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- L'hémogramme retrouve une pancytopénie</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- L'hémogramme retrouve des blastes circulants</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Le lymphome Hodgkinien est une hémopathie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Suspectée devant un prurit diffus, rebelle au traitement symptomatique</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Évoquée devant des signes généraux</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Dont la forme cervico médiastinale est la plus fréquente</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Dont le diagnostic repose sur la biopsie ganglionnaire</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Dont l'extension du lymphome est exclusivement hématogène</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Le traitement du lymphome Hodgkinien :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Consiste en une polychimiothérapie</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Repose sur l'abstention thérapeutique</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Le traitement des formes avancées repose sur la radiothérapie exclusive</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- La polychimiothérapie peut entraîner des séquelles à long terme</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Nécessite une évaluation de la réponse par le TEP-scanner</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Les lymphomes non hodgkiniens :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Sont des proliférations malignes du tissu lymphoïde</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Le lymphome de Burkitt est un lymphome indolent</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Les YEISTK sont intimement dans les gènes de certaines lymphomes</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Les anticorps monoclonaux anti-CD20 sont utilisés pour traiter les lymphomes T</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Les atteintes extra ganglionnaires sont absentes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Les règles de sécurité transfusionnelle nécessitent :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- La réalisation d'une seule détermination du groupage sanguin</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- La recherche d'agglutinines irrégulières (RAI) avant la transfusion en culots globulaires</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- La carte de contrôle ultime pré-transfusionnel avant la transfusion en culots</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- La conservation des concentrés plaquettaires standards en agitation continue</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- La surveillance de l'acte transfusionnel</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Une femme de 30 ans est admise aux urgences pour des métrorragies de grande abondance, à l'examen : poids : 50 kg, pâleur cutanéo-muqueuse. NFS : Hb = 5 g/dl (VGM= 90 fl, CCMH 32%), plaquettes : 230 000/mm3. Globules blancs :8000/mm3 (formule leucocytaire normale), bilan d'hémostase normal. L’interne de garde a décidé de la transfuser en raison de l'anémie. La transfusion de concentrés de globules rouges nécessite :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Une demande rédigée par l'infirmier de garde</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Deux groupages avec le phénotype Rhésus, kell</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- La réalisation de la carte du contrôle ultime pré-transfusionnel</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Le calcul de la quantité à transfuser en fonction du poids de la malade</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- L'administration de 2 culots globulaires</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) L'accident hémolytique par incompatibilité ABO :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Peut se manifester par un état de choc</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Peut se manifester par des douleurs lombaires et des urines foncées</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Il faut arrêter la transfusion en urgence</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Engage la responsabilité légale du médecin</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Ne nécessite pas une enquête du correspondant de l'hémovigilance</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Femme de 68 ans, adressée à la consultation pour douleurs osseuses diffuses, rebelles, permanentes, évoluant depuis 7 mois. Pas de syndrome d'insuffisance médullaire. Pas de syndrome tumoral. La vitesse de sédimentation était à 110 mm, l'hémogramme montrait une nette anémie à 9 g/100 ml normochrome normocytaire. Le ou les diagnostic(s) à évoquer est ou sont ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Myélome multiple</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Leucémie aiguë</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Leucémie lymphoïde chronique</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- Métastase osseuse</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Lymphome non hodgkinien</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Quel bilan, à visée diagnostique, demanderiez-vous ? (Suite de la question N°21)</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Bilan phospho-calcique</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Myélogramme</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Biopsie osseuse</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Squelette osseux</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Electrophorèse de protéines plasmatiques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Le bilan suivant a été réalisé chez une patiente de 38 ans, bien portante avec des antécédents de gouttes hémorroïdaires ; elle a consulté pour fatigue : Hb = 7 g/100ml. VGM = 71fl. CCMH = 30%. Pq = 450 000 GB = 7 000/mm3. PNN = 51%. Monocytes = 2%. Lymphocytes = 47%. Ferritine = 10 ng/ml. Que sera votre conduite à tenir ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Transfusion de 2 concentrés de globules rouges</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Réaliser un bilan inflammatoire</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Prescrire un traitement martial 200 mg/jour pendant 4 mois</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Faire un test Covid-19</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Prévoir une consultation proctologique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Un enfant de 5 ans, consulte en urgence pour fièvre à 40°C, pâleur intense, dyspnée à l'effort avec palpitations. À l'examen, purpura pétéchial avec ecchymoses, adénopathies cervicales et splénomégalie de 5 cm de débord. Quel(s) est (sont) votre (vos) hypothèses diagnostiques ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Aplasie médullaire</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Lymphome de Burkitt</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Leucémie aiguë lymphoblastique</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- LLC</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Mononucléose infectieuse</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) L'hémogramme réalisé chez cet enfant : Hb = 3 g/100ml. VGM = 99fl. CCMH = 33%. Pq = 10 000. GB = 60000/mm3. PNN = 18%. Monocytes = 2%. Lymphocytes = 20%. Blastes 60%. Quel sera votre conduite à tenir : (Suite de la question N°24)</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Refaire l'hémogramme</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Myélogramme</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Immunophénotypage</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Transfusion de concentrés de globules rouges</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Caryotype</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Indiquer parmi les suivants, le (s) mécanisme (s) par lequel (lesquels) agit (agissent) les médicaments inducteurs de l'apoptose :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- En empêchant la tyrosine kinase d'envoyer des signaux indiquant à la cellule cancéreuse de se développer</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- En ciblant les tumeurs HER2 positives (Human Epidermal Growth Factor Receptor-2) impliquées dans la régulation de la prolifération cellulaire</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- En inhibant l'action du protéasome</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- En inhibant l'action de la PARP (Poly ADP-ribose polymérase)</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- Aucune des propositions n'est exacte</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) Indiquer parmi les propositions suivantes, celle (s) qui est (sont) exacte (s). Les anticorps monoclonaux :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- Se lient à des protéines ou à des gènes présents dans le noyau des cellules cancéreuses</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- Ciblent les tumeurs HER2 positives (Human Epidermal Growth Factor Receptor-2)</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Ne doivent pas être utilisés dans le traitement des cancers HER2 positifs, dont les cancers du sein, de l'estomac et de l'œsophage</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Sont utilisés dans le traitement des cancers HER2 positifs, dont les cancers du sein, de l'estomac et de l'œsophage</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- Aucune réponse</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) Indiquer parmi les suivants, la (les) proposition (s) exacte (s)</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- Les antimétabolites agissent par l'inhibition compétitive de la dihydrofolate réductase inhibant ainsi la synthèse de l'ADN</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- Les inhibiteurs de topoisomérase-I interfèrent avec l'élongation et la réplication de l'ADN créant ainsi des coupures au fur et à mesure</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- Les inhibiteurs de topoisomérase-II interfèrent avec l'élongation et la réplication de l'ADN créant ainsi des coupures au fur et à mesure</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- Les analogues pyrimidiniques comme la 6-mercapto-purine appartiennent à la famille des antimétabolites</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- Les analogues pyrimidiniques comme le 5-fluorouracile appartiennent à la famille des antimétabolites</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) Indiquer parmi les propositions suivantes, celle (s) qui est (sont) exacte (s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- Le cyclophosphamide est une prodrogue</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- Le cyclophosphamide appartient à la famille des anticancéreux alkylants</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- Le 4 hydroxy – cyclophosphamide obtenue à partir du cyclophosphamide par le CYP 450 est ensuite transformé par une autre enzyme en l'occurrence l'aldéhyde-déshydrogénase en métabolites actifs</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- Le cyclophosphamide est métabolisé en 4 hydroxy – cyclophosphamide par le CYP 450 3A4</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- Le 4 hydroxy – cyclophosphamide est le métabolite actif du cyclophosphamide</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+     <div id="question-30" class="question-container">
+    <div class="question">
+        <p>30.) Indiquer parmi les propositions suivantes, celle(s) qui est (sont) exacte(s) :</p>
+        <ul>
+            <li><input type="checkbox" id="q30a" name="q30" value="A"> A- Les SERM (Selective Estrogen Receptor Modulator), comme le tamoxifène, se fixent au récepteur des œstrogènes induisant, ainsi, une modification de sa conformation</li>
+            <li><input type="checkbox" id="q30b" name="q30" value="B"> B- Les SERD (Selective Estrogen Receptor Degradation), comme le fulvestrant, provoquent une dégradation des récepteurs aux œstrogènes</li>
+            <li><input type="checkbox" id="q30c" name="q30" value="C"> C- Un antiœstrogène exerce un effet antihormonal mais n’empêche pas la production d’œstrogènes</li>
+            <li><input type="checkbox" id="q30d" name="q30" value="D"> D- L’aromatase est une enzyme qui se trouve dans les ovaires et les glandes surrénales et est impliquée dans la production d’œstrogènes</li>
+            <li><input type="checkbox" id="q30e" name="q30" value="E"> E- Les anti-androgènes peuvent être prescrits en complément des analogues de la LH-RH (luteinizing hormone-releasing hormone) car ils agissent comme des antihormones en prenant la place de la testostérone au niveau des récepteurs hormonaux des cellules</li>
+        </ul>
+    </div>
+</div>
+
+           
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S7" "Cancerologie_Hematologie" "HMT2021" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['B', 'C', 'E'],
+    q2: ['B', 'C', 'D'],
+    q3: ['C', 'D', 'E'],
+    q4: ['C'],
+    q5: ['A', 'C', 'D'],
+    q6: ['A', 'B', 'E'],
+    q7: ['A', 'D', 'E'],
+    q8: ['B'],
+    q9: ['A', 'C', 'D'],
+    q10: ['B', 'C', 'E'],
+    q11: ['B'],
+    q12: ['B', 'D', 'E'],
+    q13: ['A', 'B', 'C'],
+    q14: ['A', 'B', 'D'],
+    q15: ['A', 'B', 'C', 'D'],
+    q16: ['A', 'D', 'E'],
+    q17: ['A', 'C'],
+    q18: ['B', 'C', 'D', 'E'],
+    q19: ['B', 'C', 'D'],
+    q20: ['A', 'B', 'C', 'D', 'E'],
+    q21: ['A'],
+    q22: ['B', 'D', 'E'],
+    q23: ['C', 'E'],
+    q24: ['C'],
+    q25: ['C', 'D', 'E', 'B'],
+    q26: ['C', 'D'],
+    q27: ['B', 'D'],
+    q28: ['A', 'B', 'D', 'E'],
+    q29: ['A', 'B', 'D', 'E'],
+    q30: ['A', 'B', 'C', 'D', 'E'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersHMT2021'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

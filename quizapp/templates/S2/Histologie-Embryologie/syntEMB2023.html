@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="EMB2023">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Parmi les propositions suivantes relatives à la première division méiotique ovocytaire, laquelle (lesquelles) est (sont) exacte(s) ?:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Elle aboutit à la formation de 2 cellules filles ayant la même quantité d'ADN. </li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Elle correspond à la division équationnelle de la méiose. </li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Le premier globule polaire est dépourvu de noyau. </li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Elle conduit à la formation de 2 cellules filles de taille inégale. </li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Elle débute à la puberté.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Concernant la méiose, laquelle (lesquelles) des propositions suivantes, est (sont) exacte(s)?:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- La méiose conduit à la production de cellules haploïdes (n Chromosome). </li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- La méiose comporte deux mitoses réductionnelles successives. </li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Chacune des deux divisions méiotiques est précédée par une réplication de l'ADN. </li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Les crossing-over permettent des échanges chromatiniens entre les deux chromosomes d'une même paire. </li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- La prophase I est la phase la plus longue de la méiose au cours de l'ovogenèse.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Parmi les phénomènes suivants, lesquels influencent la spermatogenèse ?:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- L'exposition des testicules à une chaleur élevée peut entraîner une baisse de la fertilité. </li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Des carences en vitamines C et E favorisent la production spermatique. </li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- La FSH, en agissant directement sur les cellules de Sertoli. </li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- L'absence de canaux déférents ou de l'épididyme. </li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- La testostérone par son effet modérateur sur le système de commande hypothalamo- hypophysaire.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Parmi les propositions suivantes concernant le testicule, laquelle (lesquelles) est (sont) exacte(s)?:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Les cellules de Leydig se situent dans la paroi des tubes séminifères. </li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Les cellules de Sertoli secrètent la testostérone. </li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Les spermatides sont retrouvées dans le compartiment basal du tube séminifère. </li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Les tubes séminifères assurent la double fonction testiculaire : exocrine et endocrine.</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- La spermatogenèse est un phénomène continu.   </li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Parmi les propositions suivantes concernant l'ovogenèse chez la femme, laquelle (lesquelles) est (sont) exacte(s) ?:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- La multiplication des ovogonies reprend à la puberté. </li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Le pool d'ovogonies contenu dans l'ovaire atteint un maximum au cours de la vie intra-utérine.</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Lors de la phase de croissance, le volume du cytoplasme d'une ovogonie augmente par une accumulation des granules corticaux. </li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- La phase de maturation est caractérisée par l'expulsion des globules polaires. </li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Pendant l'ovulation, l'ovocyte I termine la division réductionnelle par une cytodiérèse asymétrique.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) A propos de l'ovogenèse:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Elle débute à la naissance. </li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Elle permet de passer de l'ovocyte I à l'ovocyte II par simple accroissement. </li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Toutes les ovogonies vont se différencier en ovocytes I. </li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Toute la phase de multiplication des ovogonies se déroule durant la vie fœtale.</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Elle conduit chaque ovogonie à l'état d'ovotide.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Parmi les propositions suivantes concernant le cycle ovarien, lesquelles sont exactes ?:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- La FSH stimule la maturation des follicules ovariens au cours de la phase folliculaire. </li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- L'œstradiol exerce un rétrocontrôle négatif et positif sur l'axe hypothalamo-hypophysaire. c- Après l'ovulation, les cellules de la granulosa se transforment en cellules de Sertoli. </li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- En phase folliculaire, l'ovaire sécrète de l'œstradiol et de la progestérone. </li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- La synthèse des œstrogènes passe par la transformation du cholestérol en androgènes par la thèque.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Lors de la réaction corticale,:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- le contenu des granules corticaux est déversé dans le cytoplasme de l'ovocyte. </li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- les enzymes des granules corticaux dégradent les glycoprotéines ZP3 de la zone pellucide. </li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- la membrane plasmique post-acrosomique du spermatozoïde et la membrane de l'ovocyte fusionnent. </li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- les enzymes acrosomiales sont libérées au voisinage de l'ovocyte. </li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- les galactosyltransférases des spermatozoïdes reconnaissent les chaînes hydrocarbonées de la ZP3.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Le blocage de la polyspermie est dû à:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- une baisse du taux d'ions Ca2+ dans l'ovocyte. </li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- une entrée massive d'ions Na* dans le cytoplasme ovocytaire. </li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- la libération des enzymes des granules corticaux qui modifient les glycoprotéines ZP3. </li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- un démasquage des protéines de la surface spermatique. </li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- une diminution de la fluidité de la membrane plasmique de l'ovocyte.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Parmi les propositions relatives à la première semaine du développement, laquelle (lesquelles) est (sont) exacte(s)?:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- La compaction met en jeu des protéines membranaires impliquées dans l'adhérence intercellulaire. </li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- La segmentation entraîne une augmentation régulière du volume de l'embryon. </li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- La première semaine correspond à la phase implantatoire. </li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Les blastomères générés lors de la segmentation sont de plus en plus petits. </li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Le nombre de blastomères augmente dans l'espace délimité par la zone pellucide.   </li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Parmi les phénomènes suivants, lesquels sont nécessaires à l'implantation du blastocyste?:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- La formation du syncytiotrophoblaste. </li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Des interdigitations entre les microvillosités apicales des cellules trophoblastiques et les pinopodes de l'épithélium utérin. </li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- La surexpression des protéines constitutives des jonctions gap, les connexines. </li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- La présence de la zone pellucide. </li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- La transformation des cellules stromales en cellules déciduales.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) La ligne primitive:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- se met en place au cours de la quatrième semaine de développement. </li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- définit l'axe céphalo-caudal du futur embryon. </li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- est limitée en arrière par le nœud de Hensen. </li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- est bordée latéralement par les futures membranes cloacale et oropharyngienne. </li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- se forme sur la face dorsale du disque embryonnaire.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Parmi les propositions relatives à la neurulation, laquelle (lesquelles) est (sont) exacte(s)?:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Elle débute durant la 3ème semaine et se poursuit pendant la 4ème semaine de développement. </li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Les crêtes neurales se détachent et se disposent de part et d'autre du tube neural. </li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Le tube neural reste temporairement ouvert au niveau du canal neurentérique. </li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- La plaque neurale s'individualise à partir de l'endoblaste. </li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Les deux bords de la gouttière neurale se soudent dans le sens crânio-caudal.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Parmi les propositions suivantes concernant les trisomies, lesquelles sont vraies ?:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- La trisomie peut concerner aussi bien les autosomes que les gonosomes. </li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Si la trisomie concerne les autosomes, elle aboutit toujours à une fausse couche.</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Le syndrome de Klinefelter est une trisomie de type 47, XYY. </li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- La trisomie peut être due à une mauvaise ségrégation des chromosomes lors de la méiose masculine. </li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Le syndrome de Down est peut-être dû à la non-disjonction des chromatides sœurs au cours d l'anaphase II de la méiose.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Concernant l'unité fœto-placentaire, quelles sont la ou les propositions exactes ?:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Les villosités secondaires sont constituées de syncytiotrophoblaste, de cytotrophoblaste et mésenchyme extra-embryonnaire. </li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- La face maternelle du placenta est organisée en cotylédons incomplètement divisés par septa. </li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- La chambre intervilleuse est le lieu où se mélangent les sangs maternel et fœtal.</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Le placenta est en lien avec le fœtus par le cordon ombilical possédant 2 veines et 2 artères</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Les anomalies de placentation sont sans importance pathologique.   </li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S2" "Histologie-Embryologie" "EMB2023" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['A', 'D'],
+    q2: ['A', 'D', 'E'],
+    q3: ['A', 'C', 'E'],
+    q4: ['E'],
+    q5: ['B', 'D', 'E'],
+    q6: ['D', 'E'],
+    q7: ['A', 'B', 'E'],
+    q8: ['B'],
+    q9: ['C'],
+    q10: ['A', 'D', 'E'],
+    q11: ['A', 'B', 'E'],
+    q12: ['B', 'E'],
+    q13: ['A', 'B'],
+    q14: ['A', 'D', 'E'],
+    q15: ['A', 'B'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersEMB2023'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+<script src="{% static 'java/question-stats.js' %}" defer></script>

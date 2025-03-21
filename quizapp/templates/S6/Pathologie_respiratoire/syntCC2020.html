@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="CC2020">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Parmi les signes cliniques suivant quels sont ceux qu'on peut voir dans une phlébite surale :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Un signe de DEBAKEY positif</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Une bradycardie</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Une hypothermie</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Un signe de HOMENS positif</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Un mollet souple qui ballotte bien</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Parmi les complications chroniques de l'insuffisance veineuse chronique et superficielle des membres inférieurs on peut retrouver :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- L'embolie pulmonaire</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- La gangrène gazeuse des membres inférieurs</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Le mal perforant plantaire</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- La rupture variqueuse</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- L'ulcère variqueux</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Le meilleur moyen de prévention de l'insuffisance veineuse chronique des membres inférieurs (varices) surtout chez les patients à risque est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Le laser endoveineux</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- La radiofréquence endoveineuse</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Les veinotoniques</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- La sclérothérapie des varices à la mousse</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- La contention</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Parmi les complications chroniques des thromboses veineuses profondes des membres inférieurs on peut retrouver :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Une grosse jambe</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Des varices mal systématisées des membres inférieurs</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Un syndrome post-phlébitique</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Une embolie pulmonaire</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Un syndrome de Cocket</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) L'ischémie critique des membres inférieurs peut :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Correspondre au stade IV de la classification de Leriche et Fontaine</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Se manifester par des douleurs ou des troubles trophiques des membres inférieurs apparus en moins de 6h</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Correspondre au stade II de la classification de Leriche et Fontaine</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Correspondre au stade I de la classification de Leriche et Fontaine</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Correspondre au stade III de la classification de Leriche et Fontaine</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Parmi les signes cliniques et para-cliniques de l'insuffisance mésentérique chronique on peut retrouver :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Un pneumopéritoine</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Une aéroportie</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Une arcade de Riolan</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Un amaigrissement</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Des douleurs post-prandiales précoces</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Parmi les complications des anévrysmes de l'aorte abdominale sous-rénale on peut retrouver :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Des névralgies cervico-brachiales</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Des sciatalgies</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Des cruralgies</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Des coliques néphrétiques</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Une dysphagie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Un anévrysme veineux est une masse :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Battante</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Soufflante</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Expansive</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Facilement compressible</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Qui se vide en position déclive ou de Trendelenburg</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) L'ischémie aiguë des membres inférieurs est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Une artériopathie chronique</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Une ischémie critique</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Cliniquement matérialisée par la tétrade des 4 P de Griffit</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Une pathologie d'installation progressive qui apparaît dans un délai de plus de 15 jours</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- De mauvais pronostic si le patient se présente déjà avec des troubles trophiques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) L'insuffisance mésentérique aiguë :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Est une grande urgence médico-chirurgicale</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Est de meilleur pronostic que l'insuffisance mésentérique chronique</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Est en rapport avec une thrombose aiguë de l'artère mésentérique inférieure</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Est en rapport avec une thrombose aiguë de l'artère mésentérique supérieure</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Peut nécessiter une résection intestinale partielle</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) La machine de la CEC doit comporter obligatoirement :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Un oxygénateur</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Une ligne de cardioplégie</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Un réservoir veineux</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Une ligne de décharge gauche</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Un échangeur thermique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Durant la CEC, le transfert de l'O2 dépend de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- La FiO2 (fraction inspirée de l'O2)</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- La durée de contact entre le gaz et le sang</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- L'épaisseur de la membrane qui sépare le compartiment sanguin et le compartiment aérien</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- La surface d'échange gaz-sang</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Aucune réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) L'anticoagulation durant la CEC :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Est assurée par une héparine de bas poids moléculaire</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Est donnée pour avoir un TCA > 400 secondes</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- N'est pas nécessaire pour faire une CEC</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Est assurée par une héparine non fractionnée</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Est neutralisée à la fin de la CEC par un antidote</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Cochez la (les) proposition(s) exactes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- L'objectif de la protection myocardique est de maintenir le cœur viable durant le temps chirurgical</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- L'oxygène (O2) est le principal combustible de la cellule myocardique</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- 95% des apports en O2 sont dédiés à maintenir le myocarde en vie</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Durant le clampage aortique, l'activité métabolique est totalement supprimée</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- L'arrêt cardiaque est assuré par la cardioplégie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Pour réaliser un pontage coronaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Le greffon veineux est le traitement de choix</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Les artères mammaires sont caractérisées par une excellente perméabilité à long terme</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Les greffons artériels sont toujours préférés</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- L'artère mammaire est utilisée à 100%</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Aucune réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Pour évaluer une sténose coronaire anatomiquement :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- L'épreuve d'effort a une spécificité très élevée</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Le coro-scanner est l'examen de référence</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Le coro-scanner est moins performant que la coronarographie</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- La coronarographie est l'examen de référence</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- L'électrocardiogramme a une spécificité très élevée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Avant de faire une chirurgie valvulaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Il faut traiter tous les foyers infectieux</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- La coronarographie est toujours obligatoire avant la chirurgie</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Un examen gynécologique pré-opératoire est systématique chez la femme</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Une évaluation pré-anesthésique n'est pas obligatoire</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Un bilan d'hémostase est toujours indiqué</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Parmi les règles exigées pour réaliser une plastie mitrale :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- La valve mitrale doit être souple</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- L'échocardiographie doppler per-opératoire n'est pas recommandée</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Une annuloplastie (par anneau synthétique) est quasi systématique</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Une expérience chirurgicale</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- La valve mitrale doit être massivement calcifiée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Les anévrysmes de l'aorte thoracique peuvent se manifester par une complication évolutive à type de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Rupture inaugurale rapidement mortelle</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Fissuration</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Dysphonie</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Compression d'organes de voisinage</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Aucune réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) La dissection de l'aorte thoracique se manifeste typiquement par une douleur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- De siège initial rétrosternal</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- D'installation brutale</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Intolérable en coup de poignard</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Migratrice suivant le trajet aortique</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Souvent isolée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S6" "Pathologie_respiratoire" "CC2020" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['D'],
+    q2: ['E'],
+    q3: ['E'],
+    q4: ['A', 'B', 'C'],
+    q5: ['A', 'E'],
+    q6: ['C', 'D', 'E'],
+    q7: ['C', 'D'],
+    q8: ['D', 'E'],
+    q9: ['C', 'E'],
+    q10: ['A', 'D', 'E'],
+    q11: ['A', 'C', 'E'],
+    q12: ['B', 'C', 'D'],
+    q13: ['B', 'D', 'E'],
+    q14: ['A', 'B', 'C', 'E'],
+    q15: ['B', 'C'],
+    q16: ['C', 'D'],
+    q17: ['A', 'C', 'E'],
+    q18: ['A', 'C', 'D'],
+    q19: ['A', 'B', 'C', 'D'],
+    q20: ['A', 'B', 'C', 'D'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersCC2020'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

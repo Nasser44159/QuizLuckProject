@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="HIST2020">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) A propos du tissu épithélial:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Un épithélium de revêtement peut comporter des cellules caliciformes (exemple intestin). </li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Un épithélium stratifié protège mieux les tissus face aux agressions du milieu extérieur. </li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- L'épithélium simple est le plus propice aux échanges et à l'absorption. </li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- On trouve des épithéliums pseudo-stratifiés dans l'épithélium respiratoire. </li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Un épithélium pavimenteux est constitué de cellules plus hautes que larges</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) A propos du tissu épithélial:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Il est dit simple s'il comporte plusieurs couches cellulaires distinctes de même forme. </li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Il dérive d'un des trois feuillets embryonnaires. </li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Celui des séreuses est de type pavimenteux stratifié. </li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Un épithélium malpighien est toujours stratifié. </li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Un épithélium malpighien est toujours kératinisé</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) A propos d'un épithélium:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Les cellules sont non cohésives. </li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Les cellules sont juxtaposées. </li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Les cellules reposent directement sur le système vasculaire du chorion. </li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- La muqueuse est constituée de l'épithélium et du chorion sosu-jacent. </li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- L'épithélium est bien vascularisé.  </li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) A propos d'un épithélium:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Les épithéliums de revêtement tapissent la surface du corps et les cavités naturelles. </li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Les épithéliums glandulaires tapissent la paroi des glandes. </li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Les épithéliums glandulaires sont forcément stratifiés. </li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Les épithéliums glandulaires sont très vascularisés. </li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Les épithéliums glandulaires jouent essentiellement un rôle mécanique de protection contre les agressions.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Parmi les rôles de l'épithélium on peut trouver :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Protection mécanique mais jamais chimique. </li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Absorption exemple au niveau de l'intestin. </li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Sécrétion exemple épithélium des glandes </li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Excrétion exemple le tube rénal. </li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Défense grâce aux cellules immunitaires migratrices</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) A propos de l'épithélium :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Il se développe à partir de la 3ième semaine de l'embryogénèse. </li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Celui de la peau et de la cavité buccale dérivent du mésoderme. </li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- L'endothélium dérive du mésoderme. </li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- L'appareil digestive dérive de l'endoderme. </li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- L'appareil respiratoire dérive de l'ectoderme.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) A propos des épithéliums de revêtement :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Constitue un groupe hétérogène sur le plan morphologique et fonctionnel. </li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Le nombre de couche cellulaires est un critère de classification. </li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- La forme des cellules est un critère de classification. </li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- La différenciation baso-latérale est un critère de classification. </li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- La présence ou l'absence de la couche germinative est un critère de classification.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) A propos du plateau strié de l'épithélium:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Il relie l'épithélium au chorion sous-jacent. </li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Il est fait de microvillosités de même calibre, parallèles et ordonnées. </li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Ces microvillosités enferment dans leurs centres des filaments d'actine. </li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Il augmente la surface des échanges. </li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Il est P.A.S positif.   </li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) A propos du mode de sécrétion des glandes exocrines:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Le mode holocrine est le plus fréquent. </li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Pour le mode holocrine : lors l'excrétion du produit, la membrane plasmique éclate avec dégénérescence de la cellule. </li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Pour le mode apocrine : le produit de sécrétion stockée dans une vacuole est secrété par bourgeonnement de la membrane plasmique sans altération de la membrane plasmique. </li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Pour le mode mérocrine : excrétion du produit de sécrétion par simple diffusion ou par exocytose sans altération de la membrane plasmique. </li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- L'exemple type du mode mérocrine : Glandes sébacées.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) L'adipocyte de la graisse blanche:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Est une cellule mésenchymateuse </li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Possède un noyau central fusiforme </li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Est riche en filaments intermédiaire de type actine </li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Est le constituant principal du tissu conjonctif cellulaire </li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Constitue un réservoir de protides.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) L'adipocyte de la graisse brune:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Est une cellule épithéliale spécialisée </li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Possède un noyau central </li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Constitue un réservoir des protides </li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Est largement représenté chez les animaux hibernants </li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Est le constituant principal du tissu conjonctif Fibreux.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) La cellule dont la fonction principale est la résorption osseuse est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- L'ostéoblaste </li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- L'ostéoclaste </li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- La cellule bordante </li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- L'ostéocyte </li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Le fibroblaste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) A propos de l'os:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- La matrice extracellulaire organique est essentiellement composée de collagène de type 1 </li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- La matrice extracellulaire minérale comporte essentiellement du Potassium </li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Joue un rôle important dans la régulation de la glycémie </li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Il est en perpétuel remodelage </li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Il protège la moelle osseuse </li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) A propos de l'ostéocyte :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- C'est une cellule à activité réduite </li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- </li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- l'état normal, il assure la chondrogenèse </li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Il présente plusieurs mitoses en rapport avec son activité toujours intense </li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Il fait partie des constituants de l'ostéone </li>
+            
+                    <li><input type="checkbox" id="q14f" name="q14" value="F"> F- Il est logé dans la lumière des vaisseaux des canaux de Havers.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Le cartilage est un tissu:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Épithélial spécialisé </li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Élastique </li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Non déformable </li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Compact </li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Très vascularisé</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) A propos du tissu musculaire myocardique:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Le cardiomyocyte est la cellule contractile </li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- La cellule cardionectrice assure l'initiation de l'excitation </li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- La cellule cardionectrice assure la conduction de l'excitation. </li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Les cellules myoendocrines ont un rôle endocrine </li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Le cardiomyocyte a une activité musculaire rythmée spontanée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) A propos de la cellule musculaire lisse :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- On l'appelle aussi rhabdomyocyte </li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Le cytoplasme comporte des filaments fins tels que Caldesmone et calpontine </li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Elle forme la couche musculaire des tuniques des organes creux. </li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Possède une innervation sympathique et parasympathique. </li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Elle présente des striations longitudinales.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) A propos de la cellule musculaire striée squelettique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Elle a une forme de prisme polyédrique ou cylindrique </li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Elle présente des striations longitudinales </li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Elle peut comporter jusqu'à 1000 noyaux </li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Son sarcoplasme comporte des myofibrilles contractiles </li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Les noyaux sont situés en périphérie du cytoplasme.  </li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) A propos du neurone:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- C'est une cellule hautement spécialisée. </li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Elle comporte plusieurs axones. </li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Elle comporte plusieurs dendrites </li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Son noyau est rond et volumineux. Il comporte un nucléole </li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Elle assure simplement la transmission de l'information qu'elle reçoit sans la traiter.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Le flux axonal :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Correspond au transport des organites dans l'axone </li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Il est bidirectionnel (antérograde et rétrograde) </li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Parmi les organites transportés : mitochondries, vésicules synaptiques. </li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Nécessite les filaments de cytokeratine </li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Nécessite les filaments de myosine.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) La classification du neurone se base sur:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- La forme du péricaryon </li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Le nombre des prolongements </li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- La taille du noyau </li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- La taille du nucléole </li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Le rapport nucléo-cytoplasmique.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) La gaine de myéline du système nerveux périphérique est produite par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Les astrocytes </li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Les neurones </li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Les cellules de Schwann </li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Les microgliocytes </li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Les oligodendrocytes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) La barrière hémato-encéphalique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Est constituée de pieds d'astrocytes et de l'endothélium vasculaire. </li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Est constituée de microgliocytes </li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Protège les neurones </li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Empêche le passage des macromolécules. </li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Restreint le passage de nombreuses micromolécules.  </li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Parmi les fonctions de la névroglie centrale on trouve:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Production du LCR </li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Soutien des neurones </li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Régulation de la composition du milieu cérébral </li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Formation de la gaine de myéline </li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Phagocytose des bactéries</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) La gaine de myéline du système nerveux central est produite par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Les astrocytes </li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Les neurones </li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Les cellules de Schwann </li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Les microgliocytes </li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Les oligodendrocytes </li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Quelles sont les propositions en rapport avec le phénomène de capacitation ?:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- Modification de la membrane plasmique du spermatozoïde </li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- Modification de la membrane plasmique de l'ovocyte </li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- Apparition du deuxième globule polaire </li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- Externalisation des récepteurs spermatiques </li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- Instabilité membranaire et entrée de Ca2+</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) Quelles sont les anomalies relevées dans les données du spermogramme suivant ?:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- P</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- alcalin </li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Aseptique </li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Nombre de SPZ: 5 millions/cm3 </li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- Mobilité : moins de 20% des SPZ </li>
+            
+                    <li><input type="checkbox" id="q27f" name="q27" value="F"> F- SP</li>
+            
+                    <li><input type="checkbox" id="q27g" name="q27" value="G"> G- normaux > de 30%</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) La fixation du spermatozoïde à la zone pellucide :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- Nécessite des récepteurs spécifiques d'espèce </li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- Nécessite une capacitation préalable </li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- Entraine une réaction acrosomique </li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- Entraine une décapacitation </li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- Se fait par le segment équatorial   </li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) L'ovocyte à l'ovulation:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- possède un globule polaire </li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- possède deux globules polaires </li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- est en métaphase de la 2ème méiose </li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- a perdu sa zone pellucide </li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- possède une corona radiata</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) L'acrosome possède :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- deux membranes </li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- des enzymes proteolytiques </li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- des mitochondries </li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- des récepteurs à ZP3 de la zone pellucide </li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- des récepteurs à ZP2 de la zone pellucide</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) La fusion des gamètes débute par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- le segment équatorial du spermatozoide </li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- La pièce principale </li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- La pièce intermédiaire </li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- L'acrosome </li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- Le collet</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) La triploidie est liée à une anomalie de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A- la segmentation </li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B- la régulation de la monospermie </li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C- la migration </li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D- la nidation </li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E- la gastrulation</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) La morula :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A- correspond à la 1ème semaine de développement </li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B- est formée lors de la gastrulation </li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C- est formée lors de la neurulation </li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D- est formée de 4 cellules </li>
+            
+                    <li><input type="checkbox" id="q33e" name="q33" value="E"> E- est entourée de la zone pellucide  </li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) Le bouton embryonnaire:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A- apparaît au stade de blastocyste </li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B- donne naissance au trophoblaste </li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C- donne naissance au placenta </li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D- donne naissance aux feuillets embryonnaires </li>
+            
+                    <li><input type="checkbox" id="q34e" name="q34" value="E"> E- donne naissance au mésenchyme extra-embryonnaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) La nidation:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A- se fait dans la trompe </li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B- se fait en présence de la zone pellucide </li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C- se fait au stade de blastocyste </li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D- se fait au stade de morula </li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E- se fait au début de la 1ème semaine</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-36" class="question-container">
+            <div class="question">
+                <p>36.) La préparation de l'endomètre à la nidation :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q36a" name="q36" value="A"> A- se fait dans la période post-ovulatoire </li>
+            
+                    <li><input type="checkbox" id="q36b" name="q36" value="B"> B- se fait après la nidation </li>
+            
+                    <li><input type="checkbox" id="q36c" name="q36" value="C"> C- entraine un épaississement de la muqueuse </li>
+            
+                    <li><input type="checkbox" id="q36d" name="q36" value="D"> D- se caractérise par des glandes développées </li>
+            
+                    <li><input type="checkbox" id="q36e" name="q36" value="E"> E- se caractérise par un chorion œdémateux</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-37" class="question-container">
+            <div class="question">
+                <p>37.) Les cellules syncytiotrophoblastiques :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q37a" name="q37" value="A"> A- naissent à partir du bouton embryonnaire </li>
+            
+                    <li><input type="checkbox" id="q37b" name="q37" value="B"> B- sont de grandes cellules </li>
+            
+                    <li><input type="checkbox" id="q37c" name="q37" value="C"> C- créent des lacunes </li>
+            
+                    <li><input type="checkbox" id="q37d" name="q37" value="D"> D- secrètent des enzymes proteolytiques </li>
+            
+                    <li><input type="checkbox" id="q37e" name="q37" value="E"> E- restent dans le pôle embryonnaire de l'embryon</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-38" class="question-container">
+            <div class="question">
+                <p>38.) A la fin de la 3ème semaine, sur une coupe transversale du côté crânial, nous:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q38a" name="q38" value="A"> A- deux feuillets embryonnaires </li>
+            
+                    <li><input type="checkbox" id="q38b" name="q38" value="B"> B- trois feuillets embryonnaires </li>
+            
+                    <li><input type="checkbox" id="q38c" name="q38" value="C"> C- la chorde </li>
+            
+                    <li><input type="checkbox" id="q38d" name="q38" value="D"> D- le mésoblaste </li>
+            
+                    <li><input type="checkbox" id="q38e" name="q38" value="E"> E- la ligne primitive</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-39" class="question-container">
+            <div class="question">
+                <p>39.) L'endoblaste:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q39a" name="q39" value="A"> A- est un feuillet embryonnaire </li>
+            
+                    <li><input type="checkbox" id="q39b" name="q39" value="B"> B- nait dans le trophoblaste </li>
+            
+                    <li><input type="checkbox" id="q39c" name="q39" value="C"> C- est un dérivé du bouton embryonnaire </li>
+            
+                    <li><input type="checkbox" id="q39d" name="q39" value="D"> D- est présent à la fin de la 3ème semaine </li>
+            
+                    <li><input type="checkbox" id="q39e" name="q39" value="E"> E- est présent à la fin de la 1ère semaine   </li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-40" class="question-container">
+            <div class="question">
+                <p>40.) Quelle est la localisation de la cavité amniotique?:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q40a" name="q40" value="A"> A- Le trophoblaste </li>
+            
+                    <li><input type="checkbox" id="q40b" name="q40" value="B"> B- La vésicule vitelline </li>
+            
+                    <li><input type="checkbox" id="q40c" name="q40" value="C"> C- Le bouton embryonnaire </li>
+            
+                    <li><input type="checkbox" id="q40d" name="q40" value="D"> D- La sphère choriale </li>
+            
+                    <li><input type="checkbox" id="q40e" name="q40" value="E"> E- Le cœlome extra-embryonnaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-41" class="question-container">
+            <div class="question">
+                <p>41.) La sphère choriale est composée de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q41a" name="q41" value="A"> A- cytotrophoblaste </li>
+            
+                    <li><input type="checkbox" id="q41b" name="q41" value="B"> B- syncytiotrophoblaste </li>
+            
+                    <li><input type="checkbox" id="q41c" name="q41" value="C"> C- mésenchyme extra-embryonnaire </li>
+            
+                    <li><input type="checkbox" id="q41d" name="q41" value="D"> D- mésenchyme splanchnique </li>
+            
+                    <li><input type="checkbox" id="q41e" name="q41" value="E"> E- pédicule embryonnaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-42" class="question-container">
+            <div class="question">
+                <p>42.) Les gonocytes primordiaux :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q42a" name="q42" value="A"> A- sont des cellules sexuelles primitives </li>
+            
+                    <li><input type="checkbox" id="q42b" name="q42" value="B"> B- apparaissent à la 3ème semaine </li>
+            
+                    <li><input type="checkbox" id="q42c" name="q42" value="C"> C- apparaissent autour de l'allantoïde </li>
+            
+                    <li><input type="checkbox" id="q42d" name="q42" value="D"> D- naissent dans le mésenchyme extra-embryonnaire </li>
+            
+                    <li><input type="checkbox" id="q42e" name="q42" value="E"> E- naissent à partir du mésoblaste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-43" class="question-container">
+            <div class="question">
+                <p>43.) Le nœud de Hensen:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q43a" name="q43" value="A"> A- fait partie de la ligne primitive </li>
+            
+                    <li><input type="checkbox" id="q43b" name="q43" value="B"> B- fait partie du cordon ombilical </li>
+            
+                    <li><input type="checkbox" id="q43c" name="q43" value="C"> C- fait partie du placenta </li>
+            
+                    <li><input type="checkbox" id="q43d" name="q43" value="D"> D- est situé du la ligne médiane de l'embryon </li>
+            
+                    <li><input type="checkbox" id="q43e" name="q43" value="E"> E- permet la mise en place de la chorde</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-44" class="question-container">
+            <div class="question">
+                <p>44.) Quelle est la structure qui permet d'établir les axes de l'embryon?:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q44a" name="q44" value="A"> A- La chorde </li>
+            
+                    <li><input type="checkbox" id="q44b" name="q44" value="B"> B- La ligne primitive </li>
+            
+                    <li><input type="checkbox" id="q44c" name="q44" value="C"> C- Le cordon ombilical </li>
+            
+                    <li><input type="checkbox" id="q44d" name="q44" value="D"> D- Le placenta </li>
+            
+                    <li><input type="checkbox" id="q44e" name="q44" value="E"> E- L'allantoïde</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-45" class="question-container">
+            <div class="question">
+                <p>45.) La neurulation:</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q45a" name="q45" value="A"> A- commence par un épaississement de l'ectoderme </li>
+            
+                    <li><input type="checkbox" id="q45b" name="q45" value="B"> B- intéresse le mésoblaste </li>
+            
+                    <li><input type="checkbox" id="q45c" name="q45" value="C"> C- intéresse l'endoderme </li>
+            
+                    <li><input type="checkbox" id="q45d" name="q45" value="D"> D- est induite par la chorde </li>
+            
+                    <li><input type="checkbox" id="q45e" name="q45" value="E"> E- permet la formation du système nerveux  </li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-46" class="question-container">
+            <div class="question">
+                <p>46.) Parmi les conséquences des plicatures de l'embryon :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q46a" name="q46" value="A"> A- Formation du cordon ombilical </li>
+            
+                    <li><input type="checkbox" id="q46b" name="q46" value="B"> B- Formation de l'intestin primitif </li>
+            
+                    <li><input type="checkbox" id="q46c" name="q46" value="C"> C- Changement de la position de l'aire cardiaque </li>
+            
+                    <li><input type="checkbox" id="q46d" name="q46" value="D"> D- Apparition de la chorde </li>
+            
+                    <li><input type="checkbox" id="q46e" name="q46" value="E"> E- Apparition de la ligne primitive</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-47" class="question-container">
+            <div class="question">
+                <p>47.) Dans le placenta, le cotylédon est situé dans :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q47a" name="q47" value="A"> A- la plaque basale </li>
+            
+                    <li><input type="checkbox" id="q47b" name="q47" value="B"> B- la plaque choriale </li>
+            
+                    <li><input type="checkbox" id="q47c" name="q47" value="C"> C- la chambre inter-villeuse </li>
+            
+                    <li><input type="checkbox" id="q47d" name="q47" value="D"> D- la cavité amniotique </li>
+            
+                    <li><input type="checkbox" id="q47e" name="q47" value="E"> E- le cordon ombilical</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-48" class="question-container">
+            <div class="question">
+                <p>48.) Une faible quantité de liquide amniotique (oligoamnios):</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q48a" name="q48" value="A"> A- peut être liée à une anomalie rénale </li>
+            
+                    <li><input type="checkbox" id="q48b" name="q48" value="B"> B- est liée à un défaut de déglutition </li>
+            
+                    <li><input type="checkbox" id="q48c" name="q48" value="C"> C- peut entrainer un défaut de développement pulmonaire </li>
+            
+                    <li><input type="checkbox" id="q48d" name="q48" value="D"> D- peut entrainer des déformations des membres </li>
+            
+                    <li><input type="checkbox" id="q48e" name="q48" value="E"> E- peut entrainer une déformation de la face</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-49" class="question-container">
+            <div class="question">
+                <p>49.) Dans la chambre inter-villeuse du placenta circule :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q49a" name="q49" value="A"> A- du sang fœtal </li>
+            
+                    <li><input type="checkbox" id="q49b" name="q49" value="B"> B- du sang maternel </li>
+            
+                    <li><input type="checkbox" id="q49c" name="q49" value="C"> C- du liquide amniotique </li>
+            
+                    <li><input type="checkbox" id="q49d" name="q49" value="D"> D- du liquide vitellin </li>
+            
+                    <li><input type="checkbox" id="q49e" name="q49" value="E"> E- du liquide urinaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-50" class="question-container">
+            <div class="question">
+                <p>50.) Les jumeaux monozygotes peuvent naître à partir :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q50a" name="q50" value="A"> A- d'un seul ovocyte fécondé </li>
+            
+                    <li><input type="checkbox" id="q50b" name="q50" value="B"> B- de deux ovocytes fécondés </li>
+            
+                    <li><input type="checkbox" id="q50c" name="q50" value="C"> C- des deux premiers blastomères. </li>
+            
+                    <li><input type="checkbox" id="q50d" name="q50" value="D"> D- d'un dédoublement de la ligne primitive </li>
+            
+                    <li><input type="checkbox" id="q50e" name="q50" value="E"> E- d'un dédoublement du bouton embryonnaire    </li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S2" "Histologie-Embryologie" "HIST2020" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['B', 'C', 'D'],
+    q2: ['B', 'D'],
+    q3: ['B', 'D'],
+    q4: ['A', 'B'],
+    q5: ['B', 'C', 'D', 'E'],
+    q6: ['A', 'C', 'D'],
+    q7: ['A', 'B', 'C'],
+    q8: ['B', 'C', 'D', 'E'],
+    q9: ['B', 'C', 'D'],
+    q10: ['A'],
+    q11: ['B', 'D'],
+    q12: ['B'],
+    q13: ['A', 'D', 'E'],
+    q14: ['A', 'D'],
+    q15: ['B', 'D'],
+    q16: ['A', 'B', 'C', 'D', 'E'],
+    q17: ['B', 'C', 'D'],
+    q18: ['A', 'D', 'C', 'E'],
+    q19: ['A', 'C', 'D'],
+    q20: ['A', 'B', 'C'],
+    q21: ['A', 'B'],
+    q22: ['C'],
+    q23: ['A', 'C', 'D', 'E'],
+    q24: ['A', 'B', 'D', 'C', 'E'],
+    q25: ['E'],
+    q26: ['A', 'D', 'E'],
+    q27: ['C', 'D'],
+    q28: ['A', 'B', 'C'],
+    q29: ['A', 'C', 'E'],
+    q30: ['A', 'B', 'E'],
+    q31: ['A'],
+    q32: ['B'],
+    q33: ['A', 'E'],
+    q34: ['A', 'D'],
+    q35: ['C'],
+    q36: ['A', 'C', 'D', 'E'],
+    q37: ['B', 'C', 'D'],
+    q38: ['B', 'C', 'D'],
+    q39: ['A', 'C', 'D'],
+    q40: ['C'],
+    q41: ['A', 'B', 'C'],
+    q42: ['A', 'B', 'C', 'D'],
+    q43: ['A', 'D', 'E'],
+    q44: ['B'],
+    q45: ['A', 'D', 'E'],
+    q46: ['A', 'B', 'C'],
+    q47: ['A'],
+    q48: ['A', 'C', 'D', 'E'],
+    q49: ['B'],
+    q50: ['A', 'C', 'D', 'E'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersHIST2020'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+<script src="{% static 'java/question-stats.js' %}" defer></script>

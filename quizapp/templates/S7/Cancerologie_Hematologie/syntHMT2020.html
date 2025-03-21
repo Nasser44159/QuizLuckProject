@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="HMT2020">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Une jeune femme de 42 ans se présente à la consultation pour asthénie et pesanteur abdominale. L'examen clinique retrouve une splénomégalie volumineuse. L'hémogramme réalisé : GR 4M/mm3. Hb 11g/dl. VGM 90fl. CCMH 32%. GB 152 000 elts/mm3 PNN : 30%, Myélocytes et Métamyélocytes 25%, Promyélocytes : 10%, Myéloblastes : 1% PNE : 3% PNB 5% Lc 26%. Plaquettes 700000 elts /mm3. Votre interprétation de l'hémogramme est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Pancytopénie</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Hyperleucocytose avec myélémie</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Anémie hypochrome microcytaire</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Thrombocytose</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Hyperbasophilie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Le bilan à faire pour confirmer votre diagnostic est (Suite de la question N° 2) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Un immunophénotypage du sang</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Un myélogramme + caryotype médullaire</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Une biopsie ostéo médullaire</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Un frottis sanguin</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Un scanner abdominal</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Élève âgée de 18 ans, consulte pour dyspnée à l’effort, asthénie depuis 2 mois. L’examen clinique était normal en dehors d’une pâleur et d’un souffle systolique. L’interrogatoire révélait la notion des règles abondantes depuis l’âge de 12 ans (durée 6 à 8 j). Votre hypothèse diagnostique la plus probable :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Syndrome anémique</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Syndrome myélodysplasique</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Anémie par carence en acide folique</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Anémie par carence en fer</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Beta-Thalassémie hétérozygote</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Quel bilan demanderiez-vous à cette patiente pour étayer votre hypothèse diagnostique ? (Suite de la question N° 3) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Hémogramme</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Taux de réticulocytes</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Myélogramme</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Ferritinémie</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Electrophorèse de l’hémoglobine</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Une patiente de 67 ans avait consulté pour fatigue, épigastralgies et paresthésies. Cette symptomatologie évolue depuis plus de 6 mois. L’hémogramme montrait : GR : 1,8 M/mm3. Hb : 5,4 g/dl. VGM : 121fl. CCMH : 32%. GB : 3260 elts/mm3. PNN : 41%. Eosinophiles : 3%. Basophiles 1%. Monocytes 5%. Lymphocytes : 50% Plaquettes : 100 000 elts /mm3. Réticulocytes 1,5%. Quelle est votre interprétation de cet hémogramme ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Pancytopénie</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Anémie macrocytaire</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Anémie macrocytaire régénérative</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Thrombopénie</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Hyperlymphocytose</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Quel est le diagnostic le plus probable ? (Suite de la question N° 5) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Aplasie médullaire</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Anémie hémolytique auto-immune</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Maladie de Biermer</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Anémie par carence en vitamine B12</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Anémie par carence en acide folique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Le traitement d’une anémie par carence en acide folique consiste à :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Transfuser le patient systématiquement</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- A prescrire du Folifer</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- A prescrire de l’acide folique par voie orale</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- A prescrire de l’acide folinique par voie injectable</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- A prescrire de l’acide folique par voie injectable</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Dans l’hémophilie B majeure, l'exploration biologique met en évidence un :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Taux de Prothrombine allongé</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Temps de céphaline avec activateur normal</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Taux de plaquette diminué</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Taux de Facteur VIII est supérieur à 5%</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Taux Quick normal</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Dans la maladie de Willebrand :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Le syndrome hémorragique est le plus souvent cutanéo-muqueux</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Le temps de saignement (IVY) est normal</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Le taux du Facteur IX est diminué</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Le temps de Quick est normal</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Le taux du facteur VIII : C peut être diminué</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Indiquez parmi les situations suivantes celle(s) où l'on peut craindre l'apparition d'une coagulation intravasculaire disséminée :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Septicémie à germes gram positif</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Amygdalectomie</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Hémolyse intravasculaire</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Leucémie aiguë à promyélocytes</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Anémie microcytaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Le diagnostic positif de la leucémie aiguë est basé sur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Scintigraphie</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Splénomégalie</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Myélogramme</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Cytogénétique</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Immunophénotypage</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Le syndrome myélodysplasique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Est une pathologie du sujet âgé</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Peut être associé à une maladie auto-immune</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- S’accompagne souvent du chromosome Philadelphia au caryotype</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Est découvert le plus souvent devant une anémie</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Peut se transformer en leucémie myéloïde chronique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) La β thalassémie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Est une maladie génétique rare</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Résulte d’un déficit de synthèse partiel ou total de la β globine</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Se transmet selon le mode autosomique dominant</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Se manifeste à la naissance dans la forme sévère</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Se traduit par une anémie hémolytique aiguë</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) L'interrogatoire d’un sujet présentant une anémie hémolytique chronique retient en faveur de la sphérocytose héréditaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- La consanguinité des parents</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Le sexe</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Des antécédents familiaux de lithiase vésiculaire ou de splénectomie</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Un antécédent personnel d'ictère néonatal</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- La notion de facteur déclenchant</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Un jeune homme de 20 ans a noté depuis 3 mois une adénopathie latéro-cervicale droite augmentant progressivement de volume. L’interrogatoire révèle un amaigrissement de 10 kg, une toux, un état fébrile et des sueurs nocturnes. À l’examen, vous ne retrouvez pas d’autres adénopathies ni de splénomégalie. Quels diagnostics peut-on envisager devant ce tableau clinique ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Un lymphome de Hodgkin</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Un lymphome non hodgkinien à grandes cellules B</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Un lymphome folliculaire</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Une leucémie lymphoïde chronique</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Une tuberculose ganglionnaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Vous retenez avec certitude le diagnostic de lymphome Hodgkinien sur les éléments suivants :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Des cellules de très grande taille, à noyau volumineux bilobé, entourées de nombreux lymphocytes</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Un ganglion d'architecture normale</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Une infiltration médullaire par de petits lymphocytes B</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Score de Matutes ≥ 4</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Une expression de CD30 et CD15</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Le bilan d’extension montre également des adénopathies médiastinales. Dans quel stade classez-vous la maladie ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Stade A de Binet</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Stade B de Binet</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Stade II d’Ann Arbor</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Stade III d’Ann Arbor</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Stade IV d’Ann Arbor</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Un monsieur âgé de 63 ans, se présente à la consultation pour douleurs osseuses lombosacrées et scapulaires évoluant depuis 3 mois et résistantes aux traitements antalgiques. Quelles sont vos hypothèses diagnostiques ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Des Métastases osseuses d’une tumeur solide</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Un Myélome multiple</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Un Rhumatisme articulaire aigu</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Un Myélome multiple</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Un mal de Pott</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Un bilan radiologique est réalisé et retrouve un tassement vertébral avec lacunes à l’emporte-pièce sur la radio du crâne faisant suspecter fortement le diagnostic de myélome multiple. Quel est votre bilan de confirmation :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Un bilan protéinique</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Un Hémogramme</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Une biopsie médullaire</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Une biopsie ganglionnaire</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Un taux de créatinine</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Le diagnostic de myélome multiple symptomatique à IgG Kappa est retenu. Quels sont les signes biologiques en faveur ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Une plasmocytose médullaire inférieure à 10%</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Un taux d'hémoglobine inférieur à 10g/dl</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Une créatininémie supérieure à 110mg/L</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Un taux de créatinine supérieur à 20mg/L</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Une vitesse de sédimentation normale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+<div id="question-21" class="question-container">
+    <div class="question">
+        <p>21.) Citer les facteurs de mauvais pronostic de la leucémie aiguë lymphoblastique.</p>
+        <textarea id="q21" name="q21" rows="4" cols="50" placeholder="Votre réponse ici..."></textarea>
+    </div>
+</div>
+
+<div id="question-22" class="question-container">
+    <div class="question">
+        <p>22.) Quels critères biologiques sont évalués pour la qualification biologique du don de sang ?</p>
+        <textarea id="q22" name="q22" rows="4" cols="50" placeholder="Votre réponse ici..."></textarea>
+    </div>
+</div>
+
+<div id="question-23" class="question-container">
+    <div class="question">
+        <p>23.) Dans les anémies mégaloblastiques, précisez les situations de diagnostic différentiel</p>
+        <textarea id="q23" name="q23" rows="4" cols="50" placeholder="Votre réponse ici..."></textarea>
+    </div>
+</div>
+
+<div id="question-24" class="question-container">
+    <div class="question">
+        <p>24.) Quels sont les éléments du diagnostic biologique de l’aplasie médullaire</p>
+        <textarea id="q24" name="q24" rows="4" cols="50" placeholder="Votre réponse ici..."></textarea>
+    </div>
+</div>
+
+<div id="question-25" class="question-container">
+    <div class="question">
+        <p>25.) Un hémogramme demandé dans le cadre d’un bilan préopératoire chez un homme de 30 ans sans antécédent médical montre : GR 6,2 M/mm3, VGM = 70fl, l'hémoglobine, l'hématocrite, les leucocytes et les plaquettes sont normaux. Quel diagnostic doit être évoqué en premier ?</p>
+        <textarea id="q25" name="q25" rows="4" cols="50" placeholder="Votre réponse ici..."></textarea>
+    </div>
+</div>
+
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S7" "Cancerologie_Hematologie" "HMT2020" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['B', 'D', 'E'],
+    q2: ['B'],
+    q3: ['D'],
+    q4: ['A', 'D'],
+    q5: ['B', 'D'],
+    q6: ['C', 'D'],
+    q7: ['C'],
+    q8: ['E'],
+    q9: ['A', 'D', 'E'],
+    q10: ['A', 'C', 'D'],
+    q11: ['C', 'D', 'E'],
+    q12: ['A', 'B', 'D'],
+    q13: ['B'],
+    q14: ['C', 'D'],
+    q15: ['A', 'B', 'E'],
+    q16: ['A', 'E'],
+    q17: ['D'],
+    q18: ['A', 'D'],
+    q19: ['A', 'B'],
+    q20: ['B', 'C', 'D'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersHMT2020'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

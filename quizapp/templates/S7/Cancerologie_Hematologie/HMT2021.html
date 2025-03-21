@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+{% load static %}
+
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'css/stylequiz.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+
+</head>
+<body>
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+
+    <div id="content">
+
+         <div class="quiz-title">
+            <h1>
+Hematologie 2021
+</h1>
+         </div>
+         <form id="quiz-form">
+    <input type="hidden" id='exam_name' name="exam_name" value="HMT2021">
+    {% csrf_token %}
+            <div class="question-container" id="question-1">
+               <div class="question">
+                  <p> 1.) Quelle(s) est (sont) la (les) proposition(s) exacte(s) concernant l'hémophilie A : </p>
+                  <ul>
+                     <li>
+                        <input id="q1a" name="q1" type="checkbox" value="A" /> A- Il s'agit d'une maladie à transmission autosomale dominante </li>
+                     <li>
+                        <input id="q1b" name="q1" type="checkbox" value="B" /> B- Le temps de céphaline avec activateur est allongé </li>
+                     <li>
+                        <input id="q1c" name="q1" type="checkbox" value="C" /> C- Le nombre de thrombocytes est normal </li>
+                     <li>
+                        <input id="q1d" name="q1" type="checkbox" value="D" /> D- Le taux de Facteur X est diminué </li>
+                     <li>
+                        <input id="q1e" name="q1" type="checkbox" value="E" /> E- Le taux de facteur Willebrand peut être diminué </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q1')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q1')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="1"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_1" onclick="toggleCommentSection('HMT2021_1', event)"> 💬 <span class="badge" data-comment-id="HMT2021_1">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-2">
+               <div class="question">
+                  <p> 2.) Concernant la maladie de Willebrand, quelle(s) est(sont) la(les) proposition(s) exacte(s) ? </p>
+                  <ul>
+                     <li>
+                        <input id="q2a" name="q2" type="checkbox" value="A" /> A- Le type 1 se définit par un déficit qualitatif modéré en facteur Willebrand </li>
+                     <li>
+                        <input id="q2b" name="q2" type="checkbox" value="B" /> B- Un allongement du TCA peut être observé secondairement au déficit en facteur VIII </li>
+                     <li>
+                        <input id="q2c" name="q2" type="checkbox" value="C" /> C- La desmopressine (Minirin®) peut être prescrite en cas de maladie de Willebrand de type 1 </li>
+                     <li>
+                        <input id="q2d" name="q2" type="checkbox" value="D" /> D- La symptomatologie clinique est variable au sein d'une famille </li>
+                     <li>
+                        <input id="q2e" name="q2" type="checkbox" value="E" /> E- Elle se transmet le plus souvent par le mode autosomique récessif </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q2')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q2')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="2"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_2" onclick="toggleCommentSection('HMT2021_2', event)"> 💬 <span class="badge" data-comment-id="HMT2021_2">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-3">
+               <div class="question">
+                  <p> 3.) Concernant la Leucémie lymphoïde chronique (LLC) ? </p>
+                  <ul>
+                     <li>
+                        <input id="q3a" name="q3" type="checkbox" value="A" /> A- Atteint surtout les jeunes enfants </li>
+                     <li>
+                        <input id="q3b" name="q3" type="checkbox" value="B" /> B- Les lymphocytes sanguins présentent un noyau immature </li>
+                     <li>
+                        <input id="q3c" name="q3" type="checkbox" value="C" /> C- Elle concerne le plus souvent des lymphocytes T </li>
+                     <li>
+                        <input id="q3d" name="q3" type="checkbox" value="D" /> D- Peut se compliquer d'une anémie hémolytique </li>
+                     <li>
+                        <input id="q3e" name="q3" type="checkbox" value="E" /> E- S'accompagne souvent d'une diminution des gammaglobulines sériques </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q3')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q3')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="3"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_3" onclick="toggleCommentSection('HMT2021_3', event)"> 💬 <span class="badge" data-comment-id="HMT2021_3">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-4">
+               <div class="question">
+                  <p> 4.) Une fille de 3 ans présente depuis plusieurs mois une asthénie et une pâleur. L'examen clinique retrouve un ictère et une splénomégalie. L'hémogramme
+                     montre : GR = 3,5M/mm³ Hb = 7g/dl Ht = 23% VGM = 60µ³ CCMH = 29% TCMH = 19pg GB = 9000/mm³ Plaquettes = 400 000/mm³. Votre (vos) hypothèse(s)
+                     diagnostique(s) la (les) plus probable(s) ? </p>
+                  <ul>
+                     <li>
+                        <input id="q4a" name="q4" type="checkbox" value="A" /> A- Anémie par carence en fer </li>
+                     <li>
+                        <input id="q4b" name="q4" type="checkbox" value="B" /> B- Bêta-Thalassémie hétérozygote </li>
+                     <li>
+                        <input id="q4c" name="q4" type="checkbox" value="C" /> C- Bêta-Thalassémie homozygote </li>
+                     <li>
+                        <input id="q4d" name="q4" type="checkbox" value="D" /> D- Déficit en G6PD </li>
+                     <li>
+                        <input id="q4e" name="q4" type="checkbox" value="E" /> E- Drépanocytose </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q4')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q4')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="4"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_4" onclick="toggleCommentSection('HMT2021_4', event)"> 💬 <span class="badge" data-comment-id="HMT2021_4">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-5">
+               <div class="question">
+                  <p> 5.) Un garçon de 5 ans présente une pâleur et un ictère. Quels sont les arguments qui orientent vers le diagnostic de drépanocytose SS ? </p>
+                  <ul>
+                     <li>
+                        <input id="q5a" name="q5" type="checkbox" value="A" /> A- L'origine d'Afrique Noire </li>
+                     <li>
+                        <input id="q5b" name="q5" type="checkbox" value="B" /> B- Le sexe </li>
+                     <li>
+                        <input id="q5c" name="q5" type="checkbox" value="C" /> C- La consanguinité </li>
+                     <li>
+                        <input id="q5d" name="q5" type="checkbox" value="D" /> D- L'absence d'infections sévères associées </li>
+                     <li>
+                        <input id="q5e" name="q5" type="checkbox" value="E" /> E- Un antécédent personnel d'ictère néonatal </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q5')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q5')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="5"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_5" onclick="toggleCommentSection('HMT2021_5', event)"> 💬 <span class="badge" data-comment-id="HMT2021_5">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-6">
+               <div class="question">
+                  <p> 6.) Le diagnostic est affirmé sur l'électrophorèse de l'hémoglobine qui montre : (suite de la question N° 5) </p>
+                  <ul>
+                     <li>
+                        <input id="q6a" name="q6" type="checkbox" value="A" /> A- L'absence d'Hb A </li>
+                     <li>
+                        <input id="q6b" name="q6" type="checkbox" value="B" /> B- Un taux d'Hb S de 80 à 99 % </li>
+                     <li>
+                        <input id="q6c" name="q6" type="checkbox" value="C" /> C- Un taux d'Hb F de 20 à 99 % </li>
+                     <li>
+                        <input id="q6d" name="q6" type="checkbox" value="D" /> D- Un taux d'Hb A de 5 à 15 % </li>
+                     <li>
+                        <input id="q6e" name="q6" type="checkbox" value="E" /> E- Un taux d'Hb A de 1 à 10 % </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q6')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q6')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="6"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_6" onclick="toggleCommentSection('HMT2021_6', event)"> 💬 <span class="badge" data-comment-id="HMT2021_6">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-7">
+               <div class="question">
+                  <p> 7.) Sa prise en charge est basée sur : (suite de la question N° 6) </p>
+                  <ul>
+                     <li>
+                        <input id="q7a" name="q7" type="checkbox" value="A" /> A- La prévention des crises vaso-occlusives et des infections </li>
+                     <li>
+                        <input id="q7b" name="q7" type="checkbox" value="B" /> B- La transfusion systématique et régulière </li>
+                     <li>
+                        <input id="q7c" name="q7" type="checkbox" value="C" /> C- L'apport de fer </li>
+                     <li>
+                        <input id="q7d" name="q7" type="checkbox" value="D" /> D- Les échanges érythrocytaires </li>
+                     <li>
+                        <input id="q7e" name="q7" type="checkbox" value="E" /> E- L'hydroxyurée </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q7')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q7')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="7"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_7" onclick="toggleCommentSection('HMT2021_7', event)"> 💬 <span class="badge" data-comment-id="HMT2021_7">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-8">
+               <div class="question">
+                  <p> 8.) Si l'un des parents est atteint de la drépanocytose (Hb SS) et l'autre est sain, </p>
+                  <ul>
+                     <li>
+                        <input id="q8a" name="q8" type="checkbox" value="A" /> A- Tous les garçons seront atteints de syndrome drépanocytaire majeur </li>
+                     <li>
+                        <input id="q8b" name="q8" type="checkbox" value="B" /> B- Tous les enfants seront porteurs sains </li>
+                     <li>
+                        <input id="q8c" name="q8" type="checkbox" value="C" /> C- 50% des enfants seront porteurs sains </li>
+                     <li>
+                        <input id="q8d" name="q8" type="checkbox" value="D" /> D- 25% des enfants seront porteurs sains </li>
+                     <li>
+                        <input id="q8e" name="q8" type="checkbox" value="E" /> E- 50% des enfants seront indemnes </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q8')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q8')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="8"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_8" onclick="toggleCommentSection('HMT2021_8', event)"> 💬 <span class="badge" data-comment-id="HMT2021_8">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-9">
+               <div class="question">
+                  <p> 9.) Patient de 65 ans antécédent de tabagisme chronique, qui présente une érythrose faciale, l'hémogramme retrouvait : Hémoglobine : 19 g/dl, Hématocrite
+                     55%, VGM :86fl, GB 5 000/mm³, 50 % Polynucléaire neutrophiles 40% Lymphocytes, 8% Monocytes, 1,5% Eosinophiles, 0,5% Polynucléaires basophiles,
+                     Plaquettes :550 000/mm³. Quels sont les diagnostics à évoquer : </p>
+                  <ul>
+                     <li>
+                        <input id="q9a" name="q9" type="checkbox" value="A" /> A- Polyglobulie secondaire </li>
+                     <li>
+                        <input id="q9b" name="q9" type="checkbox" value="B" /> B- Leucémie myéloïde chronique </li>
+                     <li>
+                        <input id="q9c" name="q9" type="checkbox" value="C" /> C- Fausse polyglobulie </li>
+                     <li>
+                        <input id="q9d" name="q9" type="checkbox" value="D" /> D- Maladie de Vaquez </li>
+                     <li>
+                        <input id="q9e" name="q9" type="checkbox" value="E" /> E- Hypertension portale </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q9')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q9')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="9"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_9" onclick="toggleCommentSection('HMT2021_9', event)"> 💬 <span class="badge" data-comment-id="HMT2021_9">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-10">
+               <div class="question">
+                  <p> 10.) Quels sont les examens à demander pour la confirmation diagnostique : (Suite de la question N° 9) </p>
+                  <ul>
+                     <li>
+                        <input id="q10a" name="q10" type="checkbox" value="A" /> A- Myélogramme </li>
+                     <li>
+                        <input id="q10b" name="q10" type="checkbox" value="B" /> B- Dosage de l'érythropoïétine </li>
+                     <li>
+                        <input id="q10c" name="q10" type="checkbox" value="C" /> C- Biopsie ostéo-médullaire </li>
+                     <li>
+                        <input id="q10d" name="q10" type="checkbox" value="D" /> D- Caryotype </li>
+                     <li>
+                        <input id="q10e" name="q10" type="checkbox" value="E" /> E- Mutation JAK2 V617F </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q10')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q10')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="10"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_10" onclick="toggleCommentSection('HMT2021_10', event)"> 💬 <span class="badge" data-comment-id="HMT2021_10">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-11">
+               <div class="question">
+                  <p> 11.) L'hémogramme d'une patiente de 45 ans qui présentait depuis 3 mois, une volumineuse splénomégalie retrouvait : Hb 12g/dl VGM 85fl CCMH 32%,
+                     GB 250 000/mm³ 60% de PNN, 15 % de myélocytes, 10% métamyélocytes, 5% lymphocytes, 5% polynucléaires basophiles, 3% polynucléaires éosinophiles,
+                     2% promyélocytes, et des Plaquettes à 600 000/mm³. Quel examen demander pour confirmer le diagnostic ? </p>
+                  <ul>
+                     <li>
+                        <input id="q11a" name="q11" type="checkbox" value="A" /> A- Myélogramme </li>
+                     <li>
+                        <input id="q11b" name="q11" type="checkbox" value="B" /> B- Caryotype </li>
+                     <li>
+                        <input id="q11c" name="q11" type="checkbox" value="C" /> C- Immunophénotypage </li>
+                     <li>
+                        <input id="q11d" name="q11" type="checkbox" value="D" /> D- Frottis sanguin </li>
+                     <li>
+                        <input id="q11e" name="q11" type="checkbox" value="E" /> E- Biopsie ostéo-médullaire </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q11')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q11')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="11"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_11" onclick="toggleCommentSection('HMT2021_11', event)"> 💬 <span class="badge" data-comment-id="HMT2021_11">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-12">
+               <div class="question">
+                  <p> 12.) Le syndrome myélodysplasique peut se révéler par : </p>
+                  <ul>
+                     <li>
+                        <input id="q12a" name="q12" type="checkbox" value="A" /> A- Des adénopathies </li>
+                     <li>
+                        <input id="q12b" name="q12" type="checkbox" value="B" /> B- Un syndrome anémique </li>
+                     <li>
+                        <input id="q12c" name="q12" type="checkbox" value="C" /> C- Une splénomégalie </li>
+                     <li>
+                        <input id="q12d" name="q12" type="checkbox" value="D" /> D- Un syndrome hémorragique </li>
+                     <li>
+                        <input id="q12e" name="q12" type="checkbox" value="E" /> E- Un syndrome infectieux </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q12')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q12')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="12"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_12" onclick="toggleCommentSection('HMT2021_12', event)"> 💬 <span class="badge" data-comment-id="HMT2021_12">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-13">
+               <div class="question">
+                  <p> 13.) Le diagnostic positif des AHAI repose sur : </p>
+                  <ul>
+                     <li>
+                        <input id="q13a" name="q13" type="checkbox" value="A" /> A- L'hémogramme </li>
+                     <li>
+                        <input id="q13b" name="q13" type="checkbox" value="B" /> B- Le frottis sanguin </li>
+                     <li>
+                        <input id="q13c" name="q13" type="checkbox" value="C" /> C- Le Test de Coombs direct </li>
+                     <li>
+                        <input id="q13d" name="q13" type="checkbox" value="D" /> D- L'électrophorèse de l'hémoglobine </li>
+                     <li>
+                        <input id="q13e" name="q13" type="checkbox" value="E" /> E- Myélogramme </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q13')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q13')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="13"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_13" onclick="toggleCommentSection('HMT2021_13', event)"> 💬 <span class="badge" data-comment-id="HMT2021_13">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-14">
+               <div class="question">
+                  <p> 14.) L'aplasie médullaire idiopathique est une hémopathie qui associe les critères suivants : </p>
+                  <ul>
+                     <li>
+                        <input id="q14a" name="q14" type="checkbox" value="A" /> A- Est un diagnostic d'élimination </li>
+                     <li>
+                        <input id="q14b" name="q14" type="checkbox" value="B" /> B- Le diagnostic positif repose sur la biopsie ostéo-médullaire </li>
+                     <li>
+                        <input id="q14c" name="q14" type="checkbox" value="C" /> C- Le myélogramme retrouve une moelle riche </li>
+                     <li>
+                        <input id="q14d" name="q14" type="checkbox" value="D" /> D- L'hémogramme retrouve une pancytopénie </li>
+                     <li>
+                        <input id="q14e" name="q14" type="checkbox" value="E" /> E- L'hémogramme retrouve des blastes circulants </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q14')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q14')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="14"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_14" onclick="toggleCommentSection('HMT2021_14', event)"> 💬 <span class="badge" data-comment-id="HMT2021_14">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-15">
+               <div class="question">
+                  <p> 15.) Le lymphome Hodgkinien est une hémopathie : </p>
+                  <ul>
+                     <li>
+                        <input id="q15a" name="q15" type="checkbox" value="A" /> A- Suspectée devant un prurit diffus, rebelle au traitement symptomatique </li>
+                     <li>
+                        <input id="q15b" name="q15" type="checkbox" value="B" /> B- Évoquée devant des signes généraux </li>
+                     <li>
+                        <input id="q15c" name="q15" type="checkbox" value="C" /> C- Dont la forme cervico médiastinale est la plus fréquente </li>
+                     <li>
+                        <input id="q15d" name="q15" type="checkbox" value="D" /> D- Dont le diagnostic repose sur la biopsie ganglionnaire </li>
+                     <li>
+                        <input id="q15e" name="q15" type="checkbox" value="E" /> E- Dont l'extension du lymphome est exclusivement hématogène </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q15')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q15')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="15"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_15" onclick="toggleCommentSection('HMT2021_15', event)"> 💬 <span class="badge" data-comment-id="HMT2021_15">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-16">
+               <div class="question">
+                  <p> 16.) Le traitement du lymphome Hodgkinien : </p>
+                  <ul>
+                     <li>
+                        <input id="q16a" name="q16" type="checkbox" value="A" /> A- Consiste en une polychimiothérapie </li>
+                     <li>
+                        <input id="q16b" name="q16" type="checkbox" value="B" /> B- Repose sur l'abstention thérapeutique </li>
+                     <li>
+                        <input id="q16c" name="q16" type="checkbox" value="C" /> C- Le traitement des formes avancées repose sur la radiothérapie exclusive </li>
+                     <li>
+                        <input id="q16d" name="q16" type="checkbox" value="D" /> D- La polychimiothérapie peut entraîner des séquelles à long terme </li>
+                     <li>
+                        <input id="q16e" name="q16" type="checkbox" value="E" /> E- Nécessite une évaluation de la réponse par le TEP-scanner </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q16')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q16')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="16"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_16" onclick="toggleCommentSection('HMT2021_16', event)"> 💬 <span class="badge" data-comment-id="HMT2021_16">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-17">
+               <div class="question">
+                  <p> 17.) Les lymphomes non hodgkiniens : </p>
+                  <ul>
+                     <li>
+                        <input id="q17a" name="q17" type="checkbox" value="A" /> A- Sont des proliférations malignes du tissu lymphoïde </li>
+                     <li>
+                        <input id="q17b" name="q17" type="checkbox" value="B" /> B- Le lymphome de Burkitt est un lymphome indolent </li>
+                     <li>
+                        <input id="q17c" name="q17" type="checkbox" value="C" /> C- Les YEISTK sont intimement dans les gènes de certaines lymphomes </li>
+                     <li>
+                        <input id="q17d" name="q17" type="checkbox" value="D" /> D- Les anticorps monoclonaux anti-CD20 sont utilisés pour traiter les lymphomes T </li>
+                     <li>
+                        <input id="q17e" name="q17" type="checkbox" value="E" /> E- Les atteintes extra ganglionnaires sont absentes </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q17')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q17')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="17"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_17" onclick="toggleCommentSection('HMT2021_17', event)"> 💬 <span class="badge" data-comment-id="HMT2021_17">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-18">
+               <div class="question">
+                  <p> 18.) Les règles de sécurité transfusionnelle nécessitent : </p>
+                  <ul>
+                     <li>
+                        <input id="q18a" name="q18" type="checkbox" value="A" /> A- La réalisation d'une seule détermination du groupage sanguin </li>
+                     <li>
+                        <input id="q18b" name="q18" type="checkbox" value="B" /> B- La recherche d'agglutinines irrégulières (RAI) avant la transfusion en culots globulaires </li>
+                     <li>
+                        <input id="q18c" name="q18" type="checkbox" value="C" /> C- La carte de contrôle ultime pré-transfusionnel avant la transfusion en culots </li>
+                     <li>
+                        <input id="q18d" name="q18" type="checkbox" value="D" /> D- La conservation des concentrés plaquettaires standards en agitation continue </li>
+                     <li>
+                        <input id="q18e" name="q18" type="checkbox" value="E" /> E- La surveillance de l'acte transfusionnel </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q18')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q18')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="18"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_18" onclick="toggleCommentSection('HMT2021_18', event)"> 💬 <span class="badge" data-comment-id="HMT2021_18">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-19">
+               <div class="question">
+                  <p> 19.) Une femme de 30 ans est admise aux urgences pour des métrorragies de grande abondance, à l'examen : poids : 50 kg, pâleur cutanéo-muqueuse.
+                     NFS : Hb = 5 g/dl (VGM= 90 fl, CCMH 32%), plaquettes : 230 000/mm3. Globules blancs :8000/mm3 (formule leucocytaire normale), bilan d'hémostase
+                     normal. L’interne de garde a décidé de la transfuser en raison de l'anémie. La transfusion de concentrés de globules rouges nécessite : </p>
+                  <ul>
+                     <li>
+                        <input id="q19a" name="q19" type="checkbox" value="A" /> A- Une demande rédigée par l'infirmier de garde </li>
+                     <li>
+                        <input id="q19b" name="q19" type="checkbox" value="B" /> B- Deux groupages avec le phénotype Rhésus, kell </li>
+                     <li>
+                        <input id="q19c" name="q19" type="checkbox" value="C" /> C- La réalisation de la carte du contrôle ultime pré-transfusionnel </li>
+                     <li>
+                        <input id="q19d" name="q19" type="checkbox" value="D" /> D- Le calcul de la quantité à transfuser en fonction du poids de la malade </li>
+                     <li>
+                        <input id="q19e" name="q19" type="checkbox" value="E" /> E- L'administration de 2 culots globulaires </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q19')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q19')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="19"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_19" onclick="toggleCommentSection('HMT2021_19', event)"> 💬 <span class="badge" data-comment-id="HMT2021_19">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-20">
+               <div class="question">
+                  <p> 20.) L'accident hémolytique par incompatibilité ABO : </p>
+                  <ul>
+                     <li>
+                        <input id="q20a" name="q20" type="checkbox" value="A" /> A- Peut se manifester par un état de choc </li>
+                     <li>
+                        <input id="q20b" name="q20" type="checkbox" value="B" /> B- Peut se manifester par des douleurs lombaires et des urines foncées </li>
+                     <li>
+                        <input id="q20c" name="q20" type="checkbox" value="C" /> C- Il faut arrêter la transfusion en urgence </li>
+                     <li>
+                        <input id="q20d" name="q20" type="checkbox" value="D" /> D- Engage la responsabilité légale du médecin </li>
+                     <li>
+                        <input id="q20e" name="q20" type="checkbox" value="E" /> E- Ne nécessite pas une enquête du correspondant de l'hémovigilance </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q20')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q20')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="20"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_20" onclick="toggleCommentSection('HMT2021_20', event)"> 💬 <span class="badge" data-comment-id="HMT2021_20">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-21">
+               <div class="question">
+                  <p> 21.) Femme de 68 ans, adressée à la consultation pour douleurs osseuses diffuses, rebelles, permanentes, évoluant depuis 7 mois. Pas de syndrome
+                     d'insuffisance médullaire. Pas de syndrome tumoral. La vitesse de sédimentation était à 110 mm, l'hémogramme montrait une nette anémie à 9 g/100
+                     ml normochrome normocytaire. Le ou les diagnostic(s) à évoquer est ou sont ? </p>
+                  <ul>
+                     <li>
+                        <input id="q21a" name="q21" type="checkbox" value="A" /> A- Myélome multiple </li>
+                     <li>
+                        <input id="q21b" name="q21" type="checkbox" value="B" /> B- Leucémie aiguë </li>
+                     <li>
+                        <input id="q21c" name="q21" type="checkbox" value="C" /> C- Leucémie lymphoïde chronique </li>
+                     <li>
+                        <input id="q21d" name="q21" type="checkbox" value="D" /> D- Métastase osseuse </li>
+                     <li>
+                        <input id="q21e" name="q21" type="checkbox" value="E" /> E- Lymphome non hodgkinien </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q21')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q21')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="21"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_21" onclick="toggleCommentSection('HMT2021_21', event)"> 💬 <span class="badge" data-comment-id="HMT2021_21">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-22">
+               <div class="question">
+                  <p> 22.) Quel bilan, à visée diagnostique, demanderiez-vous ? (Suite de la question N°21) </p>
+                  <ul>
+                     <li>
+                        <input id="q22a" name="q22" type="checkbox" value="A" /> A- Bilan phospho-calcique </li>
+                     <li>
+                        <input id="q22b" name="q22" type="checkbox" value="B" /> B- Myélogramme </li>
+                     <li>
+                        <input id="q22c" name="q22" type="checkbox" value="C" /> C- Biopsie osseuse </li>
+                     <li>
+                        <input id="q22d" name="q22" type="checkbox" value="D" /> D- Squelette osseux </li>
+                     <li>
+                        <input id="q22e" name="q22" type="checkbox" value="E" /> E- Electrophorèse de protéines plasmatiques </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q22')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q22')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="22"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_22" onclick="toggleCommentSection('HMT2021_22', event)"> 💬 <span class="badge" data-comment-id="HMT2021_22">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-23">
+               <div class="question">
+                  <p> 23.) Le bilan suivant a été réalisé chez une patiente de 38 ans, bien portante avec des antécédents de gouttes hémorroïdaires ; elle a consulté
+                     pour fatigue : Hb = 7 g/100ml. VGM = 71fl. CCMH = 30%. Pq = 450 000 GB = 7 000/mm3. PNN = 51%. Monocytes = 2%. Lymphocytes = 47%. Ferritine
+                     = 10 ng/ml. Que sera votre conduite à tenir ? </p>
+                  <ul>
+                     <li>
+                        <input id="q23a" name="q23" type="checkbox" value="A" /> A- Transfusion de 2 concentrés de globules rouges </li>
+                     <li>
+                        <input id="q23b" name="q23" type="checkbox" value="B" /> B- Réaliser un bilan inflammatoire </li>
+                     <li>
+                        <input id="q23c" name="q23" type="checkbox" value="C" /> C- Prescrire un traitement martial 200 mg/jour pendant 4 mois </li>
+                     <li>
+                        <input id="q23d" name="q23" type="checkbox" value="D" /> D- Faire un test Covid-19 </li>
+                     <li>
+                        <input id="q23e" name="q23" type="checkbox" value="E" /> E- Prévoir une consultation proctologique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q23')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q23')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="23"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_23" onclick="toggleCommentSection('HMT2021_23', event)"> 💬 <span class="badge" data-comment-id="HMT2021_23">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-24">
+               <div class="question">
+                  <p> 24.) Un enfant de 5 ans, consulte en urgence pour fièvre à 40°C, pâleur intense, dyspnée à l'effort avec palpitations. À l'examen, purpura pétéchial
+                     avec ecchymoses, adénopathies cervicales et splénomégalie de 5 cm de débord. Quel(s) est (sont) votre (vos) hypothèses diagnostiques ? </p>
+                  <ul>
+                     <li>
+                        <input id="q24a" name="q24" type="checkbox" value="A" /> A- Aplasie médullaire </li>
+                     <li>
+                        <input id="q24b" name="q24" type="checkbox" value="B" /> B- Lymphome de Burkitt </li>
+                     <li>
+                        <input id="q24c" name="q24" type="checkbox" value="C" /> C- Leucémie aiguë lymphoblastique </li>
+                     <li>
+                        <input id="q24d" name="q24" type="checkbox" value="D" /> D- LLC </li>
+                     <li>
+                        <input id="q24e" name="q24" type="checkbox" value="E" /> E- Mononucléose infectieuse </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q24')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q24')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="24"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_24" onclick="toggleCommentSection('HMT2021_24', event)"> 💬 <span class="badge" data-comment-id="HMT2021_24">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-25">
+               <div class="question">
+                  <p> 25.) L'hémogramme réalisé chez cet enfant : Hb = 3 g/100ml. VGM = 99fl. CCMH = 33%. Pq = 10 000. GB = 60000/mm3. PNN = 18%. Monocytes = 2%. Lymphocytes
+                     = 20%. Blastes 60%. Quel sera votre conduite à tenir : (Suite de la question N°24) </p>
+                  <ul>
+                     <li>
+                        <input id="q25a" name="q25" type="checkbox" value="A" /> A- Refaire l'hémogramme </li>
+                     <li>
+                        <input id="q25b" name="q25" type="checkbox" value="B" /> B- Myélogramme </li>
+                     <li>
+                        <input id="q25c" name="q25" type="checkbox" value="C" /> C- Immunophénotypage </li>
+                     <li>
+                        <input id="q25d" name="q25" type="checkbox" value="D" /> D- Transfusion de concentrés de globules rouges </li>
+                     <li>
+                        <input id="q25e" name="q25" type="checkbox" value="E" /> E- Caryotype </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q25')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q25')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="25"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_25" onclick="toggleCommentSection('HMT2021_25', event)"> 💬 <span class="badge" data-comment-id="HMT2021_25">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-26">
+               <div class="question">
+                  <p> 26.) Indiquer parmi les suivants, le (s) mécanisme (s) par lequel (lesquels) agit (agissent) les médicaments inducteurs de l'apoptose : </p>
+                  <ul>
+                     <li>
+                        <input id="q26a" name="q26" type="checkbox" value="A" /> A- En empêchant la tyrosine kinase d'envoyer des signaux indiquant à la cellule cancéreuse de se développer </li>
+                     <li>
+                        <input id="q26b" name="q26" type="checkbox" value="B" /> B- En ciblant les tumeurs HER2 positives (Human Epidermal Growth Factor Receptor-2) impliquées dans la régulation de la prolifération cellulaire
+                        </li>
+                     <li>
+                        <input id="q26c" name="q26" type="checkbox" value="C" /> C- En inhibant l'action du protéasome </li>
+                     <li>
+                        <input id="q26d" name="q26" type="checkbox" value="D" /> D- En inhibant l'action de la PARP (Poly ADP-ribose polymérase) </li>
+                     <li>
+                        <input id="q26e" name="q26" type="checkbox" value="E" /> E- Aucune des propositions n'est exacte </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q26')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q26')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="26"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_26" onclick="toggleCommentSection('HMT2021_26', event)"> 💬 <span class="badge" data-comment-id="HMT2021_26">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-27">
+               <div class="question">
+                  <p> 27.) Indiquer parmi les propositions suivantes, celle (s) qui est (sont) exacte (s). Les anticorps monoclonaux : </p>
+                  <ul>
+                     <li>
+                        <input id="q27a" name="q27" type="checkbox" value="A" /> A- Se lient à des protéines ou à des gènes présents dans le noyau des cellules cancéreuses </li>
+                     <li>
+                        <input id="q27b" name="q27" type="checkbox" value="B" /> B- Ciblent les tumeurs HER2 positives (Human Epidermal Growth Factor Receptor-2) </li>
+                     <li>
+                        <input id="q27c" name="q27" type="checkbox" value="C" /> C- Ne doivent pas être utilisés dans le traitement des cancers HER2 positifs, dont les cancers du sein, de l'estomac et de l'œsophage </li>
+                     <li>
+                        <input id="q27d" name="q27" type="checkbox" value="D" /> D- Sont utilisés dans le traitement des cancers HER2 positifs, dont les cancers du sein, de l'estomac et de l'œsophage </li>
+                     <li>
+                        <input id="q27e" name="q27" type="checkbox" value="E" /> E- Aucune réponse </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q27')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q27')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="27"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_27" onclick="toggleCommentSection('HMT2021_27', event)"> 💬 <span class="badge" data-comment-id="HMT2021_27">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-28">
+               <div class="question">
+                  <p> 28.) Indiquer parmi les suivants, la (les) proposition (s) exacte (s) </p>
+                  <ul>
+                     <li>
+                        <input id="q28a" name="q28" type="checkbox" value="A" /> A- Les antimétabolites agissent par l'inhibition compétitive de la dihydrofolate réductase inhibant ainsi la synthèse de l'ADN </li>
+                     <li>
+                        <input id="q28b" name="q28" type="checkbox" value="B" /> B- Les inhibiteurs de topoisomérase-I interfèrent avec l'élongation et la réplication de l'ADN créant ainsi des coupures au fur et à mesure
+                        </li>
+                     <li>
+                        <input id="q28c" name="q28" type="checkbox" value="C" /> C- Les inhibiteurs de topoisomérase-II interfèrent avec l'élongation et la réplication de l'ADN créant ainsi des coupures au fur et à mesure
+                        </li>
+                     <li>
+                        <input id="q28d" name="q28" type="checkbox" value="D" /> D- Les analogues pyrimidiniques comme la 6-mercapto-purine appartiennent à la famille des antimétabolites </li>
+                     <li>
+                        <input id="q28e" name="q28" type="checkbox" value="E" /> E- Les analogues pyrimidiniques comme le 5-fluorouracile appartiennent à la famille des antimétabolites </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q28')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q28')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="28"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_28" onclick="toggleCommentSection('HMT2021_28', event)"> 💬 <span class="badge" data-comment-id="HMT2021_28">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-29">
+               <div class="question">
+                  <p> 29.) Indiquer parmi les propositions suivantes, celle (s) qui est (sont) exacte (s) : </p>
+                  <ul>
+                     <li>
+                        <input id="q29a" name="q29" type="checkbox" value="A" /> A- Le cyclophosphamide est une prodrogue </li>
+                     <li>
+                        <input id="q29b" name="q29" type="checkbox" value="B" /> B- Le cyclophosphamide appartient à la famille des anticancéreux alkylants </li>
+                     <li>
+                        <input id="q29c" name="q29" type="checkbox" value="C" /> C- Le 4 hydroxy – cyclophosphamide obtenue à partir du cyclophosphamide par le CYP 450 est ensuite transformé par une autre enzyme en l'occurrence
+                        l'aldéhyde-déshydrogénase en métabolites actifs </li>
+                     <li>
+                        <input id="q29d" name="q29" type="checkbox" value="D" /> D- Le cyclophosphamide est métabolisé en 4 hydroxy – cyclophosphamide par le CYP 450 3A4 </li>
+                     <li>
+                        <input id="q29e" name="q29" type="checkbox" value="E" /> E- Le 4 hydroxy – cyclophosphamide est le métabolite actif du cyclophosphamide </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q29')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q29')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="29"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_29" onclick="toggleCommentSection('HMT2021_29', event)"> 💬 <span class="badge" data-comment-id="HMT2021_29">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-30">
+               <div class="question">
+                  <p> 30.) Indiquer parmi les propositions suivantes, celle(s) qui est (sont) exacte(s) : </p>
+                  <ul>
+                     <li>
+                        <input id="q30a" name="q30" type="checkbox" value="A" /> A- Les SERM (Selective Estrogen Receptor Modulator), comme le tamoxifène, se fixent au récepteur des œstrogènes induisant, ainsi, une modification
+                        de sa conformation </li>
+                     <li>
+                        <input id="q30b" name="q30" type="checkbox" value="B" /> B- Les SERD (Selective Estrogen Receptor Degradation), comme le fulvestrant, provoquent une dégradation des récepteurs aux œstrogènes </li>
+                     <li>
+                        <input id="q30c" name="q30" type="checkbox" value="C" /> C- Un antiœstrogène exerce un effet antihormonal mais n’empêche pas la production d’œstrogènes </li>
+                     <li>
+                        <input id="q30d" name="q30" type="checkbox" value="D" /> D- L’aromatase est une enzyme qui se trouve dans les ovaires et les glandes surrénales et est impliquée dans la production d’œstrogènes
+                        </li>
+                     <li>
+                        <input id="q30e" name="q30" type="checkbox" value="E" /> E- Les anti-androgènes peuvent être prescrits en complément des analogues de la LH-RH (luteinizing hormone-releasing hormone) car ils agissent
+                        comme des antihormones en prenant la place de la testostérone au niveau des récepteurs hormonaux des cellules </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctQuestion('q30')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q30')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="30"> ❤ </button>
+                  <button class="comment-button" data-question-id="HMT2021_30" onclick="toggleCommentSection('HMT2021_30', event)"> 💬 <span class="badge" data-comment-id="HMT2021_30">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="button-container">
+               <button class="submit-quiz-button" onclick="submitQuiz()" type="button"> Soumettre tout le Quiz </button>
+               <button class="favorite-button" id="voir-favoris-btn" onclick="voirFavoris()"> Voir Favoris </button>
+               <!-- Nouveau bouton -->
+            </div>
+            <div class="blur-background" id="blur-background"> </div>
+            <div class="result-popup" id="result-popup">
+               <h3>
+Résultat du Quiz
+</h3>
+               <div id="result"> </div>
+               <button class="close-button" id="close-result" onclick="closeResult(event)"> Fermer </button>
+               <button class="detail-button" id="voir-detail-btn" onclick="afficherDetails(event)" style="display: none;"> Voir Détail </button>
+               <button class="reset-quiz-button" onclick="resetAll()" type="button"> Réessayer tout le Quiz </button>
+            </div>
+            <div class="details-section" id="details-section" style="display: none;">
+               <h3>
+Tableau des questions
+</h3>
+               <div class="question-links" id="question-links"> </div>
+            </div>
+            <div id="timer-container"> <span id="timer">
+60:00
+</span> </div>
+<div class="comments-section" id="comments-section">
+    <h3>Commentaires</h3>
+    <textarea id="new-comment" placeholder="Écrire un commentaire..."></textarea>
+    <button type="button" onclick="addComment(event)">Ajouter</button>
+    <div id="comment-alert" class="alert" style="display: none;"></div>
+    <div id="comments-list"></div>
+</div>
+
+    <div id="comments-list"></div>
+</div>
+
+<!-- Boutons flottants -->
+<div id="floating-buttons" class="floating-buttons" style="position: fixed; bottom: 50px; right: 50px; z-index: 1000;">
+    <!-- Bouton pour afficher le cours -->
+    <button id="show-course-btn" class="floating-btn" type="button" 
+            onclick="window.open('https://drive.google.com/drive/folders/1Xd_FaJbPk4FJv3G5-96L7G0UlQnUZuSf', '_blank');">📚</button>
+    <!-- Bouton pour afficher le contact -->
+<button id="open-contact-modal" class="floating-btn" type="button">
+    ✉️
+</button>
+
+</div>
+
+
+
+
+
+<div class="message-container" id="message-container" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#f9f9f9; padding:40px; box-shadow:0 4px 12px rgba(0,0,0,0.15); border-radius:12px; z-index:1001; width:600px; max-width:90%; font-family:Arial, sans-serif;">
+    <div style="text-align:center; margin-bottom:30px;">
+        <h2 style="margin:0; font-size:24px; font-weight:bold; color:#333;">Posez vos observations <span>📝</span></h2>
+        <p style="margin:10px 0 0; font-size:16px; color:#666;">Nous sommes à votre écoute</p>
+    </div>
+    <div class="mb-3" style="margin-bottom:30px;">
+        <p style="font-size:16px; color:#333; margin:0;">En tant Que :</p>
+        <div style="margin-top:10px;">
+            <input type="radio" id="username" name="mode" value="username" style="margin-right:8px;">
+            <label for="username" style="font-size:16px; color:#333; cursor:pointer;">{{ user_full_name}}</label>
+            <br>
+            <input type="radio" id="anonymous" name="mode" value="anonymous" checked style="margin-right:8px; margin-top:10px;">
+            <label for="anonymous" style="font-size:16px; color:#333; cursor:pointer;">Anonyme</label>
+        </div>
+    </div>
+    <div class="mb-3">
+        <label for="message" class="form-label" style="font-size:18px; font-weight:bold; color:#333; margin-bottom:10px; display:block;">Votre message :</label>
+        <textarea class="form-control" id="message" rows="6" placeholder="Precisez l'examen si c'est en rapport avec une question..." style="width:100%; font-size:16px; padding:15px; border:1px solid #ccc; border-radius:8px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.1); background:#fff;"></textarea>
+    </div>
+<span class="close-btn" id="close-btn" style="cursor:pointer; position:absolute; top:15px; right:15px; font-size:51px; color:#ff0000; font-weight:bold;">&times;</span>
+<!-- Bouton Envoyer stylé -->
+<div style="text-align:center; margin-top:30px;">
+    <button type="button" class="btn btn-primary" id="send-message" style="background-color:#007bff; color:white; border:none; padding:12px 30px; border-radius:8px; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 4px 8px rgba(0, 0, 0, 0.2); transition:all 0.3s ease;">
+        Envoyer
+    </button>
+</div>
+</div>
+
+
+
+
+<div id="blur-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;"></div>
+
+
+
+<script src="{% static 'java/contact.js' %}"></script>
+            </div>
+            <script>
+            // Réponses correctes pour les questions
+            const correctAnswers = {
+               q1: ['B', 'C', 'E'],
+               q2: ['B', 'C', 'D'],
+               q3: ['C', 'D', 'E'],
+               q4: ['C'],
+               q5: ['A', 'C', 'D'],
+               q6: ['A', 'B', 'E'],
+               q7: ['A', 'D', 'E'],
+               q8: ['B'],
+               q9: ['A', 'C', 'D'],
+               q10: ['B', 'C', 'E'],
+               q11: ['B'],
+               q12: ['B', 'D', 'E'],
+               q13: ['A', 'B', 'C'],
+               q14: ['A', 'B', 'D'],
+               q15: ['A', 'B', 'C', 'D'],
+               q16: ['A', 'D', 'E'],
+               q17: ['A', 'C'],
+               q18: ['B', 'C', 'D', 'E'],
+               q19: ['B', 'C', 'D'],
+               q20: ['A', 'B', 'C', 'D', 'E'],
+               q21: ['A'],
+               q22: ['B', 'D', 'E'],
+               q23: ['C', 'E'],
+               q24: ['C'],
+               q25: ['C', 'D', 'E', 'B'],
+               q26: ['C', 'D'],
+               q27: ['B', 'D'],
+               q28: ['A', 'B', 'D', 'E'],
+               q29: ['A', 'B', 'D', 'E'],
+               q30: ['A', 'B', 'C', 'D', 'E'],
+            };
+            // Contenu du fichier JavaScript
+            // Variable globale pour stocker l'intervalle du timer
+            let timerInterval;
+            const userAnswers = {}; // Object pour stocker les réponses de l'utilisateur
+            // Fonction pour démarrer le timer
+            function startTimer(duration, display) {
+               let timer = duration,
+                  minutes, seconds;
+               timerInterval = setInterval(() => {
+                  minutes = parseInt(timer / 60, 10);
+                  seconds = parseInt(timer % 60, 10);
+                  minutes = minutes < 10 ? "0" + minutes : minutes;
+                  seconds = seconds < 10 ? "0" + seconds : seconds;
+                  display.textContent = minutes + ":" + seconds;
+                  // Vérifie si le temps est écoulé
+                  if (--timer < 0) {
+                     clearInterval(timerInterval);
+                     showEndMessage();
+                  }
+               }, 1000);
+            }
+            // Fonction pour afficher le message de fin de test
+            function showEndMessage() {
+               const blurBackground = document.createElement('div');
+               blurBackground.id = 'test-end-blur';
+               blurBackground.style.position = 'fixed';
+               blurBackground.style.top = '0';
+               blurBackground.style.left = '0';
+               blurBackground.style.width = '100%';
+               blurBackground.style.height = '100%';
+               blurBackground.style.background = 'rgba(0, 0, 0, 0.5)';
+               blurBackground.style.zIndex = '100';
+               blurBackground.style.display = 'flex';
+               blurBackground.style.alignItems = 'center';
+               blurBackground.style.justifyContent = 'center';
+               const endMessage = document.createElement('div');
+               endMessage.id = 'test-end-message';
+               endMessage.style.padding = '40px';
+               endMessage.style.background = '#ffffff';
+               endMessage.style.borderRadius = '8px';
+               endMessage.style.textAlign = 'center';
+               endMessage.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+               endMessage.innerHTML = '<h2>Test terminé</h2><p>Le temps imparti est écoulé.</p><button onclick="location.reload()">Recommencer</button>';
+               blurBackground.appendChild(endMessage);
+               document.body.appendChild(blurBackground);
+               // Optionnel : masquer le conteneur de timer
+               const timerContainer = document.getElementById('timer-container');
+               timerContainer.classList.add('hide');
+            }
+ // Fonction pour réinitialiser une seule question
+            function resetQuestion(questionName) {
+               const form = document.getElementById('quiz-form');
+               const questionDiv = document.querySelector(`input[name="${questionName}"]`).closest('.question-container');
+               // Décocher toutes les cases de cette question
+               const inputs = Array.from(form.elements[questionName]);
+               inputs.forEach(input => {
+                  input.checked = false;
+               });
+               // Supprimer les styles correct/incorrect et remettre les couleurs par défaut
+               questionDiv.classList.remove('correct', 'incorrect');
+               questionDiv.querySelectorAll('li').forEach(li => {
+                  li.style.color = ''; // Réinitialiser la couleur
+                  li.style.fontWeight = ''; // Réinitialiser le texte en gras
+                  li.style.textShadow = ''; // Réinitialiser l'ombre du texte
+                  li.style.backgroundColor = ''; // Réinitialiser le fond
+                  li.style.border = ''; // Réinitialiser la bordure
+               });
+               // Supprimer les informations enregistrées sur la réponse de cette question
+               delete userAnswers[questionName];
+            }
+            // Fonction pour soumettre le quiz et afficher le résultat
+            
+// Fonction pour soumettre le quiz et afficher le résultat
+async function submitQuiz() {
+    console.log("Début de la soumission du quiz.");
+
+    const form = document.getElementById('quiz-form');
+    if (!form) {
+        console.error("Erreur : Formulaire introuvable.");
+        alert("Formulaire introuvable. Veuillez réessayer.");
+        return;
+    }
+
+    let score = 0;
+
+    // Évaluer les réponses utilisateur
+    for (const question of Object.keys(correctAnswers)) {
+        correctQuestion(question); // Fonction pour corriger chaque question
+        const userAnswer = userAnswers[question]?.isCorrect;
+        if (userAnswer) {
+            score++;
+        }
+    }
+
+    console.log("Score brut calculé (frontend) :", score);
+    console.log("Réponses utilisateur envoyées :", userAnswers);
+
+    // Lancer les confettis et afficher le message de félicitations si le score est parfait (50 sur 50)
+    lancerConfettisEtMessage(score);
+
+    // Mise à jour du résultat dans la boîte de dialogue
+    const resultDiv = document.getElementById('result'); // Assure-toi que tu as un div avec l'id 'result' dans ton HTML
+
+    if (score === 0) { resultDiv.innerHTML = `<p>Vous avez aucune réponse juste, bozo !</p>`; } else if  (score === 30) {
+        // Liste des messages de félicitations
+        const messages = [
+"Félicitations ! Votre compréhension des maladies du sang est remarquable !",
+"Bravo ! Vous excellez dans l'analyse des troubles hématologiques complexes.",
+"Incroyable ! Votre aptitude à diagnostiquer les pathologies sanguines est impressionnante.",
+"Parfait ! Vous êtes sur le chemin pour devenir un(e) expert(e) en hématologie.",
+"Votre rigueur dans l'étude des maladies hématologiques est admirable.",
+"Impressionnant ! Vous appliquez les concepts de la coagulation avec précision.",
+"Bravo ! Votre aptitude à relier les anomalies sanguines aux pathologies sous-jacentes est exceptionnelle.",
+"Extraordinaire ! Votre compréhension des maladies myéloïdes et lymphoïdes est inspirante.",
+"Félicitations ! Vous démontrez une maîtrise impressionnante des diagnostics hématologiques.",
+"Votre capacité à interpréter les résultats des bilans sanguins est remarquable.",
+"Impressionnant ! Vous explorez les approches thérapeutiques en hématologie avec rigueur.",
+"Bravo ! Votre passion pour l'amélioration des soins hématologiques est évidente.",
+"Votre expertise en traitement des anémies et des leucémies est un véritable atout.",
+"Parfait ! Vous démontrez une aptitude exceptionnelle pour les greffes de moelle osseuse.",
+"Félicitations ! Vous êtes prêt(e) à devenir un(e) spécialiste en hématologie.",
+"Votre précision dans l'interprétation des frottis sanguins est exemplaire.",
+"Bravo ! Vous appliquez les connaissances en hématologie avec rigueur et efficacité.",
+"Incroyable ! Vous identifiez les troubles de la coagulation avec une facilité admirable.",
+"Félicitations ! Votre curiosité pour les maladies du sang est une source d'inspiration.",
+"Votre capacité à interpréter les données cliniques en hématologie est impressionnante.",
+
+        ];
+        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+        resultDiv.innerHTML = `<p>${randomMessage}</p>`;
+    } else {
+        resultDiv.innerHTML = `Vous avez obtenu ${score} bonnes réponses sur ${Object.keys(correctAnswers).length}.`;
+    }
+
+    // Afficher la boîte de résultat avec animation
+    const resultPopup = document.getElementById('result-popup');
+    const blurBackground = document.getElementById('blur-background');
+
+    blurBackground.style.display = 'block';
+    resultPopup.style.display = 'block';
+
+    setTimeout(() => {
+        blurBackground.classList.add('show'); // Ajoute l'animation de fondu sur le fond flouté
+        resultPopup.classList.add('show'); // Ajoute l'animation de zoom sur la boîte de résultat
+    }, 100); // Légère pause pour plus de fluidité
+
+    document.getElementById('voir-detail-btn').style.display = 'inline-block';
+
+    // Envoi des données au backend
+    try {
+        console.log("Préparation de l'enregistrement au backend...");
+
+        const response = await fetch("/soumettre-quiz/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}" // Inclure le token CSRF
+            },
+            body: JSON.stringify({
+                exam_name: "HMT2021", // Remplacez par le nom réel de l'examen
+                score: score,
+                userAnswers: userAnswers
+            })
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+            console.log("Score enregistré avec succès :", result);
+        } else {
+            console.error("Erreur du serveur :", result.message);
+            alert(`Erreur : ${result.message}`);
+        }
+    } catch (error) {
+        console.error("Erreur lors de l'envoi des données :", error);
+        alert("Une erreur s'est produite lors de la soumission. Veuillez réessayer.");
+    }
+}
+
+            function resetAll() {
+               const form = document.getElementById('quiz-form');
+               // Réinitialiser toutes les questions
+               for (const question of Object.keys(correctAnswers)) {
+                  const questionDiv = document.querySelector(`input[name="${question}"]`).closest('.question-container');
+                  form.elements[question].forEach(input => {
+                     input.checked = false; // Décocher toutes les cases
+                  });
+                  // Supprimer les styles correct/incorrect sans toucher au style des bonnes réponses
+                  questionDiv.classList.remove('correct', 'incorrect');
+                  questionDiv.querySelectorAll('li').forEach(li => {
+                     li.style.color = ''; // Réinitialiser la couleur du texte
+                     li.style.fontWeight = ''; // Supprimer les styles ajoutés
+                     li.style.textShadow = ''; // Réinitialiser l'ombre du texte
+                     li.style.backgroundColor = ''; // Remettre le fond par défaut
+                     li.style.border = ''; // Réinitialiser la bordure
+                  });
+               }
+               // Réinitialiser l'affichage du timer
+               const timerDuration = 60 * 60; // Remettre à 60 minutes (ou 10 secondes pour le test)
+               const display = document.querySelector('#timer');
+               startTimer(timerDuration, display); // Redémarrer le timer
+               // Masquer la boîte de résultat
+               const resultPopup = document.getElementById('result-popup');
+               const blurBackground = document.getElementById('blur-background');
+               resultPopup.classList.remove('show');
+               blurBackground.classList.remove('show');
+               setTimeout(() => {
+                  resultPopup.style.display = 'none';
+                  blurBackground.style.display = 'none';
+               }, 500);
+               // Remonter en haut de la page
+               window.scrollTo({
+                  top: 0,
+                  behavior: 'smooth'
+               });
+               document.getElementById('voir-detail-btn').style.display = 'none'; // Masquer le bouton "Voir Détail"
+            }
+            // Fonction pour fermer la popup et garder les couleurs des bonnes/mauvaises réponses
+            function closeResult(event) {
+               event.preventDefault(); // Empêche le comportement par défaut du bouton
+               const resultPopup = document.getElementById('result-popup');
+               const blurBackground = document.getElementById('blur-background');
+               // Masquer la boîte de résultat
+               resultPopup.classList.remove('show');
+               blurBackground.classList.remove('show');
+               setTimeout(() => {
+                  resultPopup.style.display = 'none';
+                  blurBackground.style.display = 'none';
+               }, 500);
+               // Décocher toutes les cases sans changer la couleur des bonnes/mauvaises réponses
+               const form = document.getElementById('quiz-form');
+               for (const question of Object.keys(correctAnswers)) {
+                  form.elements[question].forEach(input => {
+                     input.checked = false; // Décocher toutes les cases
+                  });
+               }
+            }
+            // Fonction pour afficher les détails et rediriger vers SyntHMT2021
+            function afficherDetails(event) {
+               event.preventDefault(); // Empêche le comportement par défaut du bouton
+               saveUserAnswers(); // Enregistrer les réponses avant de quitter la page
+               window.location.href = '{% url 'dynamic_view' 'S7' 'Cancerologie_Hematologie' 'syntHMT2021' %}'; // Redirection vers SyntHMT2021
+            }
+            // Fonction pour défiler jusqu'à la question
+            function scrollToQuestion(questionNumber) {
+               const questionDiv = document.querySelector(`.question-container:nth-of-type(${questionNumber})`);
+               if (questionDiv) {
+                  questionDiv.scrollIntoView({
+                     behavior: 'smooth'
+                  });
+               }
+            }
+
+            function saveUserAnswers() {
+               // Change la clé pour la version 2021
+               localStorage.setItem('userAnswersHMT2021', JSON.stringify(userAnswers));
+            }
+            // Fonction pour afficher les confettis et ajouter le message de félicitations dans la popup de résultats
+            function lancerConfettisEtMessage(score) {
+    if (score === 30) {
+                  // Lancer les confettis
+                  confetti({
+                     particleCount: 200,
+                     spread: 70,
+                     origin: {
+                        y: 0.6
+                     },
+                     colors: ['#bb0000', '#ffffff'], // Couleurs de confettis
+                  });
+                  // Ajouter un message de félicitations à la boîte de résultat
+                  const resultDiv = document.getElementById('result');
+                  const felicitationMessage = `<p>Félicitations! Vous avez obtenu ${score} bonnes réponses. Vous serez un grand médecin !</p>`;
+                  // Ajouter le message à la fin du résultat
+                  resultDiv.innerHTML += felicitationMessage;
+               }
+            }
+            // Partie favori pour Anatomie2020
+            // Tableau pour stocker les questions favorites, récupéré depuis le localStorage (Anatomie2021)
+            let favoriteQuestionsHMT2021 = JSON.parse(localStorage.getItem('favoriteQuestionsHMT2021')) || [];
+            console.log('Favorite questions loaded from localStorage:', favoriteQuestionsHMT2021);
+
+            function toggleFavorite(event, questionNumber) {
+               event.preventDefault(); // Empêche le rafraîchissement de la page
+               const button = document.querySelector(`.favorite-button[data-question="${questionNumber}"]`);
+               const questionContent = document.querySelector(`#question-${questionNumber}`).innerHTML; // Récupère le contenu HTML de la question
+               // Vérifie si la question est déjà dans les favoris
+               const isFavorited = favoriteQuestionsHMT2021.includes(questionNumber);
+               if (isFavorited) {
+                  // Si elle est déjà favorisée, on la retire des favoris
+                  favoriteQuestionsHMT2021 = favoriteQuestionsHMT2021.filter(q => q !== questionNumber);
+                  button.classList.remove('favorited'); // Retire la classe favori
+                  localStorage.removeItem(`favoriteContent2021-${questionNumber}`); // Supprime le contenu de la question
+               } else {
+                  // Si elle n'est pas favorisée, on l'ajoute
+                  favoriteQuestionsHMT2021.push(questionNumber);
+                  button.classList.add('favorited'); // Ajoute la classe favori
+                  localStorage.setItem(`favoriteContent2021-${questionNumber}`, questionContent); // Stocke le contenu de la question dans le localStorage
+               }
+               // Sauvegarde uniquement les favoris
+               saveFavoriteState2021(); // <== Remplacez par saveFavoriteState2021
+               // Mise à jour du bouton "Voir Favori" sans rafraîchir la page
+               showFavoriteButton();
+            }
+
+            function saveFavoriteState2021() {
+               localStorage.setItem('favoriteQuestionsHMT2021', JSON.stringify(favoriteQuestionsHMT2021)); // Sauvegarde les questions favorites
+            }
+
+            function initializeFavoriteButtons() {
+               const allFavoriteButtons = document.querySelectorAll('.favorite-button');
+               allFavoriteButtons.forEach(button => {
+                  const questionNumber = parseInt(button.getAttribute('data-question'), 10);
+                  // Vérifie si cette question est dans les favoris et applique la classe
+                  if (favoriteQuestionsHMT2021.includes(questionNumber)) {
+                     button.classList.add('favorited'); // Ajoute l'état favori
+                  } else {
+                     button.classList.remove('favorited'); // Retire l'état favori
+                  }
+                  // Ajoute un événement de clic pour chaque bouton et empêche le rafraîchissement
+                  button.addEventListener('click', (event) => toggleFavorite(event, questionNumber));
+               });
+            }
+
+            function showFavoriteButton() {
+               const voirFavorisBtn = document.getElementById('voir-favoris-btn');
+               if (favoriteQuestionsHMT2021.length > 0) {
+                  voirFavorisBtn.style.display = 'inline-block'; // Affiche le bouton si des questions sont favorisées
+               } else {
+                  voirFavorisBtn.style.display = 'none'; // Cache le bouton si aucun favori
+               }
+            }
+            // Appelle cette fonction après avoir ajouté ou retiré des favoris
+            window.onload = function() {
+               console.log('Page loaded, initializing favorite buttons for 2021.');
+               initializeFavoriteButtons(); // Charger les boutons de favoris
+               showFavoriteButton(); // Afficher le bouton "Voir Favori" si des favoris existent
+               const timerDuration = 60 * 60; // 60 minutes
+               const display = document.querySelector('#timer');
+               startTimer(timerDuration, display);
+               // Récupère toutes les listes (li) qui contiennent des propositions
+               const propositions = document.querySelectorAll('li');
+               propositions.forEach(function(proposition) {
+                  // Trouve la checkbox dans chaque liste
+                  const checkbox = proposition.querySelector('input[type="checkbox"]');
+                  if (checkbox) {
+                     // Créer un label
+                     const label = document.createElement('label');
+                     // Donner un id à la checkbox si elle n'en a pas
+                     if (!checkbox.id) {
+                        checkbox.id = checkbox.name + '-' + checkbox.value; // Ex: q1-A
+                     }
+                     // Déplacer le texte de la proposition dans le label
+                     label.htmlFor = checkbox.id; // Le 'for' du label correspond à l'id de la checkbox
+                     label.appendChild(checkbox); // Déplacer la checkbox dans le label
+                     label.appendChild(document.createTextNode(proposition.textContent.trim())); // Ajouter le texte de la proposition
+                     // Remplacer le contenu original par le nouveau label
+                     proposition.innerHTML = ''; // Vider le contenu de l'élément <li>
+                     proposition.appendChild(label); // Ajouter le label modifié
+                  }
+               });
+            };
+            try {
+               localStorage.setItem('testKey', 'testValue');
+               const testValue = localStorage.getItem('testKey');
+               if (testValue !== 'testValue') {
+                  console.error('localStorage is not functioning as expected.');
+               }
+            } catch (error) {
+               console.error('localStorage error:', error);
+            }
+
+            function voirFavoris() {
+               console.log('Redirection vers la page des favoris');
+               window.location.href = "{% url 'render_favorite' 'S7' 'Favori13' %}";
+            }
+
+
+            </script>
+            <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js">
+
+
+            </script>
+         </form>
+      </div>
+      
+   </body>
+
+</html>      <script>
+// Fonction pour corriger une question
+function correctQuestion(questionName) {
+    const form = document.getElementById('quiz-form');
+    const questionDiv = document.querySelector(`input[name="${questionName}"]`).closest('.question-container');
+    const selected = Array.from(form.elements[questionName]).filter(input => input.checked).map(input => input.value);
+
+    // Calculer si la réponse est correcte
+    const isCorrect = JSON.stringify(correctAnswers[questionName].sort()) === JSON.stringify(selected.sort());
+
+    // Enregistre si la réponse est correcte ou incorrecte
+    userAnswers[questionName] = {
+        selected: selected,
+        isCorrect: isCorrect
+    };
+
+    // Supprimer les styles précédents
+    questionDiv.classList.remove('correct', 'incorrect');
+    questionDiv.querySelectorAll('li').forEach(li => li.style.color = '');
+
+    // Applique les couleurs selon la validité des réponses
+    questionDiv.querySelectorAll('li').forEach(li => {
+        const isChoiceCorrect = correctAnswers[questionName].includes(li.querySelector('input').value);
+        const isSelected = selected.includes(li.querySelector('input').value);
+
+        if (isChoiceCorrect) {
+            // Appliquer le style vert aux bonnes réponses
+            li.style.color = 'green';
+            li.style.fontWeight = 'bold';
+            li.style.textShadow = '1px 1px 2px rgba(0, 128, 0, 0.7)';
+        }
+
+        if (isSelected && !isChoiceCorrect) {
+            // Appliquer le style rouge pour les mauvaises réponses sélectionnées
+            li.style.color = 'red';
+        }
+    });
+
+    console.log(`Début de la correction pour la question ${questionName}`);
+    console.log(`Réponses sélectionnées pour ${questionName}: ${selected.join(', ')}`);
+    console.log(`Résultat pour ${questionName}: ${isCorrect ? 'Correct' : 'Incorrect'}`);
+
+    // Déterminer le nom de l'examen et l'ID complet de la question
+    const examNameElement = document.getElementById('exam_name');
+    const examName = examNameElement.value; // Nom de l'examen (par exemple, Anatomie2023)
+    const fullChoiceIds = selected.map(choice => `${examName}_${questionName.substring(1)}_${choice.toLowerCase()}`);
+    console.log(`IDs complets générés pour les choix : ${fullChoiceIds.join(', ')}`);
+
+    // Envoyer les données au serveur
+    fetch('/track_attempts/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            question_name: questionName,
+            full_choice_ids: fullChoiceIds
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log(`Données reçues du serveur : ${JSON.stringify(data)}`);
+            handleAlert(data.alert, questionDiv);
+            updateStatisticalAlerts(data, questionDiv);
+        })
+        .catch(error => console.error('Erreur lors de l’envoi des données:', error));
+}
+
+// Fonction pour gérer les alertes
+function handleAlert(alertData, questionDiv) {
+    const existingAlert = questionDiv.querySelector('.alert-indicator');
+    if (existingAlert) {
+        existingAlert.remove();
+    }
+
+    if (alertData) {
+        const alertIndicator = document.createElement('div');
+        alertIndicator.className = 'alert-indicator';
+        alertIndicator.style.backgroundColor = alertData.color || '#f8d7da';
+        alertIndicator.style.padding = '10px';
+        alertIndicator.style.marginTop = '10px';
+        alertIndicator.style.borderRadius = '5px';
+        alertIndicator.style.fontWeight = 'bold';
+        alertIndicator.style.color = '#721c24';
+        alertIndicator.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.1)';
+        alertIndicator.textContent = alertData.message;
+
+        questionDiv.appendChild(alertIndicator);
+        saveAlertToLocalStorage(questionDiv.getAttribute('data-question-id'), alertData);
+    } else {
+        removeAlertFromLocalStorage(questionDiv.getAttribute('data-question-id'));
+    }
+}
+
+// Charger les alertes persistantes
+function loadAlertsFromLocalStorage() {
+    const storedAlerts = JSON.parse(localStorage.getItem('alerts')) || {};
+    Object.keys(storedAlerts).forEach(questionId => {
+        const questionDiv = document.querySelector(`.question-container[data-question-id="${questionId}"]`);
+        if (questionDiv) {
+            handleAlert(storedAlerts[questionId], questionDiv);
+        }
+    });
+}
+
+// Sauvegarder les alertes dans localStorage
+function saveAlertToLocalStorage(questionId, alertData) {
+    const storedAlerts = JSON.parse(localStorage.getItem('alerts')) || {};
+    storedAlerts[questionId] = alertData;
+    localStorage.setItem('alerts', JSON.stringify(storedAlerts));
+}
+
+// Supprimer une alerte de localStorage
+function removeAlertFromLocalStorage(questionId) {
+    const storedAlerts = JSON.parse(localStorage.getItem('alerts')) || {};
+    delete storedAlerts[questionId];
+    localStorage.setItem('alerts', JSON.stringify(storedAlerts));
+}
+
+// Mise à jour des alertes statistiques
+function updateStatisticalAlerts(data, questionDiv) {
+    const existingStatisticalAlerts = questionDiv.querySelectorAll('.statistical-alert');
+    existingStatisticalAlerts.forEach(alert => alert.remove());
+
+    if (data.failure_rate > 0.6) {
+        const failureRateAlert = document.createElement('div');
+        failureRateAlert.className = 'statistical-alert';
+        failureRateAlert.style.backgroundColor = '#add8e6';
+        failureRateAlert.style.padding = '10px';
+        failureRateAlert.style.marginTop = '10px';
+        failureRateAlert.style.borderRadius = '5px';
+        failureRateAlert.style.fontWeight = 'bold';
+        failureRateAlert.style.color = '#004085';
+        failureRateAlert.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.1)';
+        failureRateAlert.textContent = `🔵 Votre taux d'échec est de ${(data.failure_rate * 100).toFixed(0)}%. Revoir cette question est conseillé.`;
+
+        questionDiv.appendChild(failureRateAlert);
+    }
+}
+
+// Charger les alertes au démarrage
+document.addEventListener('DOMContentLoaded', () => {
+    loadAlertsFromLocalStorage();
+});
+
+</script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+    <script src="{% static 'java/comment.js' %}"></script>

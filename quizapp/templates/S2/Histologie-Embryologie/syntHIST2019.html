@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="HIST2019">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Un tissu épithélial peut être :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Stratifié.</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Simple.</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Non polarisé.</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Kératinisé.</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Transitionnel.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Les différenciations membranaires des surfaces cellulaires latérales sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Les interdigitations.</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Les microvillosités.</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Les desmosomes.</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Les cils.</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Les stéréocils.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Dans un épithélium pseudostratifié de type respiratoire, les cellules :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Forment plusieurs couches cellulaires.</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Présentent toutes des noyaux au même niveau.</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Peuvent être cylindriques.</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Peuvent être pavimenteuses.</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Reposent toutes sur la membrane basale.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Un épithélium stratifié pavimenteux kératinisé est un épithélium constitué de cellules :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Disposées en plusieurs couches.</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Intermédiaires polyédriques.</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Reposant toutes sur la membrane basale.</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Basales kératinisées.</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Kératinisées sans noyaux.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Un épithélium transitionnel est un épithélium :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Qui change d'aspect.</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Pseudostratifié.</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Stratifié.</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Cilié.</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Cylindriques.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Quelles sont les glandes amphicrines ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Foie.</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Glande salivaire.</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Pancréas.</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Surrénales.</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Thyroïde.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Quelle est la proposition qui se rapporte à une glande composée ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Glande endocrine.</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Glande intra-épithéliale.</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Glande amphicrine.</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Glande avec un canal excréteur ramifié.</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Glande homotypique.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Une glande exocrine mixte est une glande :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Exocrine et endocrine.</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Séro-muqueuse.</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Amphicrine.</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Homotypique.</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Endocrine.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Parmi les caractéristiques suivantes, deux concernent la cellule séreuse, lesquelles ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Noyau aplati.</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Grains de zymogène.</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Noyau refoulé au pôle basal.</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Basophilie basale.</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Cytoplasme clair en hématéine-éosine.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Le tissu conjonctif est constitué de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Fibres.</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Substance fondamentale.</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Cellules dispersées.</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Fibres musculaires.</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Fibres de réticuline.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Les cellules du tissu conjonctif sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Dispersées dans une substance fondamentale.</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Liées par des jonctions.</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Polarisées.</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Juxtaposées.</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- De même nature.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Les variétés de tissu conjonctif spécialisé sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Tissu conjonctif lâche.</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Tissu conjonctif dense.</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Tissu nerveux.</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Tissu cartilagineux.</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Tissu osseux.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Lesquelles de ces cellules sont autochtones ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Les fibroblastes.</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Les macrophages.</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Les mastocytes.</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Les lymphocytes.</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Les granulocytes.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) La classification des tissus conjonctifs se fait selon :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- L'abondance des fibroblastes.</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- La disposition cellulaire par rapport aux fibres.</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- La prédominance de l'un des constituants.</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- La nature et la prédominance des fibres.</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- L'orientation des fibres de collagène.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Les fibres de collagène sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Formées de tropocollagène.</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- L'une des catégories de fibres conjonctives.</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Pourvues de striations en microscopie optique.</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Très abondantes dans un tissu conjonctif dense.</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Mise en évidence par imprégnation en agents.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Quelle est la proposition qui correspond au tissu cartilagineux ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Pauvre en eau.</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Vascularisé.</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Riche en collagène type II.</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Innervé.</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Fait de plusieurs types de cellules chondrocytes.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Quelle est la topographie du cartilage hyalin ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Cartilage articulaire du genou.</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Disques intervertébraux.</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Ailes du nez.</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Bronches et trachée.</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Pavillon de l'oreille.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Le périoste :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Est un tissu conjonctif.</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Comporte des chondrocytes.</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Tapisse la face externe des os.</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Peut se transformer en tissu osseux.</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Comporte une matrice osseuse.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Le tissu osseux haversien :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Est formé d'ostéones.</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Est un tissu osseux mature.</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Est vascularisé.</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Comporte des canaux.</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Est un os spongieux.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) L'ostéocyte est une cellule :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Emprisonnée dans la matrice osseuse.</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Qui se divise.</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Très riche en organites.</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Qui se dispose dans un ostéoplaste.</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Qui possède des prolongements cytoplasmiques.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Un faisceau musculaire strié squelettique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Est entouré de périmysium.</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Comporte des vaisseaux.</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Renferme des fibres musculaires.</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- Comporte l'endomysium.</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Ne comporte pas de fibres élastiques.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Quels sont les éléments observés sur une coupe longitudinale d'une fibre musculaire striée squelettique en microscopie optique ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Des noyaux périphériques.</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Un sarcoplasme.</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Des mitochondries.</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Des striations transversales.</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Des champs de Conheim (champs myofibrillaires).</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Une cellule musculaire lisse :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Est cylindrique.</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Possède un noyau central.</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Est fusiforme.</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Possède des stries scalariformes.</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Possède des sarcomères.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Un cardiomyocyte possède en microscopie électronique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Un système T.</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- La triade.</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- De nombreuses mitochondries.</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Un système de jonction.</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Des citernes terminales du réticulum sarcoplasmique.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Le neurone :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Est l'unité fonctionnelle du tissu nerveux.</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- A un cytosquelette riche en neurofibrilles.</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Forme des synapses avec d'autres cellules.</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- A un cytoplasme riche en corps de Nissl.</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- A des segments myélinisés sans gaine de Schwann dans le SNP.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Dans le tissu nerveux central, les cellules gliales sont les suivantes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- Les oligodendrocytes.</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- Les cellules satellites.</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- Les microgliocytes.</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- Les épendymocytes.</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- Les astrocytes.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) L'astrocyte est une cellule gliale :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- Sphérique.</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- étoilée.</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Fusiforme.</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Périphérique.</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- Myélinisée.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) Parmi les neurones suivants, lesquels ont été classés selon la forme du corps cellulaire ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- Neurone unipolaire.</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- Neurone Golgi.</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- Neurone sensitif.</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- Neurone sphérique.</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- Neurone polyédrique.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) L'ultrastructure d'un neurone montre :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- Un noyau volumineux au repos.</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- Un réticulum endoplasmique rugueux.</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- Un appareil de Golgi très développé.</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- De nombreuses mitochondries.</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- Un axone riche en corps de Nissl.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) Quelles sont les structures présentes dans une artère ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- Des vaisseaux.</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- Un endothélium.</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- Des valves.</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- Un endartère.</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- Une limitante élastique.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) La paroi du cœur contient les structures suivantes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- Un squelette conjonctif fibreux.</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- Des limitantes élastiques.</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- Des noyaux atrio-ventriculaires et sino-auriculaires.</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- Un muscle strié squelettique.</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- Des fibres de Purkinje.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) Lesquels des éléments constituent la paroi des capillaires discontinus ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A- Un endothélium.</li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B- Une lame basale.</li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C- Un périthélium.</li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D- Une limitante élastique.</li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E- Une séreuse.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) Les artères diffèrent des veines par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A- L'épaisseur de la média.</li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B- La longueur du vaisseau.</li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C- La présence d'une séreuse.</li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D- L'aspect de la lumière.</li>
+            
+                    <li><input type="checkbox" id="q33e" name="q33" value="E"> E- La présence de valves.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) Quels sont les rôles de l'épididyme ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A- Stockage des spermatozoïdes (SPZ).</li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B- Maturation nucléaire.</li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C- Acquisition de la mobilité.</li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D- Capacitation.</li>
+            
+                    <li><input type="checkbox" id="q34e" name="q34" value="E"> E- Réaction acrosomiale.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) La décapacitation :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A- Concerne les spermatozoïdes (SPZ).</li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B- Concerne les ovocytes.</li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C- Est un masquage de protéines de surface.</li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D- Se déroule dans l'ovaire.</li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E- Est une acquisition du pouvoir fécondant.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-36" class="question-container">
+            <div class="question">
+                <p>36.) L'ovocyte après l'ovulation non encore fécondé :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q36a" name="q36" value="A"> A- Est entouré de cellules folliculaires.</li>
+            
+                    <li><input type="checkbox" id="q36b" name="q36" value="B"> B- Est entouré d'une zone pellucide.</li>
+            
+                    <li><input type="checkbox" id="q36c" name="q36" value="C"> C- Possède deux globules polaires.</li>
+            
+                    <li><input type="checkbox" id="q36d" name="q36" value="D"> D- Possède une zone périvitelline.</li>
+            
+                    <li><input type="checkbox" id="q36e" name="q36" value="E"> E- A terminé sa deuxième méiose.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-37" class="question-container">
+            <div class="question">
+                <p>37.) La réaction acrosomique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q37a" name="q37" value="A"> A- Survient dans le spermatozoïde.</li>
+            
+                    <li><input type="checkbox" id="q37b" name="q37" value="B"> B- Survient dans l'ovocyte.</li>
+            
+                    <li><input type="checkbox" id="q37c" name="q37" value="C"> C- Est indispensable pour la pénétration de la zone pellucide.</li>
+            
+                    <li><input type="checkbox" id="q37d" name="q37" value="D"> D- Permet de libérer des enzymes.</li>
+            
+                    <li><input type="checkbox" id="q37e" name="q37" value="E"> E- Détruit les deux membranes de l'acrosome.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-38" class="question-container">
+            <div class="question">
+                <p>38.) La régulation de la monospermie dans la fécondation :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q38a" name="q38" value="A"> A- Se fait par l'ovocyte.</li>
+            
+                    <li><input type="checkbox" id="q38b" name="q38" value="B"> B- Se fait par le spermatozoïde.</li>
+            
+                    <li><input type="checkbox" id="q38c" name="q38" value="C"> C- Fait intervenir les granules corticaux.</li>
+            
+                    <li><input type="checkbox" id="q38d" name="q38" value="D"> D- Fait intervenir la zone pellucide.</li>
+            
+                    <li><input type="checkbox" id="q38e" name="q38" value="E"> E- Empêche la fécondation par plus d'un spermatozoïde.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-39" class="question-container">
+            <div class="question">
+                <p>39.) À quelle anomalie correspond une grossesse extra-utérine ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q39a" name="q39" value="A"> A- Anomalie de la segmentation.</li>
+            
+                    <li><input type="checkbox" id="q39b" name="q39" value="B"> B- Anomalie de la migration.</li>
+            
+                    <li><input type="checkbox" id="q39c" name="q39" value="C"> C- Anomalie de la gastrulation.</li>
+            
+                    <li><input type="checkbox" id="q39d" name="q39" value="D"> D- Anomalie de la neurulation.</li>
+            
+                    <li><input type="checkbox" id="q39e" name="q39" value="E"> E- Anomalie de situs.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-40" class="question-container">
+            <div class="question">
+                <p>40.) Quelles sont les structures qui comportent une zone pellucide ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q40a" name="q40" value="A"> A- Ovocyte dans un follicule mature.</li>
+            
+                    <li><input type="checkbox" id="q40b" name="q40" value="B"> B- Morula.</li>
+            
+                    <li><input type="checkbox" id="q40c" name="q40" value="C"> C- Œuf à deux blastomères.</li>
+            
+                    <li><input type="checkbox" id="q40d" name="q40" value="D"> D- Embryon à trois feuillets.</li>
+            
+                    <li><input type="checkbox" id="q40e" name="q40" value="E"> E- Embryon à deux feuillets.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-41" class="question-container">
+            <div class="question">
+                <p>41.) Les phénomènes secondaires à l'activation de l'ovocyte fécondé sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q41a" name="q41" value="A"> A- La reprise de la méiose.</li>
+            
+                    <li><input type="checkbox" id="q41b" name="q41" value="B"> B- Des flux calciques.</li>
+            
+                    <li><input type="checkbox" id="q41c" name="q41" value="C"> C- La formation du globule polaire.</li>
+            
+                    <li><input type="checkbox" id="q41d" name="q41" value="D"> D- La reprise des synthèses protéiques.</li>
+            
+                    <li><input type="checkbox" id="q41e" name="q41" value="E"> E- La redistribution des organites.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-42" class="question-container">
+            <div class="question">
+                <p>42.) L'endomètre durant la deuxième partie du cycle menstruel :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q42a" name="q42" value="A"> A- Est épaissi.</li>
+            
+                    <li><input type="checkbox" id="q42b" name="q42" value="B"> B- Est pauvre en glandes.</li>
+            
+                    <li><input type="checkbox" id="q42c" name="q42" value="C"> C- Est riche en vaisseaux spiralés.</li>
+            
+                    <li><input type="checkbox" id="q42d" name="q42" value="D"> D- Son chorion est pauvre en eau.</li>
+            
+                    <li><input type="checkbox" id="q42e" name="q42" value="E"> E- Son chorion est œdémateux.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-43" class="question-container">
+            <div class="question">
+                <p>43.) Au stade de 4 blastomères, l'œuf :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q43a" name="q43" value="A"> A- Est dans la trompe.</li>
+            
+                    <li><input type="checkbox" id="q43b" name="q43" value="B"> B- Est dans l'utérus.</li>
+            
+                    <li><input type="checkbox" id="q43c" name="q43" value="C"> C- Est entouré d'une zone pellucide.</li>
+            
+                    <li><input type="checkbox" id="q43d" name="q43" value="D"> D- Est diploïde.</li>
+            
+                    <li><input type="checkbox" id="q43e" name="q43" value="E"> E- Comporte un blastocèle.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-44" class="question-container">
+            <div class="question">
+                <p>44.) Lors de la nidation, le bouton embryonnaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q44a" name="q44" value="A"> A- Est dirigé vers l'endomètre.</li>
+            
+                    <li><input type="checkbox" id="q44b" name="q44" value="B"> B- Est dirigé vers la lumière utérine.</li>
+            
+                    <li><input type="checkbox" id="q44c" name="q44" value="C"> C- Est entouré par le trophoblaste.</li>
+            
+                    <li><input type="checkbox" id="q44d" name="q44" value="D"> D- Est au contact avec le blastocèle.</li>
+            
+                    <li><input type="checkbox" id="q44e" name="q44" value="E"> E- Est entouré de la zone pellucide.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-45" class="question-container">
+            <div class="question">
+                <p>45.) La cavité amniotique se creuse dans :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q45a" name="q45" value="A"> A- Le bouton embryonnaire.</li>
+            
+                    <li><input type="checkbox" id="q45b" name="q45" value="B"> B- Le mésenchyme extra-embryonnaire.</li>
+            
+                    <li><input type="checkbox" id="q45c" name="q45" value="C"> C- Le trophoblaste.</li>
+            
+                    <li><input type="checkbox" id="q45d" name="q45" value="D"> D- L'endomètre.</li>
+            
+                    <li><input type="checkbox" id="q45e" name="q45" value="E"> E- L'endoderme.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-46" class="question-container">
+            <div class="question">
+                <p>46.) Quelles sont les structures qui naissent dans le mésenchyme extra-embryonnaire ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q46a" name="q46" value="A"> A- Les gonocytes primordiaux.</li>
+            
+                    <li><input type="checkbox" id="q46b" name="q46" value="B"> B- Des cellules des parois vasculaires.</li>
+            
+                    <li><input type="checkbox" id="q46c" name="q46" value="C"> C- Des cellules souches sanguines.</li>
+            
+                    <li><input type="checkbox" id="q46d" name="q46" value="D"> D- La chorde.</li>
+            
+                    <li><input type="checkbox" id="q46e" name="q46" value="E"> E- Le syncytiotrophoblaste.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-47" class="question-container">
+            <div class="question">
+                <p>47.) Parmi les structures suivantes, lesquelles dérivent du mésoblaste para-axial ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q47a" name="q47" value="A"> A- Le tube neural.</li>
+            
+                    <li><input type="checkbox" id="q47b" name="q47" value="B"> B- Le sclérotome.</li>
+            
+                    <li><input type="checkbox" id="q47c" name="q47" value="C"> C- Le cordon néphrogène.</li>
+            
+                    <li><input type="checkbox" id="q47d" name="q47" value="D"> D- Le myotome.</li>
+            
+                    <li><input type="checkbox" id="q47e" name="q47" value="E"> E- Le dermotome.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-48" class="question-container">
+            <div class="question">
+                <p>48.) Quelle est la proposition qui se rapporte à l'endoblaste ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q48a" name="q48" value="A"> A- Forme l'intestin primitif.</li>
+            
+                    <li><input type="checkbox" id="q48b" name="q48" value="B"> B- Forme le mésenchyme embryonnaire.</li>
+            
+                    <li><input type="checkbox" id="q48c" name="q48" value="C"> C- Forme le tube neural </li>
+            
+                    <li><input type="checkbox" id="q48d" name="q48" value="D"> D- Est au contact direct avec la cavité amniotique.</li>
+            
+                    <li><input type="checkbox" id="q48e" name="q48" value="E"> E- Est formé lors de la 4ème semaine de développement.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-49" class="question-container">
+            <div class="question">
+                <p>49.) La membrane fœto-maternelle du placenta comporte :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q49a" name="q49" value="A"> A- L'endothélium du vaisseau chorial.</li>
+            
+                    <li><input type="checkbox" id="q49b" name="q49" value="B"> B- Le mésenchyme.</li>
+            
+                    <li><input type="checkbox" id="q49c" name="q49" value="C"> C- Le syncytiotrophoblaste.</li>
+            
+                    <li><input type="checkbox" id="q49d" name="q49" value="D"> D- L'allantoïde.</li>
+            
+                    <li><input type="checkbox" id="q49e" name="q49" value="E"> E- Le cytotrophoblaste.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-50" class="question-container">
+            <div class="question">
+                <p>50.) Une grossesse monochoriale monoamniotique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q50a" name="q50" value="A"> A- Concerne de vrais jumeaux.</li>
+            
+                    <li><input type="checkbox" id="q50b" name="q50" value="B"> B- Concerne de faux jumeaux.</li>
+            
+                    <li><input type="checkbox" id="q50c" name="q50" value="C"> C- Comporte une poche amniotique.</li>
+            
+                    <li><input type="checkbox" id="q50d" name="q50" value="D"> D- Comporte deux placentas.</li>
+            
+                    <li><input type="checkbox" id="q50e" name="q50" value="E"> E- Peut entraîner une fusion des jumeaux.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S2" "Histologie-Embryologie" "HIST2019" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['A', 'B', 'D', 'E'],
+    q2: ['A', 'C'],
+    q3: ['C', 'E'],
+    q4: ['A', 'B', 'E'],
+    q5: ['A', 'B', 'E'],
+    q6: ['A', 'C'],
+    q7: ['D'],
+    q8: ['B'],
+    q9: ['B', 'D'],
+    q10: ['A', 'B', 'C', 'E'],
+    q11: ['A'],
+    q12: ['D', 'E'],
+    q13: ['A', 'B', 'C'],
+    q14: ['A', 'C', 'D', 'E'],
+    q15: ['A', 'B', 'D'],
+    q16: ['C'],
+    q17: ['B'],
+    q18: ['A', 'C', 'E'],
+    q19: ['A', 'B', 'C', 'D'],
+    q20: ['A', 'C', 'D', 'E'],
+    q21: ['A', 'B', 'C', 'D'],
+    q22: ['D'],
+    q23: ['A', 'B', 'D'],
+    q24: ['A', 'D'],
+    q25: ['A', 'B', 'D', 'E'],
+    q26: ['A', 'C', 'D', 'E'],
+    q27: ['B'],
+    q28: ['A', 'D', 'E'],
+    q29: ['A', 'B', 'C', 'D'],
+    q30: ['A', 'B', 'D', 'E'],
+    q31: ['A', 'C', 'E'],
+    q32: ['A', 'B'],
+    q33: ['A', 'D', 'E'],
+    q34: ['A', 'B', 'C'],
+    q35: ['A', 'C'],
+    q36: ['B', 'D'],
+    q37: ['B', 'C', 'D'],
+    q38: ['A', 'C', 'D', 'E'],
+    q39: ['B'],
+    q40: ['A', 'B', 'C'],
+    q41: ['A', 'B', 'D', 'E'],
+    q42: ['A', 'C', 'E'],
+    q43: ['A', 'C', 'D'],
+    q44: ['A', 'C'],
+    q45: ['A'],
+    q46: ['A', 'B', 'C', 'D'],
+    q47: ['B', 'D', 'E'],
+    q48: ['A', 'D'],
+    q49: ['A', 'B', 'C', 'E'],
+    q50: ['A', 'C', 'E'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersHIST2019'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+<script src="{% static 'java/question-stats.js' %}" defer></script>

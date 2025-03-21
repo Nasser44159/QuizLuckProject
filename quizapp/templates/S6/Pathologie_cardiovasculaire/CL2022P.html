@@ -1,0 +1,1574 @@
+<!DOCTYPE html>
+{% load static %}
+
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'css/stylequiz.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+
+</head>
+<body>
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+
+    <div id="content">
+
+         <div class="quiz-title">
+            <h1>
+Cardiologie 2022
+</h1>
+         </div>
+         <form id="quiz-form">
+    <input type="hidden" id='exam_name' name="exam_name" value="CL2022P">
+    {% csrf_token %}
+            <div class="question-container" id="question-1">
+               <div class="question">
+                  <p> 1.) A propos du rhumatisme articulaire aigu (RAA), cochez les bonnes réponses : </p>
+                  <ul>
+                     <li>
+                        <input id="q1a" name="q1" type="checkbox" value="A" /> A- Il est rare dans notre pays </li>
+                     <li>
+                        <input id="q1b" name="q1" type="checkbox" value="B" /> B- Sa gravité est liée à l'atteinte articulaire </li>
+                     <li>
+                        <input id="q1c" name="q1" type="checkbox" value="C" /> C- Il peut entraîner une pancardite </li>
+                     <li>
+                        <input id="q1d" name="q1" type="checkbox" value="D" /> D- Est dû au streptocoque ẞ hémolytique du groupe A </li>
+                     <li>
+                        <input id="q1e" name="q1" type="checkbox" value="E" /> E- Peut donner une atteinte neurologique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-1')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q1')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="1"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_1" onclick="toggleCommentSection('CL2022P_1', event)"> 💬 <span class="badge" data-comment-id="CL2022P_1">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-2">
+               <div class="question">
+                  <p> 2.) Le RAA peut se manifester cliniquement par : </p>
+                  <ul>
+                     <li>
+                        <input id="q2a" name="q2" type="checkbox" value="A" /> A- Une fièvre </li>
+                     <li>
+                        <input id="q2b" name="q2" type="checkbox" value="B" /> B- Des palpitations </li>
+                     <li>
+                        <input id="q2c" name="q2" type="checkbox" value="C" /> C- Une altération de l'état général </li>
+                     <li>
+                        <input id="q2d" name="q2" type="checkbox" value="D" /> D- Une dyspnée </li>
+                     <li>
+                        <input id="q2e" name="q2" type="checkbox" value="E" /> E- Des arthralgies </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-2')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q2')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="2"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_2" onclick="toggleCommentSection('CL2022P_2', event)"> 💬 <span class="badge" data-comment-id="CL2022P_2">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-3">
+               <div class="question">
+                  <p> 3.) L'atteinte cardiaque du RAA peut se compliquer à long terme par : </p>
+                  <ul>
+                     <li>
+                        <input id="q3a" name="q3" type="checkbox" value="A" /> A- Une sténose ou une fuite mitrale </li>
+                     <li>
+                        <input id="q3b" name="q3" type="checkbox" value="B" /> B- Une sténose ou une fuite aortique </li>
+                     <li>
+                        <input id="q3c" name="q3" type="checkbox" value="C" /> C- Une communication interauriculaire </li>
+                     <li>
+                        <input id="q3d" name="q3" type="checkbox" value="D" /> D- Une communication interventriculaire </li>
+                     <li>
+                        <input id="q3e" name="q3" type="checkbox" value="E" /> E- Une cardiopathie ischémique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-3')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q3')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="3"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_3" onclick="toggleCommentSection('CL2022P_3', event)"> 💬 <span class="badge" data-comment-id="CL2022P_3">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-4">
+               <div class="question">
+                  <p> 4.) Une fuite aortique ou insuffisance aortique est définie par : </p>
+                  <ul>
+                     <li>
+                        <input id="q4a" name="q4" type="checkbox" value="A" /> A- Un obstacle à l'écoulement sanguin du ventricule gauche vers l'aorte </li>
+                     <li>
+                        <input id="q4b" name="q4" type="checkbox" value="B" /> B- Un défaut d'ouverture de la valvule aortique en systole </li>
+                     <li>
+                        <input id="q4c" name="q4" type="checkbox" value="C" /> C- Un reflux du sang de l'aorte vers le ventricule gauche pendant la diastole </li>
+                     <li>
+                        <input id="q4d" name="q4" type="checkbox" value="D" /> D- Un reflux du sang du ventricule gauche vers l'aorte pendant la systole </li>
+                     <li>
+                        <input id="q4e" name="q4" type="checkbox" value="E" /> E- Un obstacle à l'écoulement sanguin de l'oreillette vers le ventricule gauche </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-4')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q4')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="4"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_4" onclick="toggleCommentSection('CL2022P_4', event)"> 💬 <span class="badge" data-comment-id="CL2022P_4">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-5">
+               <div class="question">
+                  <p> 5.) Une fuite aortique chronique peut se compliquer de : </p>
+                  <ul>
+                     <li>
+                        <input id="q5a" name="q5" type="checkbox" value="A" /> A- Une mort subite </li>
+                     <li>
+                        <input id="q5b" name="q5" type="checkbox" value="B" /> B- Un ulcère gastrique </li>
+                     <li>
+                        <input id="q5c" name="q5" type="checkbox" value="C" /> C- Une embolie pulmonaire </li>
+                     <li>
+                        <input id="q5d" name="q5" type="checkbox" value="D" /> D- Une thrombose veineuse profonde </li>
+                     <li>
+                        <input id="q5e" name="q5" type="checkbox" value="E" /> E- Une endocardite infectieuse </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-5')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q5')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="5"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_5" onclick="toggleCommentSection('CL2022P_5', event)"> 💬 <span class="badge" data-comment-id="CL2022P_5">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-6">
+               <div class="question">
+                  <p> 6.) Concernant l'endocardite infectieuse, cochez les bonnes réponses : </p>
+                  <ul>
+                     <li>
+                        <input id="q6a" name="q6" type="checkbox" value="A" /> A- Est due à la colonisation de l'endocarde par des bactéries </li>
+                     <li>
+                        <input id="q6b" name="q6" type="checkbox" value="B" /> B- Est due à la colonisation de l'endocarde par des virus </li>
+                     <li>
+                        <input id="q6c" name="q6" type="checkbox" value="C" /> C- Peut survenir sur une prothèse valvulaire </li>
+                     <li>
+                        <input id="q6d" name="q6" type="checkbox" value="D" /> D- Peut compliquer une fuite mitrale </li>
+                     <li>
+                        <input id="q6e" name="q6" type="checkbox" value="E" /> E- Peut survenir sur un cœur sain </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-6')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q6')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="6"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_6" onclick="toggleCommentSection('CL2022P_6', event)"> 💬 <span class="badge" data-comment-id="CL2022P_6">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-7">
+               <div class="question">
+                  <p> 7.) L'endocardite infectieuse peut se compliquer de : </p>
+                  <ul>
+                     <li>
+                        <input id="q7a" name="q7" type="checkbox" value="A" /> A- Insuffisance cardiaque </li>
+                     <li>
+                        <input id="q7b" name="q7" type="checkbox" value="B" /> B- Trouble du rythme </li>
+                     <li>
+                        <input id="q7c" name="q7" type="checkbox" value="C" /> C- Trouble de conduction </li>
+                     <li>
+                        <input id="q7d" name="q7" type="checkbox" value="D" /> D- Choc septique </li>
+                     <li>
+                        <input id="q7e" name="q7" type="checkbox" value="E" /> E- Anévrysme mycotique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-7')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q7')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="7"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_7" onclick="toggleCommentSection('CL2022P_7', event)"> 💬 <span class="badge" data-comment-id="CL2022P_7">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-8">
+               <div class="question">
+                  <p> 8.) La prévention de l'endocardite infectieuse se base sur : </p>
+                  <ul>
+                     <li>
+                        <input id="q8a" name="q8" type="checkbox" value="A" /> A- Bien traiter les infections cutanées </li>
+                     <li>
+                        <input id="q8b" name="q8" type="checkbox" value="B" /> B- Bonne hygiène bucco-dentaire </li>
+                     <li>
+                        <input id="q8c" name="q8" type="checkbox" value="C" /> C- Une antibiothérapie prolongée à base de pénicilline </li>
+                     <li>
+                        <input id="q8d" name="q8" type="checkbox" value="D" /> D- Une antibiothérapie minute avant les soins dentaires chez les personnes à risque </li>
+                     <li>
+                        <input id="q8e" name="q8" type="checkbox" value="E" /> E- Une anticoagulation prolongée </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-8')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q8')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="8"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_8" onclick="toggleCommentSection('CL2022P_8', event)"> 💬 <span class="badge" data-comment-id="CL2022P_8">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-9">
+               <div class="question">
+                  <p> 9.) Concernant l'embolie pulmonaire, cochez les bonnes réponses : </p>
+                  <ul>
+                     <li>
+                        <input id="q9a" name="q9" type="checkbox" value="A" /> A- Pathologie très rare </li>
+                     <li>
+                        <input id="q9b" name="q9" type="checkbox" value="B" /> B- Est définie par une obstruction du tronc de l'artère pulmonaire ou d'une de ses branches par un embole cruorique </li>
+                     <li>
+                        <input id="q9c" name="q9" type="checkbox" value="C" /> C- Peut être secondaire à une ischémie de membre inférieur </li>
+                     <li>
+                        <input id="q9d" name="q9" type="checkbox" value="D" /> D- Peut être secondaire à une thrombose veineuse profonde </li>
+                     <li>
+                        <input id="q9e" name="q9" type="checkbox" value="E" /> E- Son diagnostic est basé sur la radio du thorax </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-9')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q9')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="9"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_9" onclick="toggleCommentSection('CL2022P_9', event)"> 💬 <span class="badge" data-comment-id="CL2022P_9">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-10">
+               <div class="question">
+                  <p> 10.) Le traitement de l'embolie pulmonaire est basé sur : </p>
+                  <ul>
+                     <li>
+                        <input id="q10a" name="q10" type="checkbox" value="A" /> A- Une antibiothérapie </li>
+                     <li>
+                        <input id="q10b" name="q10" type="checkbox" value="B" /> B- L'aspirine </li>
+                     <li>
+                        <input id="q10c" name="q10" type="checkbox" value="C" /> C- Double antiagrégant plaquettaire </li>
+                     <li>
+                        <input id="q10d" name="q10" type="checkbox" value="D" /> D- Une anticoagulation </li>
+                     <li>
+                        <input id="q10e" name="q10" type="checkbox" value="E" /> E- La chirurgie </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-10')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q10')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="10"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_10" onclick="toggleCommentSection('CL2022P_10', event)"> 💬 <span class="badge" data-comment-id="CL2022P_10">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-11">
+               <div class="question">
+                  <p> 11.) Les inhibiteurs de l'enzyme de conversion (IEC) : </p>
+                  <ul>
+                     <li>
+                        <input id="q11a" name="q11" type="checkbox" value="A" /> A- Empêchent la dégradation de l'angiotensine II </li>
+                     <li>
+                        <input id="q11b" name="q11" type="checkbox" value="B" /> B- Sont des antagonistes des récepteurs AT1 de l'angiotensine II </li>
+                     <li>
+                        <input id="q11c" name="q11" type="checkbox" value="C" /> C- Sont indiqués dans le traitement de l'insuffisance cardiaque </li>
+                     <li>
+                        <input id="q11d" name="q11" type="checkbox" value="D" /> D- Sont contre-indiqués dans le traitement de l'hypertension artérielle </li>
+                     <li>
+                        <input id="q11e" name="q11" type="checkbox" value="E" /> E- Sont recommandés chez la femme enceinte </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-11')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q11')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="11"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_11" onclick="toggleCommentSection('CL2022P_11', event)"> 💬 <span class="badge" data-comment-id="CL2022P_11">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-12">
+               <div class="question">
+                  <p> 12.) Quelles explorations doit comporter le bilan minimum d'une hypertension artérielle ? </p>
+                  <ul>
+                     <li>
+                        <input id="q12a" name="q12" type="checkbox" value="A" /> A- Un doppler des artères rénales </li>
+                     <li>
+                        <input id="q12b" name="q12" type="checkbox" value="B" /> B- Un dosage de la rénine et de l'aldostérone </li>
+                     <li>
+                        <input id="q12c" name="q12" type="checkbox" value="C" /> C- Une échocardiographie avec un doppler des vaisseaux du cou </li>
+                     <li>
+                        <input id="q12d" name="q12" type="checkbox" value="D" /> D- Un électrocardiogramme </li>
+                     <li>
+                        <input id="q12e" name="q12" type="checkbox" value="E" /> E- Une créatininémie et une glycémie à jeun </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-12')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q12')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="12"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_12" onclick="toggleCommentSection('CL2022P_12', event)"> 💬 <span class="badge" data-comment-id="CL2022P_12">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-13">
+               <div class="question">
+                  <p> 13.) Devant une hypertension artérielle avec hypokaliémie, quelles causes évoquez-vous ? </p>
+                  <ul>
+                     <li>
+                        <input id="q13a" name="q13" type="checkbox" value="A" /> A- Coarctation de l'aorte </li>
+                     <li>
+                        <input id="q13b" name="q13" type="checkbox" value="B" /> B- Phéochromocytome </li>
+                     <li>
+                        <input id="q13c" name="q13" type="checkbox" value="C" /> C- Sténose d'une artère rénale </li>
+                     <li>
+                        <input id="q13d" name="q13" type="checkbox" value="D" /> D- Adénome de Conn </li>
+                     <li>
+                        <input id="q13e" name="q13" type="checkbox" value="E" /> E- Hyperthyroïdie </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-13')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q13')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="13"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_13" onclick="toggleCommentSection('CL2022P_13', event)"> 💬 <span class="badge" data-comment-id="CL2022P_13">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-14">
+               <div class="question">
+                  <p> 14.) La complication majeure à craindre devant une cardiomyopathie hypertrophique : </p>
+                  <ul>
+                     <li>
+                        <input id="q14a" name="q14" type="checkbox" value="A" /> A- Les emboles systémiques </li>
+                     <li>
+                        <input id="q14b" name="q14" type="checkbox" value="B" /> B- L'accident vasculaire ischémique </li>
+                     <li>
+                        <input id="q14c" name="q14" type="checkbox" value="C" /> C- La dissection aortique </li>
+                     <li>
+                        <input id="q14d" name="q14" type="checkbox" value="D" /> D- L'anévrysme de l'aorte </li>
+                     <li>
+                        <input id="q14e" name="q14" type="checkbox" value="E" /> E- La mort subite </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-14')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q14')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="14"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_14" onclick="toggleCommentSection('CL2022P_14', event)"> 💬 <span class="badge" data-comment-id="CL2022P_14">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-15">
+               <div class="question">
+                  <p> 15.) Les étiologies pouvant être responsables d'une insuffisance cardiaque gauche chronique : </p>
+                  <ul>
+                     <li>
+                        <input id="q15a" name="q15" type="checkbox" value="A" /> A- L'HTA </li>
+                     <li>
+                        <input id="q15b" name="q15" type="checkbox" value="B" /> B- La cardiopathie ischémique </li>
+                     <li>
+                        <input id="q15c" name="q15" type="checkbox" value="C" /> C- La cardiopathie hypertrophique </li>
+                     <li>
+                        <input id="q15d" name="q15" type="checkbox" value="D" /> D- Une insuffisance aortique </li>
+                     <li>
+                        <input id="q15e" name="q15" type="checkbox" value="E" /> E- Une insuffisance mitrale </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-15')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q15')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="15"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_15" onclick="toggleCommentSection('CL2022P_15', event)"> 💬 <span class="badge" data-comment-id="CL2022P_15">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-16">
+               <div class="question">
+                  <p> 16.) Caractéristiques d'une péricardite aiguë : </p>
+                  <ul>
+                     <li>
+                        <input id="q16a" name="q16" type="checkbox" value="A" /> A- Fièvre entre 38° et 38,5° </li>
+                     <li>
+                        <input id="q16b" name="q16" type="checkbox" value="B" /> B- Douleur thoracique calmée par la position antéfléchie </li>
+                     <li>
+                        <input id="q16c" name="q16" type="checkbox" value="C" /> C- L'étiologie néoplasique est la plus fréquente </li>
+                     <li>
+                        <input id="q16d" name="q16" type="checkbox" value="D" /> D- Les antalgiques usuels soulagent la douleur </li>
+                     <li>
+                        <input id="q16e" name="q16" type="checkbox" value="E" /> E- Le sous-décalage ST fait partie des modifications électriques </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-16')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q16')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="16"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_16" onclick="toggleCommentSection('CL2022P_16', event)"> 💬 <span class="badge" data-comment-id="CL2022P_16">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-17">
+               <div class="question">
+                  <p> 17.) Les aspects radiologiques d'une péricardite aiguë de moyenne à grande abondance : </p>
+                  <ul>
+                     <li>
+                        <input id="q17a" name="q17" type="checkbox" value="A" /> A- Cardiomégalie </li>
+                     <li>
+                        <input id="q17b" name="q17" type="checkbox" value="B" /> B- Cœur en carafe </li>
+                     <li>
+                        <input id="q17c" name="q17" type="checkbox" value="C" /> C- Pointe sus-diaphragmatique </li>
+                     <li>
+                        <input id="q17d" name="q17" type="checkbox" value="D" /> D- Aspect de double contour du bord moyen du cœur </li>
+                     <li>
+                        <input id="q17e" name="q17" type="checkbox" value="E" /> E- Toutes les réponses sont correctes </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-17')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q17')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="17"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_17" onclick="toggleCommentSection('CL2022P_17', event)"> 💬 <span class="badge" data-comment-id="CL2022P_17">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-18">
+               <div class="question">
+                  <p> 18.) Chez un patient présentant une péricardite chronique constrictive : </p>
+                  <ul>
+                     <li>
+                        <input id="q18a" name="q18" type="checkbox" value="A" /> A- Le remplissage vasculaire fait partie de l'arsenal thérapeutique </li>
+                     <li>
+                        <input id="q18b" name="q18" type="checkbox" value="B" /> B- Des BK crachats doivent être demandés </li>
+                     <li>
+                        <input id="q18c" name="q18" type="checkbox" value="C" /> C- Un antécédent de radiothérapie en présence de calcifications péricardiques doit faire évoquer le diagnostic </li>
+                     <li>
+                        <input id="q18d" name="q18" type="checkbox" value="D" /> D- L'oxygénothérapie est systématique </li>
+                     <li>
+                        <input id="q18e" name="q18" type="checkbox" value="E" /> E- Toutes les réponses sont justes </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-18')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q18')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="18"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_18" onclick="toggleCommentSection('CL2022P_18', event)"> 💬 <span class="badge" data-comment-id="CL2022P_18">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-19">
+               <div class="question">
+                  <p> 19.) Quel est le siège le plus probable du trouble de conduction lorsque l'ECG montre un rythme auriculaire normal à 80/mn, un rythme ventriculaire
+                     dissocié et lent à 30/mn, des complexes QRS très élargis (0,14 sec) ? </p>
+                  <ul>
+                     <li>
+                        <input id="q19a" name="q19" type="checkbox" value="A" /> A- Sino-auriculaire </li>
+                     <li>
+                        <input id="q19b" name="q19" type="checkbox" value="B" /> B- Intra-auriculaire </li>
+                     <li>
+                        <input id="q19c" name="q19" type="checkbox" value="C" /> C- Nodal (nœud auriculo-ventriculaire) </li>
+                     <li>
+                        <input id="q19d" name="q19" type="checkbox" value="D" /> D- Infra-hissien </li>
+                     <li>
+                        <input id="q19e" name="q19" type="checkbox" value="E" /> E- Toutes les suggestions sont fausses </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-19')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q19')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="19"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_19" onclick="toggleCommentSection('CL2022P_19', event)"> 💬 <span class="badge" data-comment-id="CL2022P_19">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-20">
+               <div class="question">
+                  <p> 20.) Pendant une lipothymie, l'enregistrement continu de l'ECG montre les anomalies suivantes. Toutes peuvent être responsables de la lipothymie,
+                     sauf une, laquelle ? </p>
+                  <ul>
+                     <li>
+                        <input id="q20a" name="q20" type="checkbox" value="A" /> A- Torsade de pointe </li>
+                     <li>
+                        <input id="q20b" name="q20" type="checkbox" value="B" /> B- Tachycardie ventriculaire </li>
+                     <li>
+                        <input id="q20c" name="q20" type="checkbox" value="C" /> C- Bloc sino-auriculaire complet </li>
+                     <li>
+                        <input id="q20d" name="q20" type="checkbox" value="D" /> D- Bloc auriculo-ventriculaire premier degré </li>
+                     <li>
+                        <input id="q20e" name="q20" type="checkbox" value="E" /> E- Bloc auriculo-ventriculaire haut degré </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-20')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q20')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="20"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_20" onclick="toggleCommentSection('CL2022P_20', event)"> 💬 <span class="badge" data-comment-id="CL2022P_20">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-21">
+               <div class="question">
+                  <p> 21.) L'athérosclérose : </p>
+                  <ul>
+                     <li>
+                        <input id="q21a" name="q21" type="checkbox" value="A" /> A- Est une pathologie qui touche les artères de petit calibre </li>
+                     <li>
+                        <input id="q21b" name="q21" type="checkbox" value="B" /> B- Est une pathologie qui touche les artères de moyen et de gros calibre </li>
+                     <li>
+                        <input id="q21c" name="q21" type="checkbox" value="C" /> C- Se complique exceptionnellement de poussées aiguës </li>
+                     <li>
+                        <input id="q21d" name="q21" type="checkbox" value="D" /> D- Est considérée comme une réponse inflammatoire de la paroi vasculaire </li>
+                     <li>
+                        <input id="q21e" name="q21" type="checkbox" value="E" /> E- Peut-être asymptomatique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-21')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q21')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="21"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_21" onclick="toggleCommentSection('CL2022P_21', event)"> 💬 <span class="badge" data-comment-id="CL2022P_21">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-22">
+               <div class="question">
+                  <p> 22.) Les facteurs de risque cardiovasculaire : </p>
+                  <ul>
+                     <li>
+                        <input id="q22a" name="q22" type="checkbox" value="A" /> A- Sont toujours modifiables </li>
+                     <li>
+                        <input id="q22b" name="q22" type="checkbox" value="B" /> B- L'objectif thérapeutique pour le LDL cholestérol est indépendant du niveau de risque </li>
+                     <li>
+                        <input id="q22c" name="q22" type="checkbox" value="C" /> C- L'anémie est un facteur de risque cardiovasculaire </li>
+                     <li>
+                        <input id="q22d" name="q22" type="checkbox" value="D" /> D- Le tabac est un facteur de risque cardiovasculaire </li>
+                     <li>
+                        <input id="q22e" name="q22" type="checkbox" value="E" /> E- Aucune réponse </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-22')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q22')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="22"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_22" onclick="toggleCommentSection('CL2022P_22', event)"> 💬 <span class="badge" data-comment-id="CL2022P_22">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-23">
+               <div class="question">
+                  <p> 23.) Les deux mécanismes initiateurs de l'athérosclérose sont : </p>
+                  <ul>
+                     <li>
+                        <input id="q23a" name="q23" type="checkbox" value="A" /> A- L'excès de molécules HDL de cholestérol dans le sang traverse la couche de cellules endothéliales </li>
+                     <li>
+                        <input id="q23b" name="q23" type="checkbox" value="B" /> B- La dysfonction endothéliale </li>
+                     <li>
+                        <input id="q23c" name="q23" type="checkbox" value="C" /> C- L'excès de molécules LDL de cholestérol dans le sang traverse la couche de cellules endothéliales </li>
+                     <li>
+                        <input id="q23d" name="q23" type="checkbox" value="D" /> D- La dysfonction du média </li>
+                     <li>
+                        <input id="q23e" name="q23" type="checkbox" value="E" /> E- La dysfonction de l'adventice </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-23')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q23')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="23"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_23" onclick="toggleCommentSection('CL2022P_23', event)"> 💬 <span class="badge" data-comment-id="CL2022P_23">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-24">
+               <div class="question">
+                  <p> 24.) Dans une plaque vulnérable : </p>
+                  <ul>
+                     <li>
+                        <input id="q24a" name="q24" type="checkbox" value="A" /> A- La chape fibreuse est épaisse </li>
+                     <li>
+                        <input id="q24b" name="q24" type="checkbox" value="B" /> B- Le noyau lipidique est volumineux </li>
+                     <li>
+                        <input id="q24c" name="q24" type="checkbox" value="C" /> C- La chape est fragilisée par l'inflammation </li>
+                     <li>
+                        <input id="q24d" name="q24" type="checkbox" value="D" /> D- La chape fibreuse est fine </li>
+                     <li>
+                        <input id="q24e" name="q24" type="checkbox" value="E" /> E- Le noyau lipidique est petit </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-24')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q24')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="24"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_24" onclick="toggleCommentSection('CL2022P_24', event)"> 💬 <span class="badge" data-comment-id="CL2022P_24">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-25">
+               <div class="question">
+                  <p> 25.) L'angine de poitrine stable : </p>
+                  <ul>
+                     <li>
+                        <input id="q25a" name="q25" type="checkbox" value="A" /> A- Est souvent secondaire à l'athérosclérose </li>
+                     <li>
+                        <input id="q25b" name="q25" type="checkbox" value="B" /> B- Survient au repos et dure moins de 05 minutes </li>
+                     <li>
+                        <input id="q25c" name="q25" type="checkbox" value="C" /> C- Déclenchée par l'effort et disparaît à l'arrêt de l'effort </li>
+                     <li>
+                        <input id="q25d" name="q25" type="checkbox" value="D" /> D- Est trinitrinosensible </li>
+                     <li>
+                        <input id="q25e" name="q25" type="checkbox" value="E" /> E- Survient à l'effort et dure moins de 05 minutes </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-25')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q25')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="25"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_25" onclick="toggleCommentSection('CL2022P_25', event)"> 💬 <span class="badge" data-comment-id="CL2022P_25">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-26">
+               <div class="question">
+                  <p> 26.) Le Syndrome coronarien aigu (SCA) : </p>
+                  <ul>
+                     <li>
+                        <input id="q26a" name="q26" type="checkbox" value="A" /> A- Est une insuffisance coronarienne stable </li>
+                     <li>
+                        <input id="q26b" name="q26" type="checkbox" value="B" /> B- Est souvent secondaire à l'athérosclérose </li>
+                     <li>
+                        <input id="q26c" name="q26" type="checkbox" value="C" /> C- Est secondaire à une rupture ou érosion de la plaque d'athérome </li>
+                     <li>
+                        <input id="q26d" name="q26" type="checkbox" value="D" /> D- Est une urgence uniquement diagnostique </li>
+                     <li>
+                        <input id="q26e" name="q26" type="checkbox" value="E" /> E- Est une urgence diagnostique et thérapeutique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-26')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q26')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="26"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_26" onclick="toggleCommentSection('CL2022P_26', event)"> 💬 <span class="badge" data-comment-id="CL2022P_26">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-27">
+               <div class="question">
+                  <p> 27.) Dans le SCA sans sus-décalage persistant du segment ST : </p>
+                  <ul>
+                     <li>
+                        <input id="q27a" name="q27" type="checkbox" value="A" /> A- Le thrombus est souvent partiellement occlusif </li>
+                     <li>
+                        <input id="q27b" name="q27" type="checkbox" value="B" /> B- Le dosage de la troponine se fait une seule fois </li>
+                     <li>
+                        <input id="q27c" name="q27" type="checkbox" value="C" /> C- Le traitement antithrombotique est prescrit après le dosage de la troponine </li>
+                     <li>
+                        <input id="q27d" name="q27" type="checkbox" value="D" /> D- La troponine est toujours négative </li>
+                     <li>
+                        <input id="q27e" name="q27" type="checkbox" value="E" /> E- La coronarographie doit être réalisée immédiatement quel que soit le niveau de risque ischémique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-27')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q27')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="27"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_27" onclick="toggleCommentSection('CL2022P_27', event)"> 💬 <span class="badge" data-comment-id="CL2022P_27">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-28">
+               <div class="question">
+                  <p> 28.) Dans la stratification de risque ischémique du SCA sans sus-décalage de ST : </p>
+                  <ul>
+                     <li>
+                        <input id="q28a" name="q28" type="checkbox" value="A" /> A- On distingue 2 niveaux de risque </li>
+                     <li>
+                        <input id="q28b" name="q28" type="checkbox" value="B" /> B- La présence d'une récidive angineuse rebelle au traitement médical impose une coronarographie dans les 2 heures </li>
+                     <li>
+                        <input id="q28c" name="q28" type="checkbox" value="C" /> C- L'élévation de la troponine doit inciter à faire une coronarographie avec revascularisation dans les 2 heures </li>
+                     <li>
+                        <input id="q28d" name="q28" type="checkbox" value="D" /> D- L'instabilité hémodynamique doit inciter à faire une coronarographie avec revascularisation dans les 2 heures </li>
+                     <li>
+                        <input id="q28e" name="q28" type="checkbox" value="E" /> E- Score de GRACE &gt; 140 doit inciter à faire une coronarographie avec revascularisation dans les 24 heures </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-28')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q28')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="28"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_28" onclick="toggleCommentSection('CL2022P_28', event)"> 💬 <span class="badge" data-comment-id="CL2022P_28">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-29">
+               <div class="question">
+                  <p> 29.) Dans les SCA avec sus-décalage persistant du segment ST : </p>
+                  <ul>
+                     <li>
+                        <input id="q29a" name="q29" type="checkbox" value="A" /> A- La reperfusion coronaire doit se faire dans les plus brefs délais </li>
+                     <li>
+                        <input id="q29b" name="q29" type="checkbox" value="B" /> B- La thrombolyse n'est pas systématique </li>
+                     <li>
+                        <input id="q29c" name="q29" type="checkbox" value="C" /> C- L'angioplastie primaire est préférée quand elle est disponible </li>
+                     <li>
+                        <input id="q29d" name="q29" type="checkbox" value="D" /> D- La double antiagrégation plaquettaire est systématique </li>
+                     <li>
+                        <input id="q29e" name="q29" type="checkbox" value="E" /> E- La double antiagrégation plaquettaire n'est pas systématique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-29')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q29')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="29"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_29" onclick="toggleCommentSection('CL2022P_29', event)"> 💬 <span class="badge" data-comment-id="CL2022P_29">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-30">
+               <div class="question">
+                  <p> 30.) Dans les SCA avec sus-décalage persistant du segment ST : </p>
+                  <ul>
+                     <li>
+                        <input id="q30a" name="q30" type="checkbox" value="A" /> A- Le dosage de la troponine est un élément clé, indispensable avant toute reperfusion myocardique </li>
+                     <li>
+                        <input id="q30b" name="q30" type="checkbox" value="B" /> B- Le pronostic dépend de l'âge du patient </li>
+                     <li>
+                        <input id="q30c" name="q30" type="checkbox" value="C" /> C- La localisation antérieure est un facteur de bon pronostic </li>
+                     <li>
+                        <input id="q30d" name="q30" type="checkbox" value="D" /> D- L'épreuve d'effort doit se faire dans les plus brefs délais </li>
+                     <li>
+                        <input id="q30e" name="q30" type="checkbox" value="E" /> E- Aucune réponse </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-30')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q30')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="30"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_30" onclick="toggleCommentSection('CL2022P_30', event)"> 💬 <span class="badge" data-comment-id="CL2022P_30">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-31">
+               <div class="question">
+                  <p> 31.) Indiquer parmi les propositions suivantes, celle(s) qui est(sont) exacte(s) concernant les antiarythmiques (AAR) : </p>
+                  <ul>
+                     <li>
+                        <input id="q31a" name="q31" type="checkbox" value="A" /> A- Les AAR sont des substances capables de modifier les propriétés électrophysiologiques cardiaques en agissant sur la cinétique transmembranaire
+                        des ions </li>
+                     <li>
+                        <input id="q31b" name="q31" type="checkbox" value="B" /> B- Les mouvements ioniques de part et d'autre de la membrane cellulaire des cardiocytes s'effectuent par l'intermédiaire des canaux ioniques
+                        liés à la perméabilité sélective passive </li>
+                     <li>
+                        <input id="q31c" name="q31" type="checkbox" value="C" /> C- Les phénomènes de dépolarisation-repolarisation dépendent des modifications de transferts ioniques transmembranaires </li>
+                     <li>
+                        <input id="q31d" name="q31" type="checkbox" value="D" /> D- La dépolarisation brutale des fibres ventriculaires est créée par l'ouverture d'un canal sodique lent </li>
+                     <li>
+                        <input id="q31e" name="q31" type="checkbox" value="E" /> E- La cinétique du canal sodique rapide est sous la dépendance de deux variables d'activation et d'inactivation </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-31')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q31')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="31"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_31" onclick="toggleCommentSection('CL2022P_31', event)"> 💬 <span class="badge" data-comment-id="CL2022P_31">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-32">
+               <div class="question">
+                  <p> 32.) Indiquer parmi les propositions suivantes, celle(s) qui est(sont) exacte(s) concernant les bétabloquants : </p>
+                  <ul>
+                     <li>
+                        <input id="q32a" name="q32" type="checkbox" value="A" /> A- Contrecarrent les effets des catécholamines sur la contractilité cardiaque entraînant ainsi une baisse de la fraction d'éjection ventriculaire
+                        (FEV) </li>
+                     <li>
+                        <input id="q32b" name="q32" type="checkbox" value="B" /> B- Peuvent être utilisés dans le traitement de l'insuffisance cardiaque chronique stable </li>
+                     <li>
+                        <input id="q32c" name="q32" type="checkbox" value="C" /> C- Diminuent la consommation myocardique en O2 (MVO2) </li>
+                     <li>
+                        <input id="q32d" name="q32" type="checkbox" value="D" /> D- Sont utilisés dans le traitement des coronaropathies ischémiques </li>
+                     <li>
+                        <input id="q32e" name="q32" type="checkbox" value="E" /> E- Assurent une meilleure répartition du sang coronaire au profit de l'endocarde </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-32')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q32')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="32"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_32" onclick="toggleCommentSection('CL2022P_32', event)"> 💬 <span class="badge" data-comment-id="CL2022P_32">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-33">
+               <div class="question">
+                  <p> 33.) La réduction de l'entrée du Na+ dans les cardiocytes ventriculaires en fin de dépolarisation : </p>
+                  <ul>
+                     <li>
+                        <input id="q33a" name="q33" type="checkbox" value="A" /> A- S'explique par la réduction de la force électrochimique ou 'driving force' </li>
+                     <li>
+                        <input id="q33b" name="q33" type="checkbox" value="B" /> B- Se produit en cas d'hyponatrémie </li>
+                     <li>
+                        <input id="q33c" name="q33" type="checkbox" value="C" /> C- Se produit lors de l'intoxication digitalique </li>
+                     <li>
+                        <input id="q33d" name="q33" type="checkbox" value="D" /> D- Se produit en cas d'ischémie myocardique </li>
+                     <li>
+                        <input id="q33e" name="q33" type="checkbox" value="E" /> E- Se produit en cas d'hypernatrémie </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-33')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q33')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="33"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_33" onclick="toggleCommentSection('CL2022P_33', event)"> 💬 <span class="badge" data-comment-id="CL2022P_33">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-34">
+               <div class="question">
+                  <p> 34.) L'induction de troubles du rythme (arythmogénèse) est leur principal effet indésirable des antiarythmiques, dont les conséquences peuvent
+                     être : </p>
+                  <ul>
+                     <li>
+                        <input id="q34a" name="q34" type="checkbox" value="A" /> A- De tachycardie ventriculaire avec les AAR de classe IA et IC </li>
+                     <li>
+                        <input id="q34b" name="q34" type="checkbox" value="B" /> B- De fibrillation ventriculaire avec les AAR de classe IA et IC, notamment chez les coronariens </li>
+                     <li>
+                        <input id="q34c" name="q34" type="checkbox" value="C" /> C- De torsades de pointes (TDP) avec les AAR IA </li>
+                     <li>
+                        <input id="q34d" name="q34" type="checkbox" value="D" /> D- De torsades de pointes (TDP) avec les AAR III </li>
+                     <li>
+                        <input id="q34e" name="q34" type="checkbox" value="E" /> E- De torsades de pointes (TDP) avec les AAR II </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-34')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q34')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="34"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_34" onclick="toggleCommentSection('CL2022P_34', event)"> 💬 <span class="badge" data-comment-id="CL2022P_34">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-35">
+               <div class="question">
+                  <p> 35.) L'amiodarone, comme tous les AAR III, s'oppose à la sortie du K+ pendant la phase 3 du potentiel d'action des cardiocytes et de ce fait, ils
+                     : </p>
+                  <ul>
+                     <li>
+                        <input id="q35a" name="q35" type="checkbox" value="A" /> A- Allongent la durée du potentiel d'action des cardiocytes </li>
+                     <li>
+                        <input id="q35b" name="q35" type="checkbox" value="B" /> B- Retardent la repolarisation membranaire des cardiocytes </li>
+                     <li>
+                        <input id="q35c" name="q35" type="checkbox" value="C" /> C- Allongent la période réfractaire des cardiocytes </li>
+                     <li>
+                        <input id="q35d" name="q35" type="checkbox" value="D" /> D- Diminuent l'excitabilité myocardique à l'étage auriculaire, nodal et ventriculaire </li>
+                     <li>
+                        <input id="q35e" name="q35" type="checkbox" value="E" /> E- Allongent les périodes réfractaires dans les voies accessoires auriculoventriculaires </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-35')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q35')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="35"> ❤ </button>
+                  <button class="comment-button" data-question-id="CL2022P_35" onclick="toggleCommentSection('CL2022P_35', event)"> 💬 <span class="badge" data-comment-id="CL2022P_35">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="button-container">
+               <button class="submit-quiz-button" onclick="submitQuiz()" type="button"> Soumettre tout le Quiz </button>
+               <button class="favorite-button" id="voir-favoris-btn" onclick="voirFavoris()"> Voir Favoris </button>
+               <!-- Nouveau bouton -->
+            </div>
+            <div class="blur-background" id="blur-background"> </div>
+            <div class="result-popup" id="result-popup">
+               <h3>
+Résultat du Quiz
+</h3>
+               <div id="result"> </div>
+               <button class="close-button" id="close-result" onclick="closeResult(event)"> Fermer </button>
+               <button class="detail-button" id="voir-detail-btn" onclick="afficherDetails(event)" style="display: none;"> Voir Détail </button>
+               <button class="reset-quiz-button" onclick="resetAll()" type="button"> Réessayer tout le Quiz </button>
+            </div>
+            <div class="details-section" id="details-section" style="display: none;">
+               <h3>
+Tableau des questions
+</h3>
+               <div class="question-links" id="question-links"> </div>
+            </div>
+            <div id="timer-container"> <span id="timer">
+60:00
+</span> </div>
+<div class="comments-section" id="comments-section">
+    <h3>Commentaires</h3>
+    <textarea id="new-comment" placeholder="Écrire un commentaire..."></textarea>
+    <button type="button" onclick="addComment(event)">Ajouter</button>
+    <div id="comment-alert" class="alert" style="display: none;"></div>
+    <div id="comments-list"></div>
+</div>
+
+    <div id="comments-list"></div>
+</div>
+
+<!-- Boutons flottants -->
+<div id="floating-buttons" class="floating-buttons" style="position: fixed; bottom: 50px; right: 50px; z-index: 1000;">
+    <!-- Bouton pour afficher le cours -->
+    <button id="show-course-btn" class="floating-btn" type="button" 
+            onclick="window.open('https://drive.google.com/drive/folders/1Xd_FaJbPk4FJv3G5-96L7G0UlQnUZuSf', '_blank');">📚</button>
+    <!-- Bouton pour afficher le contact -->
+<button id="open-contact-modal" class="floating-btn" type="button">
+    ✉️
+</button>
+
+</div>
+
+
+
+
+
+<div class="message-container" id="message-container" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#f9f9f9; padding:40px; box-shadow:0 4px 12px rgba(0,0,0,0.15); border-radius:12px; z-index:1001; width:600px; max-width:90%; font-family:Arial, sans-serif;">
+    <div style="text-align:center; margin-bottom:30px;">
+        <h2 style="margin:0; font-size:24px; font-weight:bold; color:#333;">Posez vos observations <span>📝</span></h2>
+        <p style="margin:10px 0 0; font-size:16px; color:#666;">Nous sommes à votre écoute</p>
+    </div>
+    <div class="mb-3" style="margin-bottom:30px;">
+        <p style="font-size:16px; color:#333; margin:0;">En tant Que :</p>
+        <div style="margin-top:10px;">
+            <input type="radio" id="username" name="mode" value="username" style="margin-right:8px;">
+            <label for="username" style="font-size:16px; color:#333; cursor:pointer;">{{ user_full_name}}</label>
+            <br>
+            <input type="radio" id="anonymous" name="mode" value="anonymous" checked style="margin-right:8px; margin-top:10px;">
+            <label for="anonymous" style="font-size:16px; color:#333; cursor:pointer;">Anonyme</label>
+        </div>
+    </div>
+    <div class="mb-3">
+        <label for="message" class="form-label" style="font-size:18px; font-weight:bold; color:#333; margin-bottom:10px; display:block;">Votre message :</label>
+        <textarea class="form-control" id="message" rows="6" placeholder="Precisez l'examen si c'est en rapport avec une question..." style="width:100%; font-size:16px; padding:15px; border:1px solid #ccc; border-radius:8px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.1); background:#fff;"></textarea>
+    </div>
+<span class="close-btn" id="close-btn" style="cursor:pointer; position:absolute; top:15px; right:15px; font-size:51px; color:#ff0000; font-weight:bold;">&times;</span>
+<!-- Bouton Envoyer stylé -->
+<div style="text-align:center; margin-top:30px;">
+    <button type="button" class="btn btn-primary" id="send-message" style="background-color:#007bff; color:white; border:none; padding:12px 30px; border-radius:8px; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 4px 8px rgba(0, 0, 0, 0.2); transition:all 0.3s ease;">
+        Envoyer
+    </button>
+</div>
+</div>
+
+
+
+
+<div id="blur-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;"></div>
+
+
+
+<script src="{% static 'java/contact.js' %}"></script>
+            </div>
+            <script>
+            // Réponses correctes pour les questions
+            const correctAnswers = {};
+            // Contenu du fichier JavaScript
+            // Variable globale pour stocker l'intervalle du timer
+            let timerInterval;
+            const userAnswers = {}; // Object pour stocker les réponses de l'utilisateur
+            // Fonction pour démarrer le timer
+            function startTimer(duration, display) {
+               let timer = duration,
+                  minutes, seconds;
+               timerInterval = setInterval(() => {
+                  minutes = parseInt(timer / 60, 10);
+                  seconds = parseInt(timer % 60, 10);
+                  minutes = minutes < 10 ? "0" + minutes : minutes;
+                  seconds = seconds < 10 ? "0" + seconds : seconds;
+                  display.textContent = minutes + ":" + seconds;
+                  // Vérifie si le temps est écoulé
+                  if (--timer < 0) {
+                     clearInterval(timerInterval);
+                     showEndMessage();
+                  }
+               }, 1000);
+            }
+            // Fonction pour afficher le message de fin de test
+            function showEndMessage() {
+               const blurBackground = document.createElement('div');
+               blurBackground.id = 'test-end-blur';
+               blurBackground.style.position = 'fixed';
+               blurBackground.style.top = '0';
+               blurBackground.style.left = '0';
+               blurBackground.style.width = '100%';
+               blurBackground.style.height = '100%';
+               blurBackground.style.background = 'rgba(0, 0, 0, 0.5)';
+               blurBackground.style.zIndex = '100';
+               blurBackground.style.display = 'flex';
+               blurBackground.style.alignItems = 'center';
+               blurBackground.style.justifyContent = 'center';
+               const endMessage = document.createElement('div');
+               endMessage.id = 'test-end-message';
+               endMessage.style.padding = '40px';
+               endMessage.style.background = '#ffffff';
+               endMessage.style.borderRadius = '8px';
+               endMessage.style.textAlign = 'center';
+               endMessage.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+               endMessage.innerHTML = '<h2>Test terminé</h2><p>Le temps imparti est écoulé.</p><button onclick="location.reload()">Recommencer</button>';
+               blurBackground.appendChild(endMessage);
+               document.body.appendChild(blurBackground);
+               // Optionnel : masquer le conteneur de timer
+               const timerContainer = document.getElementById('timer-container');
+               timerContainer.classList.add('hide');
+            }
+            function resetAll() {
+               const form = document.getElementById('quiz-form');
+               // Réinitialiser toutes les questions
+               for (const question of Object.keys(correctAnswers)) {
+                  const questionDiv = document.querySelector(`input[name="${question}"]`).closest('.question-container');
+                  form.elements[question].forEach(input => {
+                     input.checked = false; // Décocher toutes les cases
+                  });
+                  // Supprimer les styles correct/incorrect sans toucher au style des bonnes réponses
+                  questionDiv.classList.remove('correct', 'incorrect');
+                  questionDiv.querySelectorAll('li').forEach(li => {
+                     li.style.color = ''; // Réinitialiser la couleur du texte
+                     li.style.fontWeight = ''; // Supprimer les styles ajoutés
+                     li.style.textShadow = ''; // Réinitialiser l'ombre du texte
+                     li.style.backgroundColor = ''; // Remettre le fond par défaut
+                     li.style.border = ''; // Réinitialiser la bordure
+                  });
+               }
+               // Réinitialiser l'affichage du timer
+               const timerDuration = 60 * 60; // Remettre à 60 minutes (ou 10 secondes pour le test)
+               const display = document.querySelector('#timer');
+               startTimer(timerDuration, display); // Redémarrer le timer
+               // Masquer la boîte de résultat
+               const resultPopup = document.getElementById('result-popup');
+               const blurBackground = document.getElementById('blur-background');
+               resultPopup.classList.remove('show');
+               blurBackground.classList.remove('show');
+               setTimeout(() => {
+                  resultPopup.style.display = 'none';
+                  blurBackground.style.display = 'none';
+               }, 500);
+               // Remonter en haut de la page
+               window.scrollTo({
+                  top: 0,
+                  behavior: 'smooth'
+               });
+               document.getElementById('voir-detail-btn').style.display = 'none'; // Masquer le bouton "Voir Détail"
+            }
+            // Fonction pour fermer la popup et garder les couleurs des bonnes/mauvaises réponses
+            function closeResult(event) {
+               event.preventDefault(); // Empêche le comportement par défaut du bouton
+               const resultPopup = document.getElementById('result-popup');
+               const blurBackground = document.getElementById('blur-background');
+               // Masquer la boîte de résultat
+               resultPopup.classList.remove('show');
+               blurBackground.classList.remove('show');
+               setTimeout(() => {
+                  resultPopup.style.display = 'none';
+                  blurBackground.style.display = 'none';
+               }, 500);
+               // Décocher toutes les cases sans changer la couleur des bonnes/mauvaises réponses
+               const form = document.getElementById('quiz-form');
+               for (const question of Object.keys(correctAnswers)) {
+                  form.elements[question].forEach(input => {
+                     input.checked = false; // Décocher toutes les cases
+                  });
+               }
+            }
+            // Fonction pour afficher les détails et rediriger vers Syntanatomie2023
+            function afficherDetails(event) {
+               event.preventDefault(); // Empêche le comportement par défaut du bouton
+               saveUserAnswers(); // Enregistrer les réponses avant de quitter la page
+               window.location.href = '{% url 'dynamic_view' 'S6' 'Pathologie_cardiovasculaire' 'syntanat2020' %}'; // Redirection vers Syntanatomie2023
+            }
+            // Fonction pour défiler jusqu'à la question
+            function scrollToQuestion(questionNumber) {
+               const questionDiv = document.querySelector(`.question-container:nth-of-type(${questionNumber})`);
+               if (questionDiv) {
+                  questionDiv.scrollIntoView({
+                     behavior: 'smooth'
+                  });
+               }
+            }
+
+            function saveUserAnswers() {
+               // Change la clé pour la version 2020
+               localStorage.setItem('userAnswersAnatomie2020', JSON.stringify(userAnswers));
+            }
+            // Fonction pour afficher les confettis et ajouter le message de félicitations dans la popup de résultats
+            function lancerConfettisEtMessage(score) {
+    if (score === 35) {
+                  // Lancer les confettis
+                  confetti({
+                     particleCount: 200,
+                     spread: 70,
+                     origin: {
+                        y: 0.6
+                     },
+                     colors: ['#bb0000', '#ffffff'], // Couleurs de confettis
+                  });
+                  // Ajouter un message de félicitations à la boîte de résultat
+                  const resultDiv = document.getElementById('result');
+                  const felicitationMessage = `<p>Félicitations! Vous avez obtenu ${score} bonnes réponses. Vous serez un grand médecin !</p>`;
+                  // Ajouter le message à la fin du résultat
+                  resultDiv.innerHTML += felicitationMessage;
+               }
+            }
+            // Partie favori pour Anatomie2020
+            /// Tableau pour stocker les questions favorites, récupéré depuis le localStorage (Anatomie2022P)
+            let favoriteQuestionsCL2022P = JSON.parse(localStorage.getItem('favoriteQuestionsCL2022P')) || [];
+            console.log('Favorite questions loaded from localStorage:', favoriteQuestionsCL2022P);
+
+            function toggleFavorite(event, questionNumber) {
+               event.preventDefault(); // Empêche le rafraîchissement de la page
+               const button = document.querySelector(`.favorite-button[data-question="${questionNumber}"]`);
+               const questionContent = document.querySelector(`#question-${questionNumber}`).innerHTML; // Récupère le contenu HTML de la question
+               // Vérifie si la question est déjà dans les favoris
+               const isFavorited = favoriteQuestionsCL2022P.includes(questionNumber);
+               if (isFavorited) {
+                  // Si elle est déjà favorisée, on la retire des favoris
+                  favoriteQuestionsCL2022P = favoriteQuestionsCL2022P.filter(q => q !== questionNumber);
+                  button.classList.remove('favorited'); // Retire la classe favori
+                  localStorage.removeItem(`favoriteContent2022P-${questionNumber}`); // Supprime le contenu de la question
+               } else {
+                  // Si elle n'est pas favorisée, on l'ajoute
+                  favoriteQuestionsCL2022P.push(questionNumber);
+                  button.classList.add('favorited'); // Ajoute la classe favori
+                  localStorage.setItem(`favoriteContent2022P-${questionNumber}`, questionContent); // Stocke le contenu de la question dans le localStorage
+               }
+               // Sauvegarde uniquement les favoris
+               saveFavoriteState2022P(); // <== Remplacez par saveFavoriteState2022P
+               // Mise à jour du bouton "Voir Favori" sans rafraîchir la page
+               showFavoriteButton();
+            }
+
+            function saveFavoriteState2022P() {
+               localStorage.setItem('favoriteQuestionsCL2022P', JSON.stringify(favoriteQuestionsCL2022P)); // Sauvegarde les questions favorites
+            }
+
+            function initializeFavoriteButtons() {
+               const allFavoriteButtons = document.querySelectorAll('.favorite-button');
+               allFavoriteButtons.forEach(button => {
+                  const questionNumber = parseInt(button.getAttribute('data-question'), 10);
+                  // Vérifie si cette question est dans les favoris et applique la classe
+                  if (favoriteQuestionsCL2022P.includes(questionNumber)) {
+                     button.classList.add('favorited'); // Ajoute l'état favori
+                  } else {
+                     button.classList.remove('favorited'); // Retire l'état favori
+                  }
+                  // Ajoute un événement de clic pour chaque bouton et empêche le rafraîchissement
+                  button.addEventListener('click', (event) => toggleFavorite(event, questionNumber));
+               });
+            }
+
+            function showFavoriteButton() {
+               const voirFavorisBtn = document.getElementById('voir-favoris-btn');
+               if (favoriteQuestionsCL2022P.length > 0) {
+                  voirFavorisBtn.style.display = 'inline-block'; // Affiche le bouton si des questions sont favorisées
+               } else {
+                  voirFavorisBtn.style.display = 'none'; // Cache le bouton si aucun favori
+               }
+            }
+            // Appelle cette fonction après avoir ajouté ou retiré des favoris
+            window.onload = function() {
+               console.log('Page loaded, initializing favorite buttons for 2022P.');
+               initializeFavoriteButtons(); // Charger les boutons de favoris
+               showFavoriteButton(); // Afficher le bouton "Voir Favori" si des favoris existent
+               const timerDuration = 60 * 60; // 60 minutes
+               const display = document.querySelector('#timer');
+               startTimer(timerDuration, display);
+               // Récupère toutes les listes (li) qui contiennent des propositions
+               const propositions = document.querySelectorAll('li');
+               propositions.forEach(function(proposition) {
+                  // Trouve la checkbox dans chaque liste
+                  const checkbox = proposition.querySelector('input[type="checkbox"]');
+                  if (checkbox) {
+                     // Créer un label
+                     const label = document.createElement('label');
+                     // Donner un id à la checkbox si elle n'en a pas
+                     if (!checkbox.id) {
+                        checkbox.id = checkbox.name + '-' + checkbox.value; // Ex: q1-A
+                     }
+                     // Déplacer le texte de la proposition dans le label
+                     label.htmlFor = checkbox.id; // Le 'for' du label correspond à l'id de la checkbox
+                     label.appendChild(checkbox); // Déplacer la checkbox dans le label
+                     label.appendChild(document.createTextNode(proposition.textContent.trim())); // Ajouter le texte de la proposition
+                     // Remplacer le contenu original par le nouveau label
+                     proposition.innerHTML = ''; // Vider le contenu de l'élément <li>
+                     proposition.appendChild(label); // Ajouter le label modifié
+                  }
+               });
+            };
+            try {
+               localStorage.setItem('testKey', 'testValue');
+               const testValue = localStorage.getItem('testKey');
+               if (testValue !== 'testValue') {
+                  console.error('localStorage is not functioning as expected.');
+               }
+            } catch (error) {
+               console.error('localStorage error:', error);
+            }
+
+            function voirFavoris() {
+               console.log('Redirection vers la page des favoris');
+               window.location.href = "{% url 'render_favorite' 'S6' 'Favori22' %}";
+            }
+            // Fonction pour afficher les confettis et ajouter le message de félicitations dans la popup de résultats
+            function lancerConfettisEtMessage(score) {
+    if (score === 35) {
+                  // Lancer les confettis
+                  confetti({
+                     particleCount: 200,
+                     spread: 70,
+                     origin: {
+                        y: 0.6
+                     },
+                     colors: ['#bb0000', '#ffffff'], // Couleurs de confettis
+                  });
+                  // Ajouter un message de félicitations à la boîte de résultat
+                  const resultDiv = document.getElementById('result');
+                  const felicitationMessage = `<p>Félicitations! Vous avez obtenu ${score} bonnes réponses. Vous serez un grand médecin !</p>`;
+                  // Ajouter le message à la fin du résultat
+                  resultDiv.innerHTML += felicitationMessage;
+               }
+            }
+
+            </script>
+            <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js">
+
+
+            </script>
+         </form>
+      </div>
+      
+   </body>
+
+</html>      <script>
+// Fonction pour réinitialiser une seule question
+function resetQuestion(questionName) {
+    console.log(`[DEBUG] Réinitialisation de la question : ${questionName}`);
+
+    const form = document.getElementById('quiz-form');
+    const questionDiv = document.querySelector(`input[name="${questionName}"]`).closest('.question-container');
+
+    if (!form || !questionDiv) {
+        console.error(`[ERROR] Formulaire ou conteneur de la question introuvable pour : ${questionName}`);
+        return;
+    }
+
+    // Décocher toutes les cases de cette question
+    const inputs = Array.from(form.elements[questionName]);
+    inputs.forEach(input => {
+        input.checked = false;
+        console.log(`[DEBUG] Case décochée : ${input.value}`);
+    });
+
+    // Supprimer les styles correct/incorrect et remettre les couleurs par défaut
+    questionDiv.classList.remove('correct', 'incorrect');
+    questionDiv.querySelectorAll('li').forEach(li => {
+        li.style.color = ''; // Réinitialiser la couleur
+        li.style.fontWeight = ''; // Réinitialiser le texte en gras
+        li.style.textShadow = ''; // Réinitialiser l'ombre du texte
+        li.style.backgroundColor = ''; // Réinitialiser le fond
+        li.style.border = ''; // Réinitialiser la bordure
+    });
+
+    // Supprimer les conteneurs ou les éléments liés aux pourcentages
+    const percentageContainers = questionDiv.querySelectorAll('.percentage-container');
+    percentageContainers.forEach(container => {
+        console.log(`[DEBUG] Suppression du conteneur de pourcentage :`, container);
+        container.remove();
+    });
+
+    // Supprimer les informations enregistrées sur la réponse de cette question
+    if (userAnswers && userAnswers[questionName]) {
+        delete userAnswers[questionName];
+        console.log(`[DEBUG] Réponse supprimée pour la question : ${questionName}`);
+    }
+
+    console.log(`[DEBUG] Question réinitialisée avec succès : ${questionName}`);
+}
+
+
+function correctAndSubmitQuestion(questionId) {
+    console.log("Début de la fonction correctAndSubmitQuestion.");
+    console.log("ID de la question reçue :", questionId);
+
+    // Transform the ID to match the backend's expected format
+    const transformedId = questionId.replace('question-', 'CL2022P_');
+    console.log("ID transformé pour le backend :", transformedId);
+
+    // Get the question number from the questionId
+    const questionNumber = questionId.split('-')[1];
+    console.log("Numéro de la question extrait :", questionNumber);
+
+    // Get selected choices (checkbox values) dynamically for the specific question
+    const selectedChoices = [];
+    const checkboxes = document.querySelectorAll(`input[name="q${questionNumber}"]:checked`);
+    console.log(`Nombre de checkboxes sélectionnées pour la question ${questionNumber}:`, checkboxes.length);
+
+    checkboxes.forEach((checkbox) => {
+        // Append the transformed choice ID in the format "question_id_l"
+        const choiceId = `${transformedId}_${checkbox.value.toLowerCase()}`;
+        selectedChoices.push(choiceId);
+        console.log(`Transformed choice ID ajouté : ${choiceId}`);
+    });
+
+    console.log("Choix sélectionnés après transformation :", selectedChoices);
+
+    if (selectedChoices.length === 0) {
+        console.log("Aucune réponse sélectionnée. Alerte affichée.");
+        alert("Veuillez sélectionner au moins une réponse.");
+        return;
+    }
+
+    // Step 1: Submit the user's response
+    const formData = new URLSearchParams();
+    formData.append("question_id", transformedId);
+    selectedChoices.forEach((choice) => formData.append("choices[]", choice));
+    console.log("Données envoyées au backend :", [...formData.entries()]);
+
+    fetch("/submit_response/", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": getCsrfToken(),
+        },
+        body: formData,
+    })
+        .then((response) => {
+            if (!response.ok) {
+                console.error("Erreur lors de l'enregistrement des réponses.");
+                throw new Error("Erreur lors de l'enregistrement des réponses.");
+            }
+            console.log("Réponse soumise avec succès.");
+            return response.json();
+        })
+        .then((data) => {
+            console.log("Données reçues après soumission :", data);
+
+            // Step 2: Fetch updated percentages for this question
+            console.log(`Requête pour calculer les pourcentages pour l'ID ${transformedId}.`);
+            return fetch(`/calculate_percentages/${transformedId}/`);
+        })
+        .then((response) => {
+            if (!response.ok) {
+                console.error("Erreur lors du calcul des pourcentages.");
+                throw new Error("Erreur lors du calcul des pourcentages.");
+            }
+            console.log("Calcul des pourcentages réussi.");
+            return response.json();
+        })
+        .then((data) => {
+            console.log("Pourcentages reçus :", data);
+
+            // Display percentages for each choice
+            const questionContainer = document.getElementById(questionId);
+            Object.entries(data.percentages).forEach(([choiceId, percentage]) => {
+                console.log(`Traitement du choix ${choiceId} avec pourcentage ${percentage}%.`);
+                const choiceElement = questionContainer.querySelector(`input[value="${choiceId.split('_').pop().toUpperCase()}"]`);
+                if (choiceElement) {
+                    // Ajouter un conteneur pour le pourcentage si nécessaire
+                    let percentageContainer = choiceElement.parentElement.querySelector(".percentage-container");
+
+                    if (!percentageContainer) {
+                        console.log(`Conteneur de pourcentage manquant pour ${choiceId}. Création en cours.`);
+                        percentageContainer = document.createElement("span");
+                        percentageContainer.classList.add("percentage-container");
+
+                        // Ajout du conteneur dans la parentElement
+                        choiceElement.parentElement.style.display = "flex";
+                        choiceElement.parentElement.style.alignItems = "center";
+                        choiceElement.parentElement.appendChild(percentageContainer);
+                    }
+
+                    // Mettre à jour le texte avec le pourcentage
+                    percentageContainer.textContent = `${percentage}%`;
+percentageContainer.style.color = "blue";
+percentageContainer.style.fontWeight = "bold";
+percentageContainer.style.marginLeft = "auto"; // Aligne le pourcentage à droite
+percentageContainer.style.textAlign = "right"; // Alignement du texte dans le conteneur
+percentageContainer.style.paddingLeft = "10px"; // Optionnel, ajoute un espace entre la case et le pourcentage
+
+                    console.log(`Pourcentage mis à jour pour ${choiceId}: ${percentage}%.`);
+                } else {
+                    console.warn(`Checkbox non trouvée pour le choix ${choiceId}.`);
+                }
+            });
+        })
+        .catch((error) => {
+            console.error("Erreur :", error);
+            alert("Une erreur est survenue lors de la soumission ou du calcul des pourcentages.");
+        })
+        .finally(() => {
+            console.log("Fin de la fonction correctAndSubmitQuestion.");
+        });
+}
+
+
+// Function to retrieve CSRF token
+function getCsrfToken() {
+    const csrfCookie = document.cookie
+        .split('; ')
+        .find((row) => row.startsWith('csrftoken='));
+    return csrfCookie ? csrfCookie.split('=')[1] : null;
+}
+
+
+
+
+</script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+    <script src="{% static 'java/comment.js' %}"></script>

@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="MR2017R">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) La primo-infection tuberculeuse :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Peut être révélée par un virage tuberculinique</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Témoigne d'un premier contact entre l'organisme et le BK</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Peut être révélée par une kérato-conjonctivite</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Se caractérise par des nodules au niveau de l'apex</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Donne une immunité définitive contre le bacille de Koch (BK)</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Précisez parmi les suivantes, la ou les propositions exactes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- La bronchopneumonie tuberculeuse est une forme aigue de tuberculose</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- L'IDR est toujours positive au cours de tuberculose pulmonaire commune</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- La tuberculose pulmonaire commune est une tuberculose de réinfection</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- La pneumonie caséeuse est une tuberculose pulmonaire commune</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Le fond d'œil et la ponction lombaire sont systématiques dans la milaire tuberculeuse</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Au cours de la primo-infection tuberculeuse patente :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- L'érithème noueux peut être révélateur</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- La pleurésie est toujours associée</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Les recherches de BK dans les expectorations peuvent être positives</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- L'évolution se fait toujours vers la tuberculose maladie</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Aucune réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Quelles sont les présentations radiologiques caractéristiques d'une tuberculose pulmonaire commune :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Un nodule pulmonaire basal droit</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Des infiltrats nodulo-excavés du sommet</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Une cavité entourée de nodules</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Une opacité systématisée</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Une miliaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Selon le programme national de la LAT, les nouveaux cas de tuberculose extra pulmonaire sont traités par le régime :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- 2RHZE/4RH</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- 2RHZE/7RH</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- 2SRHZ/4RH</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- 2RH2E/6RH</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- 2RH2/7RH</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Chez un patient porteur d'une tuberculose méningée. Vous prescrivez le régime :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- 2RHZE/4RH</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- 2RHZE/7RH</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- 2SRHZ/4RH</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- 2RHZE/6RH</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- 2RHZ/7RH</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Vous suspectez la tuberculose chez un patient porteur d'une pleurésie sérofibrineuse isolée. Quel(s) examen(s) parmi les suivants vous permet (tent) de confirmer le diagnostic :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- L'intradermo réaction à la tuberculine</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- L'étude cytologique du liquide pleural</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- L'étude chimique du liquide pleural</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- La recherche de BK dans les expectorations</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Ponction biopsie pleurale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Parmi les signes suivants, quels sont ceux qui sont habituellement associés à la pneumonie caséeuse tuberculeuse :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Herpes labial</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Un début nettement brutal</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Opacités alvéolaires systématisées</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Lymphopénie</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Hyperleucocytose & polynucléaires neutrophiles</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Parmi les effets secondaires suivants, quel est celui qui est habituellement associé à la prise de l'éthambutol :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Polynévrite sensitivomotrice</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Hépatite</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Troubles cochléo-vestibulaires</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Arthralgie</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Névrite optique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Parmi les effets secondaires suivants, quel est celui qui est habituellement associé à la prise de la streptomycine :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Polynévrite sensitivomotrice</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Hépatite</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Troubles cochléo-vestibulaires</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Arthralgie</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Névrite optique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Le ou les produit(s) responsable(s) de l'accoutumance dans la fumée du tabac est ou sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Le monoxyde de Carbone (CO)</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Les Nitrosamines</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Les goudrons</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Les dioxines</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- La nicotine</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Les facteurs de risque de survenue d'une pneumonie nosocomiale sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Ventilation assistée</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Intubation trachéale</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Trouble de la conscience</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Âgé de 56 ans</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Intervention chirurgicale datant de 7 mois</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Les pneumopathies virales :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Réalisent des tableaux de bronchopneumonies</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Sont fréquentes au sein des pneumonies communautaires virales</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- S'accompagnent souvent de surinfection bactérienne</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Sont dominées chez l'adulte par l'infection à Haemophilus influenzae</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Sont toujours bénignes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) La pneumonie à pneumocoque :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Se traite en première intention par l'amoxicilline</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Peut survenir à l'occasion de facteurs favorisants</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Peut être mortelle</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Peut se compliquer de méningite</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Est la plus fréquente des pneumopathies bactériennes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Les arguments en faveur d'une pneumopathie à anaérobies sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Le caractère bombant de la pneumonie</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- L'haleine fétide</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- L'opacité excavée à la radiographie thoracique</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Une pathologie d'inhalation sous-jacente</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Le diabète sous-jacent</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Les agents infectieux habituellement responsables d'une pneumopathie atypique sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Staphylocoque doré</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Haemophilus influenzae</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Mycoplasma pneumoniae</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Myxovirus influenzae</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Chlamydia pneumoniae</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) La réalisation d'une bronchoscopie au cours d'une dilatation des bronches (DDB) permet de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Rechercher un corps étranger</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Évaluer l'état de la muqueuse bronchique</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Aspirer les sécrétions bronchiques</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Localiser un saignement s'il existe</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Affirmer la réalité de la DDB</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Un kyste hydatique pulmonaire peut être révélé à l'occasion de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Hydatidoptysie</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Suppurations bronchiques</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Pyopneumothorax</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Image hydro-aérique à la radiographie thoracique</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Hémoptysie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) L'aspergillome pulmonaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Survient sur une cavité pulmonaire séquellaire</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Se présente comme une image en grelot à la radiographie thoracique</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Est rarement révélé par une hémoptysie</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Est dû au développement de l'aspergillus fumigatus</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Est révélé par un asthme fébrile</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Mr Salah, 58 ans, tabagique avec antécédent d'asthme à l'enfance consulte pour une dyspnée au moindre effort. Il accuse depuis 15 ans une toux avec expectoration. L'auscultation pulmonaire montre des râles ronflants diffus avec quelques sibilants. La radiographie thoracique montre une distension thoracique. L'indice de masse corporelle est de 20 Kg/m2. À ce stade, les diagnostics à évoquer sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Asthme</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Pneumopathie d'hypersensibilité (alvéolite allergique extrinsèque)</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Bronchite chronique simple</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Bronchopneumonie</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Broncho-pneumopathie chronique obstructive</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) La spirométrie réalisée chez ce patient donne les valeurs suivantes : VEMS de 1,5 litres (VEMS théorique = 3,8 litres), VEMS/CVF de 46% (VEMS/CVF théorique = 80%). Après inhalation d'un bêta2-mimétique et une corticothérapie orale de 10 jours, le VEMS est de 1,56 litres. Au cours du test de marche de 6 minutes, la distance parcourue avant désaturation à l'effort est de 240 mètres.À ce stade, le diagnostic le plus probable est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Asthme</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Pneumopathie d'hypersensibilité (alvéolite allergique extrinsèque)</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Bronchite chronique simple</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- Bronchopneumonie</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Broncho-pneumopathie chronique obstructive (BPCO)</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Chez Mr Salah, si on détermine la valeur du score de BODE, on doit trouver la valeur de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- 7</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- 10</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- 9</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- 8</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- 6</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Dans le cas où il s'agit d'une BPCO, les comorbidités à rechercher systématiquement chez Salah sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Dénutrition</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Anémie</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Les exacerbations infectieuses</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Anxiété</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Bulles d'emphysème</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) En cas de pleurésie purulente, le liquide pleural est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Exsudatif</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Transudatif</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- À prédominance de polynucléaires neutrophiles altérés</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- À prédominance lymphocytaire</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- D'aspect louche ou clair en cas de prise d'antibiotiques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) L'évolution de la pleurésie purulente non traitée convenablement se fait vers :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- L'enkystement</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- La fistulisation dans les bronches</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- L'amylose</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Le cancer bronchique</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- La pachypleurite</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Le traitement de la pleurésie purulente tuberculeuse repose sur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- Les antibiotiques : Amoxicilline, Ac clavulanique, Aminoside</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- Les antibiotiques : Céphalosporine de 3ᵉ génération, Aminoside + Imidazole</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- L'évacuation du pus</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- La kinésithérapie respiratoire</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- Le traitement antibacillaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) Le pneumothorax spontané primitif :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- Survient sur un poumon sain</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- Survient sur une BPCO</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Survient sur une fibrose pulmonaire</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Est bénin</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- Survient chez un sujet jeune longiligne</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) L'examen clinique physique en cas d'un pneumothorax droit trouve :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- Un hémithorax droit rétracté</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- Une majoration des vibrations vocales à droite</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- Une matité à droite</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- Une hypersonorité du côté droit</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- Une abolition des murmures vésiculaires à droite</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) En cas de pneumothorax, la radio thoracique montre :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- Une opacité de tonalité hydrique</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- Un niveau hydro-aérique</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- Une clarté sans trame vasculaire</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- Une distension thoracique</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- Une rétraction du moignon pulmonaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) Le syndrome de Claude Bernard-Horner associe :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- Un œdème en pèlerine</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- Une circulation veineuse collatérale</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- Un ptosis</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- Un myosis</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- Une énophtalmie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) L'opacité médiastinale est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- De tonalité hydrique</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- Se raccorde en pente douce avec le médiastin</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- Sa limite externe est visible et nette</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- Sa limite interne se confond avec le médiastin</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- A une projection postérieure si elle dépasse le bord supérieur de la clavicule</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) Le thymome :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A- Est une tumeur du médiastin antérieur</li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B- Se développe à partir de cellules germinales</li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C- S'associe à une myasthénie</li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D- S'associe d'une élévation de l'α-foeto-protéine</li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E- La présence d'une dent à la TDM thoracique pose le diagnostic</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) Les diagnostics différentiels d'un asthme sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A- Les bronchectasies</li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B- Le corps étranger trachéo-bronchique</li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C- Les adénopathies médiastinales</li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D- La BPCO</li>
+            
+                    <li><input type="checkbox" id="q33e" name="q33" value="E"> E- Les cardiopathies gauches</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) L'exacerbation aiguë légère d'asthme se caractérise par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A- La survenue d'une dyspnée à la marche et le patient peut rester allongé</li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B- Le patient a une parole facile</li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C- La fréquence respiratoire est inférieure à 25 cycles/min</li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D- La fréquence cardiaque est supérieure à 120 cycles/min</li>
+            
+                    <li><input type="checkbox" id="q34e" name="q34" value="E"> E- La saturation en O₂ est inférieure à 90%</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) Le traitement d'une exacerbation légère d'asthme repose sur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A- L'hospitalisation</li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B- La corticothérapie par voie orale</li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C- La corticothérapie par voie intra-veineuse</li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D- La prise de bouffées par voie inhalée d'un bronchodilatateur de courte durée d'action</li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E- L'oxygénothérapie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-36" class="question-container">
+            <div class="question">
+                <p>36.) Parmi les propositions suivantes laquelle (lesquelles) correspond (ent) au carcinome bronchogénique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q36a" name="q36" value="A"> A- C'est le plus fréquent des cancers chez l'homme</li>
+            
+                    <li><input type="checkbox" id="q36b" name="q36" value="B"> B- Le tabac est le seul facteur de risque</li>
+            
+                    <li><input type="checkbox" id="q36c" name="q36" value="C"> C- Peut être révélé par un syndrome paranéoplasique</li>
+            
+                    <li><input type="checkbox" id="q36d" name="q36" value="D"> D- Un état général altéré signe souvent une diffusion métastatique</li>
+            
+                    <li><input type="checkbox" id="q36e" name="q36" value="E"> E- L'hémoptysie peut être un signe révélateur</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-37" class="question-container">
+            <div class="question">
+                <p>37.) Le bilan pré-thérapeutique d'un adénocarcinome bronchique doit comporter le (les) examen(s) suivant(s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q37a" name="q37" value="A"> A- Une tomodensitométrie thoracique</li>
+            
+                    <li><input type="checkbox" id="q37b" name="q37" value="B"> B- Une échographie abdominale</li>
+            
+                    <li><input type="checkbox" id="q37c" name="q37" value="C"> C- Une exploration fonctionnelle respiratoire</li>
+            
+                    <li><input type="checkbox" id="q37d" name="q37" value="D"> D- Une tomodensitométrie cérébrale</li>
+            
+                    <li><input type="checkbox" id="q37e" name="q37" value="E"> E- Des radiographies standard du bassin et du rachis</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-38" class="question-container">
+            <div class="question">
+                <p>38.) Quel est le meilleur traitement curatif à proposer pour un cancer bronchique non à petites cellules classé stade IA ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q38a" name="q38" value="A"> A- La radio-chimiothérapie</li>
+            
+                    <li><input type="checkbox" id="q38b" name="q38" value="B"> B- L'abstention thérapeutique</li>
+            
+                    <li><input type="checkbox" id="q38c" name="q38" value="C"> C- La chimiothérapie seule</li>
+            
+                    <li><input type="checkbox" id="q38d" name="q38" value="D"> D- La chirurgie</li>
+            
+                    <li><input type="checkbox" id="q38e" name="q38" value="E"> E- La radiothérapie seule</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-39" class="question-container">
+            <div class="question">
+                <p>39.) Parmi les propositions suivantes laquelle (lesquelles) correspond (ent) au carcinome bronchique à petites cellules :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q39a" name="q39" value="A"> A- Tumeur habituellement de siège hilaire ou médiastino-pulmonaire</li>
+            
+                    <li><input type="checkbox" id="q39b" name="q39" value="B"> B- Tumeur de siège souvent périphérique</li>
+            
+                    <li><input type="checkbox" id="q39c" name="q39" value="C"> C- Évolution très rapide localement et à distance</li>
+            
+                    <li><input type="checkbox" id="q39d" name="q39" value="D"> D- Fréquence des syndromes paranéoplasiques</li>
+            
+                    <li><input type="checkbox" id="q39e" name="q39" value="E"> E- Traitement chirurgical</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-40" class="question-container">
+            <div class="question">
+                <p>40.) Parmi les propositions suivantes, précisez celle(s) qui correspond(ent) à la sarcoïdose médiastino-pulmonaire (Stade II) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q40a" name="q40" value="A"> A- Elle peut compliquer l'évolution d'un stade I connu</li>
+            
+                    <li><input type="checkbox" id="q40b" name="q40" value="B"> B- La découverte peut se faire à l'occasion d'une localisation extra-thoracique de la maladie</li>
+            
+                    <li><input type="checkbox" id="q40c" name="q40" value="C"> C- L'état général est habituellement conservé</li>
+            
+                    <li><input type="checkbox" id="q40d" name="q40" value="D"> D- L'intradermoréaction à la tuberculine est souvent positive</li>
+            
+                    <li><input type="checkbox" id="q40e" name="q40" value="E"> E- L'évolution peut se faire vers la régression spontanée des lésions</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-41" class="question-container">
+            <div class="question">
+                <p>41.) Mr Salah, 58 ans, tabagique avec antécédent d'asthme à l'enfance consulte pour une dyspnée au moindre effort. Il accuse depuis 15 ans une toux avec expectoration. L'auscultation pulmonaire montre des râles ronflants diffus avec quelques sibilants. La radiographie thoracique montre une distension thoracique. L'indice de masse corporelle est de 20 kg/m². Parmi les propositions suivantes, précisez celle(s) qui correspond(ent) à la sarcoïdose :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q41a" name="q41" value="A"> A- Elle survient habituellement chez le sujet jeune entre 20 à 40 ans</li>
+            
+                    <li><input type="checkbox" id="q41b" name="q41" value="B"> B- Le granulome tuberculoïde est spécifique de la sarcoïdose</li>
+            
+                    <li><input type="checkbox" id="q41c" name="q41" value="C"> C- Le lavage bronchiolo-alvéolaire (LBA) montre habituellement une hyperlymphocytose</li>
+            
+                    <li><input type="checkbox" id="q41d" name="q41" value="D"> D- L'élévation des polynucléaires neutrophiles au LBA oriente vers la fibrose</li>
+            
+                    <li><input type="checkbox" id="q41e" name="q41" value="E"> E- L'atteinte neurologique est une indication à la corticothérapie au long cours</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-42" class="question-container">
+            <div class="question">
+                <p>42.) Parmi les propositions suivantes laquelle (lesquelles) correspond(ent) aux alvéolites allergiques extrinsèques :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q42a" name="q42" value="A"> A- Sont secondaires à l'inhalation de particules organiques antigéniques</li>
+            
+                    <li><input type="checkbox" id="q42b" name="q42" value="B"> B- Sont dues à une réaction d'hypersensibilité de type IV</li>
+            
+                    <li><input type="checkbox" id="q42c" name="q42" value="C"> C- Évoluent toujours vers la fibrose</li>
+            
+                    <li><input type="checkbox" id="q42d" name="q42" value="D"> D- La présence de précipitines confirme le diagnostic</li>
+            
+                    <li><input type="checkbox" id="q42e" name="q42" value="E"> E- La prévention est toujours indiquée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-43" class="question-container">
+            <div class="question">
+                <p>43.) Précisez parmi les propositions suivantes celles qui correspondent à la maladie du poumon de fermier :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q43a" name="q43" value="A"> A- Est due à l'inhalation de spores d'actinomycètes thermophiles</li>
+            
+                    <li><input type="checkbox" id="q43b" name="q43" value="B"> B- L'auscultation retrouve habituellement des râles crépitants diffus aux bases</li>
+            
+                    <li><input type="checkbox" id="q43c" name="q43" value="C"> C- Est la plus fréquente des pneumopathies d'hypersensibilité</li>
+            
+                    <li><input type="checkbox" id="q43d" name="q43" value="D"> D- Le lavage bronchiolo-alvéolaire montre habituellement une hyperéosinophilie</li>
+            
+                    <li><input type="checkbox" id="q43e" name="q43" value="E"> E- Le traitement est basé sur l'éviction de l'antigène incriminé</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-44" class="question-container">
+            <div class="question">
+                <p>44.) Précisez parmi les propositions suivantes celles qui correspondent à la silicose :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q44a" name="q44" value="A"> A- C'est la plus fréquente des pneumoconioses</li>
+            
+                    <li><input type="checkbox" id="q44b" name="q44" value="B"> B- La latence clinique pendant plusieurs années est la règle</li>
+            
+                    <li><input type="checkbox" id="q44c" name="q44" value="C"> C- La surinfection tuberculeuse est rare</li>
+            
+                    <li><input type="checkbox" id="q44d" name="q44" value="D"> D- C'est une pneumoconiose fibrogène</li>
+            
+                    <li><input type="checkbox" id="q44e" name="q44" value="E"> E- Le traitement curatif est basé sur la corticothérapie prolongée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-45" class="question-container">
+            <div class="question">
+                <p>45.) Parmi les propositions suivantes lesquelles correspondent à l'asbestose pulmonaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q45a" name="q45" value="A"> A- Elle est due à l'inhalation de fibres d'amiante</li>
+            
+                    <li><input type="checkbox" id="q45b" name="q45" value="B"> B- Elle a souvent une origine professionnelle</li>
+            
+                    <li><input type="checkbox" id="q45c" name="q45" value="C"> C- Elle peut s'accompagner de plaques pleurales calcifiées</li>
+            
+                    <li><input type="checkbox" id="q45d" name="q45" value="D"> D- L'évolution spontanée se fait habituellement vers la régression des lésions</li>
+            
+                    <li><input type="checkbox" id="q45e" name="q45" value="E"> E- La prévention est un élément essentiel</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-46" class="question-container">
+            <div class="question">
+                <p>46.) Précisez parmi les propositions suivantes celles qui correspondent aux pneumopathies infiltrantes diffuses (PID) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q46a" name="q46" value="A"> A- Des râles crépitants secs aux bases sont habituellement retrouvés</li>
+            
+                    <li><input type="checkbox" id="q46b" name="q46" value="B"> B- L'image radiologique est parfois à la limite de la normale</li>
+            
+                    <li><input type="checkbox" id="q46c" name="q46" value="C"> C- Peut se compliquer d'un pneumothorax spontané</li>
+            
+                    <li><input type="checkbox" id="q46d" name="q46" value="D"> D- La DLCO reste normale dans les formes évoluées</li>
+            
+                    <li><input type="checkbox" id="q46e" name="q46" value="E"> E- La TDM thoracique avec coupes fines est un examen-clé pour le diagnostic</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-47" class="question-container">
+            <div class="question">
+                <p>47.) Parmi ces antiasthmatiques, lesquels sont destinés pour lutter contre le bronchospasme ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q47a" name="q47" value="A"> A- Bêtabloquants</li>
+            
+                    <li><input type="checkbox" id="q47b" name="q47" value="B"> B- Bêta2-mimétiques</li>
+            
+                    <li><input type="checkbox" id="q47c" name="q47" value="C"> C- Anticholinergiques</li>
+            
+                    <li><input type="checkbox" id="q47d" name="q47" value="D"> D- Théophylline</li>
+            
+                    <li><input type="checkbox" id="q47e" name="q47" value="E"> E- Corticoïdes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-48" class="question-container">
+            <div class="question">
+                <p>48.) Parmi ces classes thérapeutiques, lesquelles sont destinées pour lutter contre l'hyperactivité bronchique lors d'un asthme ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q48a" name="q48" value="A"> A- Les Immunoglobulines</li>
+            
+                    <li><input type="checkbox" id="q48b" name="q48" value="B"> B- Les Anti-inflammatoires stéroïdiens</li>
+            
+                    <li><input type="checkbox" id="q48c" name="q48" value="C"> C- Les Antihistaminiques H3</li>
+            
+                    <li><input type="checkbox" id="q48d" name="q48" value="D"> D- Les Cromones</li>
+            
+                    <li><input type="checkbox" id="q48e" name="q48" value="E"> E- Les Fluidifiants bronchiques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-49" class="question-container">
+            <div class="question">
+                <p>49.) Parmi ces antibiotiques, lesquels sont contre-indiqués en co-prescription avec la théophylline ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q49a" name="q49" value="A"> A- Pénicillines</li>
+            
+                    <li><input type="checkbox" id="q49b" name="q49" value="B"> B- Céphalosporines</li>
+            
+                    <li><input type="checkbox" id="q49c" name="q49" value="C"> C- Aminosides</li>
+            
+                    <li><input type="checkbox" id="q49d" name="q49" value="D"> D- Macrolides</li>
+            
+                    <li><input type="checkbox" id="q49e" name="q49" value="E"> E- Fluoroquinolones</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-50" class="question-container">
+            <div class="question">
+                <p>50.) Parmi les effets indésirables, lesquels sont fréquemment liés à la corticothérapie inhalée :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q50a" name="q50" value="A"> A- Raucité de la voix</li>
+            
+                    <li><input type="checkbox" id="q50b" name="q50" value="B"> B- Candidoses bucco-pharyngées</li>
+            
+                    <li><input type="checkbox" id="q50c" name="q50" value="C"> C- Glaucome</li>
+            
+                    <li><input type="checkbox" id="q50d" name="q50" value="D"> D- Diabète cortico-induit</li>
+            
+                    <li><input type="checkbox" id="q50e" name="q50" value="E"> E- Tremblements</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-51" class="question-container">
+            <div class="question">
+                <p>51.) La cause la plus fréquente des traumatismes directs du thorax :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q51a" name="q51" value="A"> A- Les agressions</li>
+            
+                    <li><input type="checkbox" id="q51b" name="q51" value="B"> B- L'autolyse</li>
+            
+                    <li><input type="checkbox" id="q51c" name="q51" value="C"> C- Les accidents de la voie publique</li>
+            
+                    <li><input type="checkbox" id="q51d" name="q51" value="D"> D- Les explosions</li>
+            
+                    <li><input type="checkbox" id="q51e" name="q51" value="E"> E- Les accidents de travail</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-52" class="question-container">
+            <div class="question">
+                <p>52.) Après un traumatisme thoracique, un tunnel lésionnel est le résultat :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q52a" name="q52" value="A"> A- Une rupture diaphragmatique</li>
+            
+                    <li><input type="checkbox" id="q52b" name="q52" value="B"> B- Une rupture bronchique</li>
+            
+                    <li><input type="checkbox" id="q52c" name="q52" value="C"> C- Une contusion pulmonaire</li>
+            
+                    <li><input type="checkbox" id="q52d" name="q52" value="D"> D- Un épanchement pleural</li>
+            
+                    <li><input type="checkbox" id="q52e" name="q52" value="E"> E- Une agression par arme blanche</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-53" class="question-container">
+            <div class="question">
+                <p>53.) Les traumatismes thoraciques indirects sont dus aux :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q53a" name="q53" value="A"> A- Décélérations brutales</li>
+            
+                    <li><input type="checkbox" id="q53b" name="q53" value="B"> B- Effets de souffle (Explosions)</li>
+            
+                    <li><input type="checkbox" id="q53c" name="q53" value="C"> C- Écrasements</li>
+            
+                    <li><input type="checkbox" id="q53d" name="q53" value="D"> D- Agressions par armes blanches</li>
+            
+                    <li><input type="checkbox" id="q53e" name="q53" value="E"> E- Autolyses par strangulation</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-54" class="question-container">
+            <div class="question">
+                <p>54.) La respiration paradoxale post-traumatisme thoracique est en rapport avec :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q54a" name="q54" value="A"> A- Le volet thoracique</li>
+            
+                    <li><input type="checkbox" id="q54b" name="q54" value="B"> B- Les épanchements pleuraux</li>
+            
+                    <li><input type="checkbox" id="q54c" name="q54" value="C"> C- La contusion pulmonaire</li>
+            
+                    <li><input type="checkbox" id="q54d" name="q54" value="D"> D- Les plaies diaphragmatiques</li>
+            
+                    <li><input type="checkbox" id="q54e" name="q54" value="E"> E- L'encombrement bronchique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-55" class="question-container">
+            <div class="question">
+                <p>55.) Le volet thoracique post-traumatique est dû à :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q55a" name="q55" value="A"> A- Une fracture complexe d'une côte</li>
+            
+                    <li><input type="checkbox" id="q55b" name="q55" value="B"> B- Une fracture du corps sternal</li>
+            
+                    <li><input type="checkbox" id="q55c" name="q55" value="C"> C- Une double série de fractures costales étagées</li>
+            
+                    <li><input type="checkbox" id="q55d" name="q55" value="D"> D- Une fracture écrasement des vertèbres thoraciques</li>
+            
+                    <li><input type="checkbox" id="q55e" name="q55" value="E"> E- Une disjonction sterno-claviculaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-56" class="question-container">
+            <div class="question">
+                <p>56.) Lors d'un pneumothorax traumatique, les éléments de gravité sont jugés sur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q56a" name="q56" value="A"> A- L'emphysème sous-cutané</li>
+            
+                    <li><input type="checkbox" id="q56b" name="q56" value="B"> B- L'abaissement de la coupole diaphragmatique</li>
+            
+                    <li><input type="checkbox" id="q56c" name="q56" value="C"> C- Le déplacement des structures médiastinales</li>
+            
+                    <li><input type="checkbox" id="q56d" name="q56" value="D"> D- La fracture costale associée</li>
+            
+                    <li><input type="checkbox" id="q56e" name="q56" value="E"> E- Le pneumopéritoine associé</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-57" class="question-container">
+            <div class="question">
+                <p>57.) Une plaie pénétrante au-dessous de la 5ème côte gauche peut être :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q57a" name="q57" value="A"> A- Une plaie thoraco-abdominale</li>
+            
+                    <li><input type="checkbox" id="q57b" name="q57" value="B"> B- Accompagnée d'une rupture trachéale</li>
+            
+                    <li><input type="checkbox" id="q57c" name="q57" value="C"> C- Une urgence chirurgicale</li>
+            
+                    <li><input type="checkbox" id="q57d" name="q57" value="D"> D- Drainée seulement</li>
+            
+                    <li><input type="checkbox" id="q57e" name="q57" value="E"> E- Accompagnée de lésions graves des viscères abdominaux</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-58" class="question-container">
+            <div class="question">
+                <p>58.) Le meilleur moyen de confirmation de l'atteinte ganglionnaire médiastinale :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q58a" name="q58" value="A"> A- TDM thoracique</li>
+            
+                    <li><input type="checkbox" id="q58b" name="q58" value="B"> B- Échographie thoracique</li>
+            
+                    <li><input type="checkbox" id="q58c" name="q58" value="C"> C- Bronchoscopie souple</li>
+            
+                    <li><input type="checkbox" id="q58d" name="q58" value="D"> D- Médiastinoscopie</li>
+            
+                    <li><input type="checkbox" id="q58e" name="q58" value="E"> E- Échographie trans-œsophagienne</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-59" class="question-container">
+            <div class="question">
+                <p>59.) La chirurgie est contre-indiquée, si un cancer bronchique s'accompagne de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q59a" name="q59" value="A"> A- Atteinte ganglionnaire médiastinale controlatérale</li>
+            
+                    <li><input type="checkbox" id="q59b" name="q59" value="B"> B- Atteinte du myocarde</li>
+            
+                    <li><input type="checkbox" id="q59c" name="q59" value="C"> C- Bronche lobaire tumorale</li>
+            
+                    <li><input type="checkbox" id="q59d" name="q59" value="D"> D- Une atteinte costale adjacente</li>
+            
+                    <li><input type="checkbox" id="q59e" name="q59" value="E"> E- Pleurésie maligne</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-60" class="question-container">
+            <div class="question">
+                <p>60.) Les buts de la chirurgie des bronchectasies :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q60a" name="q60" value="A"> A- Améliorer la fonction hémodynamique</li>
+            
+                    <li><input type="checkbox" id="q60b" name="q60" value="B"> B- Éviter les hémoptysies</li>
+            
+                    <li><input type="checkbox" id="q60c" name="q60" value="C"> C- Éviter les infections récidivantes</li>
+            
+                    <li><input type="checkbox" id="q60d" name="q60" value="D"> D- Enlever une cause locale</li>
+            
+                    <li><input type="checkbox" id="q60e" name="q60" value="E"> E- Éviter la kinésithérapie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-61" class="question-container">
+            <div class="question">
+                <p>61.) Les aspergillomes complexes se caractérisent par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q61a" name="q61" value="A"> A- Des cavités à bords fins</li>
+            
+                    <li><input type="checkbox" id="q61b" name="q61" value="B"> B- Un parenchyme pulmonaire sain</li>
+            
+                    <li><input type="checkbox" id="q61c" name="q61" value="C"> C- Des hémoptysies récidivantes</li>
+            
+                    <li><input type="checkbox" id="q61d" name="q61" value="D"> D- Un patient très symptomatique</li>
+            
+                    <li><input type="checkbox" id="q61e" name="q61" value="E"> E- Une insuffisance respiratoire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-62" class="question-container">
+            <div class="question">
+                <p>62.) La gravité des kystes hydatiques pulmonaires est jugée sur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q62a" name="q62" value="A"> A- La taille du kyste</li>
+            
+                    <li><input type="checkbox" id="q62b" name="q62" value="B"> B- La topographie du kyste</li>
+            
+                    <li><input type="checkbox" id="q62c" name="q62" value="C"> C- Le nombre des kystes</li>
+            
+                    <li><input type="checkbox" id="q62d" name="q62" value="D"> D- L'observance d'un traitement médical antifongique</li>
+            
+                    <li><input type="checkbox" id="q62e" name="q62" value="E"> E- Les fistules bronchovasculaires</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-63" class="question-container">
+            <div class="question">
+                <p>63.) La chirurgie pour kyste hydatique pulmonaire permet :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q63a" name="q63" value="A"> A- D'éliminer la membrane proligère</li>
+            
+                    <li><input type="checkbox" id="q63b" name="q63" value="B"> B- De traiter la cavité résiduelle</li>
+            
+                    <li><input type="checkbox" id="q63c" name="q63" value="C"> C- De traiter les fistules bronchiques</li>
+            
+                    <li><input type="checkbox" id="q63d" name="q63" value="D"> D- D'éviter la dissémination bronchogène</li>
+            
+                    <li><input type="checkbox" id="q63e" name="q63" value="E"> E- D'éviter la contagion de l'entourage</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-64" class="question-container">
+            <div class="question">
+                <p>64.) Devant un kyste hydatique géant (énorme), le meilleur traitement est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q64a" name="q64" value="A"> A- Un traitement conservateur par ponction-aspiration</li>
+            
+                    <li><input type="checkbox" id="q64b" name="q64" value="B"> B- Un traitement d'exérèse radicale</li>
+            
+                    <li><input type="checkbox" id="q64c" name="q64" value="C"> C- Un traitement médical antifongique</li>
+            
+                    <li><input type="checkbox" id="q64d" name="q64" value="D"> D- Une ponction à l'aiguille</li>
+            
+                    <li><input type="checkbox" id="q64e" name="q64" value="E"> E- Un drainage thoracique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-65" class="question-container">
+            <div class="question">
+                <p>65.) Un cancer bronchique stade IA est une indication à :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q65a" name="q65" value="A"> A- Une lobectomie</li>
+            
+                    <li><input type="checkbox" id="q65b" name="q65" value="B"> B- Une radiothérapie médiastinale</li>
+            
+                    <li><input type="checkbox" id="q65c" name="q65" value="C"> C- Un curage ganglionnaire médiastinal</li>
+            
+                    <li><input type="checkbox" id="q65d" name="q65" value="D"> D- Un curage ganglionnaire cervical</li>
+            
+                    <li><input type="checkbox" id="q65e" name="q65" value="E"> E- Une chimiothérapie néo-adjuvante</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S6" "Pathologie_respiratoire" "MR2017R" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['A', 'B', 'C'],
+    q2: ['A', 'C', 'E'],
+    q3: ['A', 'C'],
+    q4: ['B', 'C'],
+    q5: ['A'],
+    q6: ['B'],
+    q7: ['E'],
+    q8: ['C', 'D'],
+    q9: ['A'],
+    q10: ['C'],
+    q11: ['E'],
+    q12: ['A', 'B', 'C'],
+    q13: ['A', 'B', 'C'],
+    q14: ['A', 'B', 'C', 'D', 'E'],
+    q15: ['B', 'C', 'D'],
+    q16: ['C', 'D', 'E'],
+    q17: ['A', 'B', 'C', 'D'],
+    q18: ['A', 'B', 'C', 'D', 'E'],
+    q19: ['A', 'B', 'D'],
+    q20: ['A', 'E'],
+    q21: ['E'],
+    q22: ['C'],
+    q23: ['A', 'B', 'D'],
+    q24: ['A', 'C', 'E'],
+    q25: ['A', 'B', 'C', 'E'],
+    q26: ['C', 'D', 'E'],
+    q27: ['A', 'D', 'E'],
+    q28: ['D', 'E'],
+    q29: ['C', 'D', 'E'],
+    q30: ['C', 'D', 'E'],
+    q31: ['A', 'B', 'C', 'D', 'E'],
+    q32: ['A', 'C'],
+    q33: ['A', 'B', 'C', 'D', 'E'],
+    q34: ['A', 'B', 'C'],
+    q35: ['D'],
+    q36: ['A', 'C', 'D', 'E'],
+    q37: ['A', 'B', 'C', 'D'],
+    q38: ['D'],
+    q39: ['A', 'C', 'D'],
+    q40: ['A', 'B', 'C', 'E'],
+    q41: ['A', 'C', 'D', 'E'],
+    q42: ['A', 'E'],
+    q43: ['A', 'B', 'C', 'E'],
+    q44: ['A', 'B', 'D'],
+    q45: ['A', 'B', 'C', 'E'],
+    q46: ['A', 'B', 'C', 'E'],
+    q47: ['B', 'C', 'D'],
+    q48: ['A', 'B', 'C', 'D'],
+    q49: ['D', 'E'],
+    q50: ['A', 'B'],
+    q51: ['C'],
+    q52: ['E'],
+    q53: ['A', 'B'],
+    q54: ['A'],
+    q55: ['C'],
+    q56: ['B', 'C'],
+    q57: ['A', 'C', 'E'],
+    q58: ['D'],
+    q59: ['A', 'B', 'E'],
+    q60: ['B', 'C', 'D'],
+    q61: ['C', 'D', 'E'],
+    q62: ['A', 'B', 'C', 'E'],
+    q63: ['A', 'B', 'C', 'D'],
+    q64: ['B'],
+    q65: ['A', 'C'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersMR2017R'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

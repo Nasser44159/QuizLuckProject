@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+    
+
+            <div class="quiz-title">
+                <h1>Biologie Moleculaire 2021</h1>
+            </div>
+
+
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="Gen2021">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Les nucléotides et leurs constituants :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- L'adénine est une base pyrimidique</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- La thymine est une base pyrimidique</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- La base est liée au carbone 1' du sucre</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Le ribose se distingue du désoxyribose par OH en 4'</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Les bases puriques sont l'adénine et la guanine.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Structure de l'acide nucléique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Dans un acide nucléique, la liaison entre nucléotides est une liaison phosphodiester</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- L'extrémité 3' libre d'un acide nucléique contient un groupement phosphate</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- La fonction OH libre en 3' d'un acide nucléique est portée par la base</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Un acide nucléique est constitué de succession d'acides aminés</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Un acide nucléique est constitué de succession de nucléotides.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) La complémentarité des bases :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Est la conséquence des liaisons phosphodiesters entre les bases</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Implique 3 liaisons hydrogène entre thymine et adénine</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Implique 2 liaisons hydrogène entre la thymine et l'adénine</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Une base purique sur un brin correspond à une base pyrimidique sur l'autre brin</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Implique 3 liaisons hydrogène entre guanine et cytosine.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Quelles sont les affirmations vraies concernant la réplication :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Les 2 brins d'ADN parental servent chacun de modèle pour la synthèse d'un nouveau brin au cours de la réplication</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- L'hélicase sert à stabiliser les brins séparés</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- L'ADN Polymérase assure la polymérisation des nouveaux brins</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- L'amorce est facultative pour l'activité de l'ADN polymérase</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- L'amorce est synthétisée par l'ADN polymérase lors de la réplication des fragments d'OKAZAKI dans le sens 5' -> 3'.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Hélicases (dérouleuses) enzyme de la réplication :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Déroulent et séparent les deux brins d'ADN, ceci conduit à une structure en Y appelée fourche de réplication</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Maintiennent séparés les deux brins d'ADN</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Le passage de l'ADN d'un état super enroulé à des formes isomères de moindre tension.</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- C'est une primase qui synthétise les amorces.</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- C'est une enzyme de la réplication.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Les protéines SSB (Single Strand Binding) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Déroulent et séparent les deux brins d'ADN</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Permettent la polymérisation d'un ARN au cours de la transcription</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Ce sont des protéines qui stabilisent les brins d'ADN lors de la réplication</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Elles maintiennent séparés les deux brins d'ADN</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Elles facilitent la soudure des deux brins d'ADN ou des fragments d'OkaZaki.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Quelle est l'activité enzymatique, retrouvée chez la plupart des ADN polymérases, qui leur permet d'assurer une très grande fidélité de la réplication (réparation des erreurs) ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Activité d'exonucléase 3' -> 5'</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Activité d'exonucléase 5' -> 3'</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Activité de polymérase</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Activité d'endonucléase</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Activité de synthèse d'amorce.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Les ARN messagers (ARNm) matures :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Sont toujours synthétisés dans le sens 5' -> 3'</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Sont toujours traduits dans le sens 5' -> 3'</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Comprennent tous les exons du gène</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Ont toujours une coiffe 7-méthylguanosine triphosphate en 5'</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Ont toujours une queue poly-A en 3'.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Parmi les propositions suivantes sur la transcription certaines sont exactes, lesquelles ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- La transcription est un mécanisme de production d'ARNs</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- La transcription est réalisée au niveau du cytoplasme</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- La transcription utilise toujours 2 brins d'ARN</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- La transcription produit 2 molécules d'ARN messager différentes</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- La transcription nécessite l'intervention de facteurs de transcription et de l'ARN polymérase.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) La queue PolyA :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Est ajoutée immédiatement après le dernier nucléotide incorporé lors de la transcription</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Est ajoutée immédiatement après la boîte de polyadénylation AAUAAA</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Est ajoutée à une extrémité 5' OH libérée par clivage enzymatique</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Est synthétisée au début de la transcription</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Est synthétisée dans le noyau.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Le cadre de lecture :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Est déterminé par le codon initiateur AUG</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Est constitué de triplets de nucléotides</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Peut être modifié par une substitution synonyme</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Peut être modifié par une délétion</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Peut être modifié par une insertion.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Indiquez les propositions exactes concernant la traduction :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- La fixation du complexe acide aminé ARNt sur l'ARN messager se fait par l'acide aminé</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Il existe trois triplets différents codant la fin de la synthèse d'une chaîne peptidique</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Le codon initiateur de la traduction code toujours pour la méthionine</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Chez les eucaryotes, la transcription et la traduction ont lieu dans le même compartiment cellulaire.</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- La traduction d'un ARN messager mature se fait dans le sens 5' -> 3'.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Les erreurs génétiques sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Rares, aléatoires</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Uniquement induites par des agents mutagènes</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Uniquement provoquées lors de la réplication de l'ADN</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Uniquement dues à cause d'une trop forte exposition aux ultraviolets</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Spontanées, ou induites par des agents mutagènes.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Quel type de mutation qui n’existe pas ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- La mutation par substitution</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- La mutation par transformation</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- La mutation par insertion</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- La mutation par délétion</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Aucune réponse n’est juste.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Si une mutation touche une cellule somatique, alors cette mutation :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Pourra être transmise aux descendants</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Empêchera obligatoirement la division de cette cellule</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Restera uniquement dans une partie de l’organisme</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Affectera systématiquement les cellules reproductrices</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Se traduira sous forme de maladie autosomique dominante.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Concernant l’opéron lactose d’E-coli :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Il comprend : 3 gènes structuraux lacZ, lacY, lacA</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Les gènes structuraux de l’opéron lactose sont transcrits sous forme ARN monocistronique</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Les gènes structuraux de l’opéron lactose sont transcrits sous forme ARN polycistronique</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Le mode de régulation de l’opéron lactose est positif</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Le répresseur de l’opéron lactose est codé par LacI.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Au cours de la régulation d’expression de l’opéron lactose EN ABSENCE du lactose on a :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Une synthèse des enzymes nécessaires pour le métabolisme du lactose</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Une transcription du gène Lac I</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Une Inhibition de transcription des trois gènes structuraux lacZ, lacY, LacA</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- La présence du disaccharide</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Une transcription des trois gènes structuraux lacZ, lacY, LacA.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Le schéma ci-dessous présente une anomalie chromosomique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Qui Résulte d’une cassure à chaque extrémité d’un chromosome suivie par un recollment avec perte des segments distaux</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Qu’est une anomalie chromosomique de nombre</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Qui présente un chromosome en anneau</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Qui présente une duplication intrachromosomique</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Qui présente une anomalie de structure.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Les polyploïdies sont des anomalies chromosomiques :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Sont des aneuploïdies chromosomiques</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Correspondent à un nombre anormal de lots haploïdes entiers</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Correspondent aux caryotypes à 48 et 49 chromosomes dans le cas de tétraploïdie et pentasomie</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Correspondent à la présence d’un seul chromosome supplémentaire</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Correspondent à des fusions au niveau des chromosomes.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Les chromosomes humains sont classés en fonction de leur taille et de la position du centromère. Ci-dessous un schéma représentant un type des chromosomes métaphasiques nommé :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Chromosome submétacentrique</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Chromosome métacentrique</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Chromosome acrocentrique</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Chromosome submétaphasique</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Chromosome stylocentrique.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Les techniques de marquage ont permis d’identifier avec précision chaque paire chromosomique en fonction de la séquence des bandes claires et sombres. Ci-dessous un schéma représentant la désignation d’un point (Selon la nomenclature internationale).</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Parmi les cinq propositions A</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- B</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- C</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- D</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- E choisissez la bonne réponse ?</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Quelles sont les propositions exactes concernant l'hérédité autosomique dominante ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Dans les familles, seuls les garçons sont atteints</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Les garçons et les filles peuvent être atteints</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Un sujet apparemment sain n'a aucun risque de transmettre la maladie</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Un sujet porteur de l'allèle muté a un risque de 25% de le transmettre</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Un sujet porteur de l'allèle muté a un risque de 50% de le transmettre.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Dans le cas des maladies mitochondriales :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Une mère malade transmet la maladie à tous ses enfants</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Une mère malade transmet la maladie à ses fils seulement</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Un père malade transmet la maladie uniquement à ses filles</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Un père malade ne transmet jamais la maladie à ses enfants</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Une mère malade transmet la maladie uniquement à ses filles.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Dans l'étude d'un arbre généalogique, un seul des critères suivants est spécifique de l'hérédité autosomique dominante :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Sujets atteints à chaque génération</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Seuls les garçons sont atteints</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Transmission de la maladie d'un père à son fils</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Transmission de la maladie d'une mère à son fils</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Atteintes des garçons et des filles.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) La sœur d'un garçon atteint de myopathie de Duchenne (maladie génétique liée au chromosome X) vient en consultation de génétique. Son frère est vivant et il s'agit d'un cas isolé dans la famille.</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Elle n'a aucun risque de transmission de la maladie</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Elle a un risque modéré d'être conductrice</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- On doit proposer d'effectuer une étude familiale par la biologie moléculaire</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- L'étude en biologie moléculaire est impossible dans cette famille car la maladie ne touche qu'un seul garçon</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Si elle est conductrice, elle pourra bénéficier au cours de ses futures grossesses d'un diagnostic prénatal.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S1" "Biologie_et_Genetique" "Gen2021" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+
+            <div id="details-section" style="display:none;">
+                <h2>Questions :</h2>
+                <div id="question-links" class="question-links"></div>
+            </div>
+
+            <script>
+const correctAnswers = {
+    q1: ['B', 'C', 'E'],
+    q2: ['A', 'E'],
+    q3: ['A', 'D', 'E'],
+    q4: ['A', 'C', 'E'],
+    q5: ['A'],
+    q6: ['C', 'D'],
+    q7: ['A'],
+    q8: ['A', 'B', 'C'],
+    q9: ['A', 'D'],
+    q10: ['B', 'E'],
+    q11: ['A', 'B', 'D', 'E'],
+    q12: ['B', 'C', 'E'],
+    q13: ['A', 'E'],
+    q14: ['B'],
+    q15: ['C'],
+    q16: ['A', 'C', 'E'],
+    q17: ['B', 'C'],
+    q18: ['A', 'C', 'E'],
+    q19: ['A', 'B'],
+    q20: ['B'],
+    q21: ['D'],
+    q22: ['B', 'E'],
+    q23: ['A', 'D'],
+    q24: ['C'],
+    q25: ['B', 'C', 'E']
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersGen2021'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+<script src="{% static 'java/question-stats.js' %}" defer></script>

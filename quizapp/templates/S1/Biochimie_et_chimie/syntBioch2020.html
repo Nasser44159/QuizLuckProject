@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+        <div class="quiz-title">
+            <h1>Biochimie 2020</h1>
+            <p></p>
+        </div>
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+<form id="quiz-form">
+<input type="hidden" name="file_name" value="Bioch2020">
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) La glycolyse proprement dite :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Comprend 10 réactions biochimiques.</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Débute par une réaction de phosphorylation.</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- S'achève par la formation de 2 molécules de pyruvate.</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- A lieu chez les microorganismes.</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Ne se produit pas au niveau des globules rouges.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) La glycolyse a lieu dans :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- La matrice mitochondriale.</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- La lumière du réticulum endoplasmique.</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Le cytoplasme.</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Le noyau.</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Toutes les propositions précédentes sont fausses.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Dans la réaction suivante, quelle(s) molécule(s) est (sont) représentée(s) par X : UTP + X -> UDP-Glucose + PPi</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Glucose.</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Galactose-1-P.</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Glucose-1-P.</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Glucose-6-P.</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Fructose-1-P.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Parmi les coenzymes suivants, quels sont ceux qui sont utilisés par la pyruvate déshydrogénase (PDH) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- NAD⁺.</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- FAD.</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- FMN.</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Lipoate.</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Biotine.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Un tour de cycle de Krebs (après oxydation de tous les coenzymes réduits au niveau de la chaîne respiratoire) aboutit à la formation de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- 12 ATP.</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- 30 ATP.</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- 10 ATP.</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- 11 ATP.</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- 20 ATP.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Concernant le cycle de Krebs :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Le cycle de Krebs ne peut fonctionner qu'en présence d'oxygène.</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Le cycle de Krebs est une succession de 8 réactions.</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Le cycle de Krebs étant irréversible ne peut servir que de voie catabolique.</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Le cycle de Krebs a lieu dans la matrice mitochondriale.</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Le cycle de Krebs permet la production de 2 molécules de CO₂.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Une maladie connue sous le nom de 'Favisme' s'accompagne d'une série de caractéristiques, parmi toutes celles qui sont citées ci-dessous, une seule est inexacte, laquelle ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Il s'agit d'une maladie métabolique fréquente.</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- C'est une maladie génétique.</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Elle s'accompagne d'une augmentation de la production de NADPH, H⁺.</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Elle s'accompagne d'une anémie hémolytique.</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Cette maladie est due à un déficit en glucose-6-phosphate déshydrogénase.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) La synthèse du glucose peut se faire à partir des composés non glucidiques suivants :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Lactate.</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Glycérol.</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Pyruvate.</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Acétyl-CoA.</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Alanine.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Concernant le métabolisme des lipides :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- La bêta-oxydation a lieu dans le cytoplasme.</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- La synthèse des acides gras a lieu dans le cytoplasme.</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- L'activation des acides gras en acyl-CoA a lieu dans le cytoplasme.</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- La bêta-oxydation a lieu dans la matrice mitochondriale.</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- La synthèse des acides gras a lieu dans la matrice mitochondriale.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Concernant l'anabolisme des acides gras :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- La synthèse des acides gras ne nécessite pas la consommation d'ATP.</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- La synthèse des acides gras nécessite la consommation d'une molécule d'ATP.</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- L'acétyl-CoA carboxylase catalyse la formation du malonyl-CoA.</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- L'acide gras synthase catalyse les 4 réactions d'un tour de l'hélice de Wakil.</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- L'acétyl-CoA carboxylase nécessite la biotine comme coenzyme.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+
+<div id="question-11" class="question-container">
+    <div class="question">
+        <p>11.) Les acides aminés :</p>
+        <ul>
+            <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Cet acide aminé est la cystéine.</li>
+            <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Sa chaîne latérale est non polaire.</li>
+            <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Sa chaîne latérale est aromatique.</li>
+            <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Cet acide aminé peut participer à l’établissement d’un pont disulfure.</li>
+            <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Cet acide aminé est transaminable.</li>
+        </ul>
+    </div>
+    
+</div>
+
+<div id="question-12" class="question-container">
+    <div class="question">
+        <p>12.) Les acides aminés :</p>
+        <ul>
+            <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Cette réaction est impliquée dans le catabolisme de l’azote aminé des acides aminés.</li>
+            <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Cette réaction n’est pas réversible.</li>
+            <li><input type="checkbox" id="q12c" name="q12" value="C"> C- L’enzyme qui catalyse cette réaction est une transaminase.</li>
+            <li><input type="checkbox" id="q12d" name="q12" value="D"> D- L’acide α-cétonique substrat de la réaction envisagée dans le sens gauche vers droite est l’acide α-cétoglutarique.</li>
+            <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Cette réaction est impliquée dans la synthèse de certains acides aminés.</li>
+        </ul>
+    </div>
+    
+</div>
+
+<div id="question-13" class="question-container">
+    <div class="question">
+        <p>13.) Les acides aminés :</p>
+        <ul>
+            <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Cet acide aminé est la glutamine.</li>
+            <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Sa chaîne latérale peut contracter des liaisons ioniques.</li>
+            <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Cet acide aminé est l’amide d’un acide aminé standard.</li>
+            <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Sa chaîne latérale peut contracter des liaisons hydrogène.</li>
+            <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Sa chaîne latérale est aliphatique.</li>
+        </ul>
+    </div>
+    
+</div>
+
+<div id="question-14" class="question-container">
+    <div class="question">
+        <p>14.) La structure secondaire d’une protéine globulaire :</p>
+        <ul>
+            <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Est stabilisée par les liaisons d’interaction hydrophobe.</li>
+            <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Est stabilisée par des ponts disulfure.</li>
+            <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Est stabilisée par des liaisons H entre les CO et NH peptidiques.</li>
+            <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Est facultative.</li>
+            <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Est stabilisée par des liaisons non covalentes entre les chaînes latérales des acides aminés.</li>
+        </ul>
+    </div>
+    
+</div>
+
+<div id="question-15" class="question-container">
+    <div class="question">
+        <p>15.) La structure quaternaire d’une protéine globulaire :</p>
+        <ul>
+            <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Est stabilisée par les liaisons peptidiques.</li>
+            <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Est obligatoire.</li>
+            <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Est stabilisée par des ponts disulfure.</li>
+            <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Est stabilisée par des liaisons H entre les CO et NH peptidiques.</li>
+            <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Est stabilisée par des liaisons non covalentes entre les chaînes latérales des acides aminés.</li>
+        </ul>
+    </div>
+    
+</div>
+
+<div id="question-16" class="question-container">
+    <div class="question">
+        <p>16.) Les enzymes :</p>
+        <ul>
+            <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Les enzymes sont des catalyseurs biologiques des réactions chimiques.</li>
+            <li><input type="checkbox" id="q16b" name="q16" value="B"> B- La quasi-totalité des réactions biochimiques sont des réactions enzymatiques.</li>
+            <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Le nom de la plupart des enzymes se termine par « ase ».</li>
+            <li><input type="checkbox" id="q16d" name="q16" value="D"> D- La quasi-totalité des enzymes sont des protéines.</li>
+            <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Un enzyme se retrouve intact à la fin de la réaction à laquelle il participe.</li>
+        </ul>
+    </div>
+    
+</div>
+
+<div id="question-17" class="question-container">
+    <div class="question">
+        <p>17.) Les coenzymes :</p>
+        <ul>
+            <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Tous les coenzymes prennent provisoirement en charge une entité X.</li>
+            <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Le coenzyme A transfère des groupements acétyle ou acyle.</li>
+            <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Les coenzymes sont des cofacteurs indispensables à toutes les enzymes.</li>
+            <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Les coenzymes sont généralement des protéines.</li>
+            <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Il existe des coenzymes qui participent à des réactions d’oxydo-réduction.</li>
+        </ul>
+    </div>
+    
+</div>
+
+<div id="question-18" class="question-container">
+    <div class="question">
+        <p>18.) Les glucides :</p>
+        <ul>
+            <li><input type="checkbox" id="q18a" name="q18" value="A"> A- L’ose de droite est un aldose.</li>
+            <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Le disaccharide est le lactose.</li>
+            <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Ce disaccharide est issu d’une des voies essentielles de production d’énergie dans la cellule.</li>
+            <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Il est formé de galactose (à gauche) et de fructose (à droite).</li>
+            <li><input type="checkbox" id="q18e" name="q18" value="E"> E- La liaison entre les deux oses est de nature β-glycosidique.</li>
+        </ul>
+    </div>
+    
+</div>
+
+<div id="question-19" class="question-container">
+    <div class="question">
+        <p>19.) Les glucides :</p>
+        <ul>
+            <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Le glycogène est un hétérosaccharide.</li>
+            <li><input type="checkbox" id="q19b" name="q19" value="B"> B- La cellulose est un polysaccharide constitué uniquement de glucose.</li>
+            <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Chez l’Homme, le glycogène est stocké principalement dans le tissu adipeux.</li>
+            <li><input type="checkbox" id="q19d" name="q19" value="D"> D- L’amidon est un hétérosaccharide.</li>
+            <li><input type="checkbox" id="q19e" name="q19" value="E"> E- L’amidon est le glucide de réserve énergétique chez les animaux et l’Homme.</li>
+        </ul>
+    </div>
+    
+</div>
+
+<div id="question-20" class="question-container">
+    <div class="question">
+        <p>20.) Les glucides :</p>
+        <ul>
+            <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Le fructose est le sucre des fruits.</li>
+            <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Le fructose est constitutif du glycogène.</li>
+            <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Le glucose est constitutif du saccharose.</li>
+            <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Le glucose est constitutif de l’amidon.</li>
+            <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Le lactose est le sucre de table.</li>
+        </ul>
+    </div>
+    
+</div>
+
+<div id="question-21" class="question-container">
+    <div class="question">
+        <p>21.) Les glucides :</p>
+        <ul>
+            <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Le glycogène est un polysaccharide ramifié dont les unités de glucose sont unies par des liaisons O-glycosidiques intra-chaînes (α1 → 4) et inter-chaînes (β1 → 6).</li>
+            <li><input type="checkbox" id="q21b" name="q21" value="B"> B- La cellulose est un polysaccharide constitué uniquement de fructose.</li>
+            <li><input type="checkbox" id="q21c" name="q21" value="C"> C- L’amylose est constitutif de l’amidon.</li>
+            <li><input type="checkbox" id="q21d" name="q21" value="D"> D- La chitine est un polysaccharide constitué uniquement de glucose.</li>
+            <li><input type="checkbox" id="q21e" name="q21" value="E"> E- L’amylopectine est un polysaccharide ramifié.</li>
+        </ul>
+    </div>
+    
+</div>
+
+<div id="question-22" class="question-container">
+    <div class="question">
+        <p>22.) Les lipides :</p>
+        <ul>
+            <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Les triglycérides sont des constituants essentiels de l’enveloppe des lipoprotéines N.</li>
+            <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Les glycérophospholipides contiennent deux liaisons ester phosphorique.</li>
+            <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Les glycérophospholipides sont des constituants essentiels de la membrane cellulaire et des membranes endocellulaires.</li>
+            <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Un glycérophospholipide contient 2 alcools.</li>
+            <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Les glycérophospholipides sont amphiphiles.</li>
+        </ul>
+    </div>
+    
+</div>
+
+<div id="question-23" class="question-container">
+    <div class="question">
+        <p>23.) Les lipides :</p>
+        <ul>
+            <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Les triglycérides sont amphiphiles.</li>
+            <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Les triglycérides sont formés d’un glycérol et de 3 acides gras.</li>
+            <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Les triglycérides sont principalement localisés dans le tissu adipeux.</li>
+            <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Les triglycérides sont les constituants essentiels de la membrane cellulaire.</li>
+            <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Les triglycérides servent de forme de transport et de stockage majeur des acides gras.</li>
+        </ul>
+    </div>
+    
+</div>
+
+        
+                
+
+        <button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S1" "Biochimie_et_chimie" "Bioch2020" %}';">Réessayer tout le Quiz</button>
+</div>
+
+
+       
+    
+    
+    
+</div>
+</div>
+
+<div id="details-section" class="details-section" style="display: none;">
+    <h3>Tableau des questions</h3>
+    <div class="question-links" id="question-links"></div>
+</div>
+
+
+
+
+<!-- Section pour afficher le tableau avec les numéros encerclés -->
+<div id="details-section" style="display:none;">
+    <h2>Questions :</h2>
+    <div id="question-links" class="question-links">
+        <!-- Le tableau de numéros va être généré ici -->
+    </div>
+</div>
+
+<script>
+const correctAnswers = {
+        q1: ['A', 'B', 'D'],
+        q2: ['C'],
+        q3: ['C'],
+        q4: ['A', 'B', 'D'],
+        q5: ['C'],
+        q6: ['A', 'B', 'D', 'E'],
+        q7: ['C'],
+        q8: ['A', 'B', 'C', 'E'],
+        q9: ['B', 'D', 'C'],
+        q10: ['C', 'B', 'D', 'E'],
+        q11: ['B', 'E'],
+        q12: ['A', 'C', 'D', 'E'],
+        q13: ['A', 'C', 'D', 'E'],
+        q14: ['C'],
+        q15: ['E'],
+        q16: ['A', 'B', 'D', 'E', 'C'],
+        q17: ['A', 'B', 'E'],
+        q18: ['A', 'C'],
+        q19: ['B'],
+        q20: ['A', 'C', 'D'],
+        q21: ['C', 'E'],
+        q22: ['C', 'B', 'D', 'E'],
+        q23: ['B', 'C', 'E'],
+
+       
+    };
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersBioch2020'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+<script src="{% static 'java/question-stats.js' %}" defer></script>

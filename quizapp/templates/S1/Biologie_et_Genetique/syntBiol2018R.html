@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+
+            <div class="quiz-title">
+                <h1>Biologie 2018</h1>
+                <p></p>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="Biol2018R">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Le cycle cellulaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Débute quand l’activité CDK/cyclines de la phase G1 est suffisante.</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Débute par l’établissement d’une boucle de rétrocontrôle positif.</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Peut être stoppé en phase M par des produits empêchant la polymérisation des microtubules.</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Se termine par la dégradation des cyclines par les protéasomes.</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Comprend une phase où l’activité CDK/cyclines de la phase G1 entraîne la fragmentation de l’enveloppe nucléaire.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Les microtubules :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Interagissent avec des moteurs moléculaires de la famille des kinésines.</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Interagissent avec des moteurs moléculaires de la famille des myosines.</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Présentent une instabilité dynamique à l'extrémité plus.</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Sont exprimés dans les cellules épithéliales.</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Peuvent former des structures microtubulaires complexes.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) L’apoptose :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Met toujours en jeu des protéases particulières appelées caspases.</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Est déclenchée par le passage de cytochrome C dans le mitochondriale externe.</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Comprend une libération de l’ensemble des constituants cellulaires dans le cytoplasme.</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Peut être déclenchée par la fixation d’un ligand sur un récepteur.</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Est associée à une phagocytose des débris cellulaires.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Les transports vésiculaires font intervenir :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Des reconnaissances entre vSNARE et tSNARE expliquant la spécificité de la fusion de vésicules avec son compartiment accepteur.</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Des interactions entre vSNARE et tSNARE expliquant l’incorporation spécifique d’un cargo dans un bourgeon.</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Des petites G-protéines expliquant l’incorporation spécifique d’un cargo dans un bourgeon.</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Des petites G-protéines permettant de contrôler l’intensité du bourgeonnement.</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Des petites G-protéines permettant de contrôler l’intensité de la fusion avec le compartiment accepteur.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Les jonctions serrées :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Permettent l’ancrage à la matrice extra-cellulaire.</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Présentent des molécules transmembranaires qui ferment les espaces intercellulaires.</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Permettent de contrôler le passage de substance par les espaces intercellulaires (passage paracellulaire).</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Présentent des molécules transmembranaires qui interagissent avec les filaments intermédiaires.</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Ont pour principal constituant des connexines.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) D’après ces données, les ions Cl- :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Sont transportés de manière active au niveau de la membrane apicale.</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Sont transportés de manière active au niveau de la membrane baso-latérale.</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Sortent de la cellule au niveau de la membrane apicale.</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Sortent de la cellule au niveau de la membrane baso-latérale.</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Passent de la lumière vers le liquide interstitiel.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) D’après ces données, les ions Na+ :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Sont transportés de manière active au niveau de la membrane apicale.</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Sont transportés de manière active au niveau de la membrane baso-latérale.</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Sortent de la cellule au niveau de la membrane apicale.</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Passent de la lumière vers le liquide interstitiel.</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Passent de la lumière interstitielle vers la bile.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) D’après ces données, MET est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Synthétisé par des ribosomes qui se fixent au réticulum endoplasmique.</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Fixé par HGF sur sa partie C-terminale.</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Correspond à un peptide d'arrêt du transfert de la translocation.</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Fixé au HGF grâce aux 20 acides aminés hydrophobes incorporés dans la chaîne polypeptidique en début de synthèse.</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Peut être glycosylé sur sa partie C-terminale.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) La fixation de l’HGF sur MET entraîne :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Un changement de la perméabilité membranaire à certains ions minéraux.</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- La dimérisation des protéines MET.</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Une phosphorylation croisée des protéines MET.</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Une phosphorylation de résidus sérine et thréonine de MET.</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- L’initiation de réactions biochimiques qui constituent la transduction du signal.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) D’après ces données, la fixation de l’HGF :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Entraîne une stabilisation de BAD.</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Augmente la perméabilité de la membrane mitochondriale externe.</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Permet la reconnaissance de BAD par le protéasome.</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Entraîne la destruction des cyclines par le protéasome.</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Favorise le passage du point de restriction.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) D’après ces données, on peut classer parmi les oncogènes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- MET.</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- STAT3.</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- PI3K.</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- PI3Pase.</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- MOC.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) La photo suivante présente :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Le transport facilité</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Le transport simple</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Le transport actif</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- L’endocytose</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Le transport vésiculaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Cette photo montre 2 types de protéines membranaires. Lesquels?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Les CAM</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Les récepteurs</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Les ATPases</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Les SAM</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Les protéines G</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Le schéma suivant présente :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Le récepteur RCPG</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- La voie PKA</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- L’adénylate cyclase</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- La voie PKC</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- La voie MAPK</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Le frottis sanguin est réalisé par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Etalement des cellules sur une lame</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Coloration hématine-éosine</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Coloration au MGG</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Fixation au Bouin</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Inclusion dans la paraffine</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) La fixation des biopsies pour le microscope optique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Durcit la biopsie</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Utilise la paraffine</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Introduit le contraste entre les structures cellulaires</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Facilite l’étape suivante de coupe</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Utilise des résines de synthèse</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) La coloration de Trichrome de Masson des coupes histologiques :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Est une coloration standard</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Colore le cytoplasme en rose</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Colore les fibres en jaune</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Colore les noyaux en bleu</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Colore le collagène en bleu</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Lors de la réalisation d’une culture cellulaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Le tissu est trypsiné par la collagénase</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Les cellules sont observées au microscope inverse</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- La numération cellulaire est effectuée</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Une étuve à CO2 est utilisée</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Les cellules sont colorées à l’hématite éosine</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Parmi les étapes de la technique d’immuno-enzymologie, il y a :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Le couplage de l’Ac à la peroxydase</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- L’application de l’Ac marqué sur la coupe histologique</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Le lavage éliminant les Ac non fixés par l’Ag spécifique</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- La révélation de l’enzyme par un fluorochrome</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- L’observation au microscope à fluorescence</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) La photo ci-contre présente :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Une salle de microscopie</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Une salle de culture cellulaire</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Une hotte à flux laminaire</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Une étuve à CO2</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Le microscope à fluorescence</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Le peroxysome assure :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- L’épuration cellulaire</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- La dégradation des ROS</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Le cycle de Krebs</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- La biosynthèse des protéines</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- L’expression des gènes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Parmi les anti-oxydants utilisés par le peroxysome, il y a :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- La vitamine C</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- La vitamine E</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Le glutathion</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Le calcium</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- L’insuline</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Parmi les enzymes peroxysomiales, il y a :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- La peroxydase</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- La catalase</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Les oxydases</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Les lipases</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Les protéases</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) La photo ci-contre présente :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Des lysosomes</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Des peroxysomes</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Des mitochondries</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Des chromosomes</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Des noyaux</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Les enzymes du peroxysome sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Synthétisées dans le cytosol</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Adressées par des protéines Tim</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Importées par les peroxines</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Des oxydases flaviniques</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Des hydrolases acides</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Les protéines d’adressage vers le peroxysome :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- Sont liées au peptide signal PTS</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- Sont codées par le gène PEX</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- Sont situées dans la cavité du peroxysome</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- Provoquent des pathologies en cas de leur défaut</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- Sont la cause de la maladie de Zelveger</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) La photo ci-contre présente le transport des protéines vers :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- La lumière du peroxysome</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- La matrice mitochondriale</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- La membrane du peroxysome</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Le noyau</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- Le réticulum endoplasmique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) La photo ci-contre présente le transport des protéines vers :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- La lumière du peroxysome</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- La matrice mitochondriale</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- La membrane du peroxysome</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- Le noyau</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- Le réticulum endoplasmique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) Parmi les agents proliférateurs des peroxysomes cités en cours, il y a :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- Les hypolipémiants</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- Les antidiabétiques oraux</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- Le clofibrate</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- L'aspirine</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- Les antibiotiques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) La respiration cellulaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- Utilise des complexes enzymatiques</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- Dégrade les combustibles</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- Utilise l'oxygène comme accepteur d'électrons</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- Est réalisée en 2 étapes</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- Transforme l'ADP en ATP</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) La mitochondrie présente :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- Une seule membrane</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- Une forme allongée</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- Un aspect cristallin</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- Un génome</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- De nombreuses crêtes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) Parmi les constituants de la membrane mitochondriale, il y a :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A- Les phospholipides</li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B- Les protéines</li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C- Les polysaccharides</li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D- Les ions</li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E- Les protons</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) Le génome mitochondrial :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A- Est constitué d'ADN linéaire</li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B- Est situé dans la matrice mitochondriale</li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C- Est hérité de la mère</li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D- Code pour deux complexes de la chaîne respiratoire</li>
+            
+                    <li><input type="checkbox" id="q33e" name="q33" value="E"> E- Code pour toutes les protéines mitochondriales</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) Le cycle de Krebs :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A- Se déroule dans la matrice mitochondriale</li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B- Crée un flux protonique</li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C- Assure le transfert d'électrons</li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D- Phosphoryle l'ADP en ATP</li>
+            
+                    <li><input type="checkbox" id="q34e" name="q34" value="E"> E- Produit des électrons et des protons</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) La phosphorylation oxydative est réalisée par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A- Le complexe I de la chaîne respiratoire</li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B- Le complexe II de la chaîne respiratoire</li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C- Le complexe de pore</li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D- L'ATPosome</li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E- L'apoptosome</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-36" class="question-container">
+            <div class="question">
+                <p>36.) La chaîne respiratoire de la mitochondrie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q36a" name="q36" value="A"> A- Comporte des complexes enzymatiques</li>
+            
+                    <li><input type="checkbox" id="q36b" name="q36" value="B"> B- Est le siège de transfert des électrons</li>
+            
+                    <li><input type="checkbox" id="q36c" name="q36" value="C"> C- Concentre les H+ dans l'espace intermembranaire</li>
+            
+                    <li><input type="checkbox" id="q36d" name="q36" value="D"> D- Permet à l'ATPosome de phosphoryler l'ADP</li>
+            
+                    <li><input type="checkbox" id="q36e" name="q36" value="E"> E- Produit des électrons de haute valeur énergétique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-37" class="question-container">
+            <div class="question">
+                <p>37.) Le nucléole est un organite nucléaire où siège la production de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q37a" name="q37" value="A"> A- ARNr</li>
+            
+                    <li><input type="checkbox" id="q37b" name="q37" value="B"> B- ARNm</li>
+            
+                    <li><input type="checkbox" id="q37c" name="q37" value="C"> C- Des pré-ribosomes</li>
+            
+                    <li><input type="checkbox" id="q37d" name="q37" value="D"> D- Des lipides</li>
+            
+                    <li><input type="checkbox" id="q37e" name="q37" value="E"> E- Des protéines</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-38" class="question-container">
+            <div class="question">
+                <p>38.) Le complexe de pore présente :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q38a" name="q38" value="A"> A- Un anneau distal</li>
+            
+                    <li><input type="checkbox" id="q38b" name="q38" value="B"> B- Un anneau membranaire</li>
+            
+                    <li><input type="checkbox" id="q38c" name="q38" value="C"> C- Aucun filament cytosolique</li>
+            
+                    <li><input type="checkbox" id="q38d" name="q38" value="D"> D- Des filaments nucléaires</li>
+            
+                    <li><input type="checkbox" id="q38e" name="q38" value="E"> E- Une forme en panier</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-39" class="question-container">
+            <div class="question">
+                <p>39.) La migration des chromosomes est assurée par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q39a" name="q39" value="A"> A- Des kinétochores qui fixent les chromosomes</li>
+            
+                    <li><input type="checkbox" id="q39b" name="q39" value="B"> B- Des fibres kinétochoriennes qui raccourcissent</li>
+            
+                    <li><input type="checkbox" id="q39c" name="q39" value="C"> C- Des fibres polaires qui s'allongent</li>
+            
+                    <li><input type="checkbox" id="q39d" name="q39" value="D"> D- Les asters qui se divisent</li>
+            
+                    <li><input type="checkbox" id="q39e" name="q39" value="E"> E- La plaque équatoriale qui se déplace</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S1" "Biologie_et_Genetique" "Biol2018R" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+
+            <div id="details-section" style="display:none;">
+                <h2>Questions :</h2>
+                <div id="question-links" class="question-links"></div>
+            </div>
+
+            <script>
+const correctAnswers = {
+  q1: ['A', 'B', 'C', 'D', 'E'],
+  q2: ['A', 'B', 'D', 'E'],
+  q3: ['A', 'B', 'D', 'E'],
+  q4: ['A', 'D', 'E'],
+  q5: ['B', 'C'],
+  q6: ['A', 'D'],
+  q7: ['B', 'C', 'D'],
+  q8: ['A', 'C'],
+  q9: ['B', 'C', 'E'],
+  q10: ['C', 'E'],
+  q11: ['A', 'B', 'C', 'E'],
+  q12: ['B', 'C', 'D', 'E'],
+  q13: ['B', 'D', 'E'],
+  q14: ['A', 'B'],
+  q15: ['A', 'C'],
+  q16: ['A'],
+  q17: ['A', 'B', 'D', 'E'],
+  q18: ['A', 'B', 'C', 'D'],
+  q19: ['A', 'B', 'C'],
+  q20: ['B', 'C', 'D'],
+  q21: ['A', 'B'],
+  q22: ['A', 'B', 'C'],
+  q23: ['A', 'B', 'C'],
+  q24: ['B'],
+  q25: ['A', 'C', 'D'],
+  q26: ['A', 'B', 'D', 'E'],
+  q27: ['A', 'C'],
+  q28: ['A'],
+  q29: ['A', 'B', 'C', 'D'],
+  q30: ['A', 'B', 'C', 'E'],
+  q31: ['A', 'D', 'E'],
+  q32: ['A', 'B', 'C'],
+  q33: ['B', 'C', 'D'],
+  q34: ['A', 'E'],
+  q35: ['D'],
+  q36: ['A', 'B', 'C', 'D'],
+  q37: ['B', 'C'],
+  q38: ['A', 'B', 'D', 'E'],
+  q39: ['A', 'B', 'C']
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersBiol2018R'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+<script src="{% static 'java/question-stats.js' %}" defer></script>

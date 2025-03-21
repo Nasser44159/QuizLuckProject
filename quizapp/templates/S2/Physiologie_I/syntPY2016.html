@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+
+            <div class="quiz-title">
+                <h1>QCM Physiologie</h1>
+            </div>
+            <form id="quiz-form">
+                <input type="hidden" id='exam_name' name="exam_name" value="PY2016">
+    {% csrf_token %}>
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Au cours de l'inspiration forcée il y a :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Contraction des muscles abdominaux</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Contraction des muscles intercostaux externes</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Extension de la colonne vertébrale</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Ascension du diaphragme</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Contraction des muscles inspiratoires accessoires</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Précisez les propositions exactes parmi les suivantes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Le Pneumocyte I sécrète le surfactant</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Le Pneumocyte II fait partie de la membrane respiratoire</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Au repos tous les alvéoles sont ventilés et perfusés</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Le volume de l'espace mort physiologique est toujours supérieur au volume de l'espace mort anatomique</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- L'effet shunt est observé en cas d'embolie pulmonaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) La membrane respiratoire ou barrière air-sang comprend entre autres :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Le Pneumocyte I</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- La membrane basale alvéolaire</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Le Pneumocyte II</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Le macrophage alvéolaire</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- La membrane basale capillaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Le volume d'air mobilisé par une inspiration profonde faisant suite à une expiration normale correspond :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- À la capacité inspiratoire (CI)</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- À la capacité pulmonaire totale (CPT)</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- À la capacité vitale inspiratoire (CVI)</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- À la somme « volume courant plus VRI »</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- À la somme « volume courant plus CRF »</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Le volume d'air qui reste dans les poumons après une expiration normale correspond :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Au volume de réserve expiratoire (VRE)</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- À la capacité expiratoire (CE)</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Au volume résiduel (VR)</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- À la capacité vitale expiratoire (CVE)</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Aucune réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) L'intérêt du VEMS :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Rapporté à la capacité vitale permet de définir le trouble obstructif</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Permet de classer le trouble restrictif</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Permet de classer une dyspnée</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Permet de classer la BPCO</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Permet de suivre une évolution d'un asthmatique sous traitement</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Un sujet asthmatique présente à l'exploration fonctionnelle respiratoire, un VEMS à 65 % par rapport à la théorique avec des variations journalières de 23 %. Vous le classez (classification GINA) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Asthme intermittent léger (Palier 1)</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Asthme persistant léger (Palier 2)</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Asthme persistant modéré (Palier 3)</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Asthme persistant sévère (Palier 4)</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Le débit qui explore le mieux les petites bronches est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Le VIMS</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Le VEMS</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Le DEM75</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- La DEP</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Le volume résiduel :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Est un volume non mobilisable</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Est le volume d'air qui reste dans les poumons après une expiration normale</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Est le volume d'air qui reste dans les poumons après une expiration forcée</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Est le volume d'air contenu dans les poumons après une inspiration forcée</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Est augmenté dans l'emphysème</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) L'affinité de l'hémoglobine pour l'oxygène diminue quand :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Le pH diminue</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- La température diminue</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- L'élimination du CO2 par les poumons diminue</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Le taux de la 2-3PDG diminue</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Aucune réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) L'hypoxie anémique est observée en cas :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- De trouble de diffusion</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- D'intoxication au CO</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- D'hypoventilation alvéolaire</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- D'anémie</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Pas de réponse juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Au cours d'un syndrome OBSTRUCTIF on note les variations suivantes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- CPT diminuée</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- VEMS diminué</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- VEMS/CV diminué</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- VR diminué</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- DEP diminué</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Un seul paramètre parmi les suivants peut définir le syndrome restrictif :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Capacité vitale (CV) diminuée</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Capacité pulmonaire totale (CPT) diminuée</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- VEMS/CV augmenté</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Volume résiduel (VR) normal</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Volume de réserve inspiratoire (VRI) diminué</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) La diffusion alvéolo-capillaire d'un gaz respiratoire diminue quand :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- La différence de pression partielle diminue</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- La solubilité de gaz diminue</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- La masse moléculaire du gaz diminue</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Le temps de l'expiration diminue</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- La membrane respiratoire est épaissie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) À propos de la glande thyroïde :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Elle est constituée de follicules entourés d’un épithélium glandulaire</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- L’épithélium glandulaire est constitué essentiellement de thyrocytes</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Les follicules contiennent la substance colloïde</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- La substance colloïde est constituée essentiellement par la thyroglobuline</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Aucune réponse n’est exacte</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) À propos des hormones thyroïdiennes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Leur synthèse nécessite une oxydation préalable de l’iode</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Leurs précurseurs sont la mono et la di-iodotyrosine</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- T3 est plus concentrée dans le sang que la T4</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- T3 est plus active que la T4</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Aucune proposition n’est exacte</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Mécanismes d’action des hormones thyroïdiennes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Elles activent des récepteurs nucléaires spécifiques</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Elles réduisent la consommation d’O2</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Elles sont thermogéniques</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Elles potentialisent les pompes ioniques membranaires</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Elles favorisent le passage transmembranaire des substrats énergétiques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) À propos de l’action des hormones thyroïdiennes (HT) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- L’absence de HT chez un adulte entraîne des lésions cérébrales irréversibles</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- L’absence de HT après la naissance entraîne un nanisme harmonieux</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- L’excès d’HT entraîne une frilosité</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- L’excès d’HT entraîne une hypoglycémie</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Aucune proposition n’est exacte</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) À propos de la Thyroid Stimulating Hormone (TSH) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Elle est sécrétée par l’hypothalamus</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Elle augmente en cas de déficit de sécrétion des hormones thyroïdiennes par la glande thyroïde</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Elle stimule la protéolyse de la thyroglobuline</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Elle stimule l’activité de la pompe à iode du thyrocyte</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Aucune proposition n’est exacte</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) À propos du cortisol :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Il est synthétisé par la zone réticulée de la corticosurrénale</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Sa concentration plasmatique est plus élevée à minuit qu’à 8h du matin</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Il a une action hyperglycémiante</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Une sursécrétion de cortisol entraîne une augmentation du catabolisme musculaire</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- En dose élevée, il a une action anti-inflammatoire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) À propos de la médullosurrénale :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Elle sécrète surtout de l’adrénaline</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- La monoamine oxydase intervient dans le catabolisme des catécholamines</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- La médullosurrénale fait partie du système nerveux parasympathique</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- L’adrénaline est une hormone hyperglycémiante</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Aucune proposition n’est exacte</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) À propos du pancréas endocrine :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- La prise d’un repas riche en glucides entraîne une augmentation de l’insulinémie et une diminution de la glucagonémie</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Le peptide C est constitutif de la molécule d’insuline</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Les transporteurs membranaires du glucose sont nécessaires pour la pénétration intracellulaire du glucose au niveau de tous les organes</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- L’insuline régule tous les transporteurs membranaires du glucose</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Après un repas, la sécrétion d’insuline augmente de façon continue</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Actions de l’insuline sur le métabolisme des glucides :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Augmentation du nombre des transporteurs GLUT-4</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Stimulation de l’activité des transporteurs GLUT-4</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Action glycogénogénique</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Action anti-glycogénolytique</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Action anti-néoglucogénique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Actions de l’insuline sur le métabolisme des lipides :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Diminution de la lipogenèse</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Transformation des triglycérides en glucose</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Augmentation de la lipolyse</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Augmentation de la cétogenèse</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Aucune réponse n’est exacte</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Les facteurs suivants stimulent la sécrétion d’insuline :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Diminution de la concentration des acides gras libres dans le plasma</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Diminution de la concentration des aminoacides dans le plasma</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- La somatostatine</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Diminution des corps cétoniques plasmatiques</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Aucune réponse n’est exacte</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) À propos du Glucagon :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- Il est sécrété par les cellules alpha du pancréas</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- Son action principale est une stimulation de la glycogénolyse hépatique</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- Il augmente la lipolyse</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- Il augmente la protéolyse</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- Son action est surtout hépatique dans les conditions physiologiques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) La salive :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- Est sécrétée par des glandes qui se trouvent dans la cavité buccale</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- Lubrifie la cavité buccale</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Réminalise les dents</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Est composée uniquement d’eau et de substances minérales</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- Facilite la déglutition</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) À propos de la déglutition :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- Est l’ensemble des phénomènes mécaniques qui transportent le bol alimentaire de la bouche vers l’estomac</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- Est facilité par la salive et le mucus</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- Toutes ses étapes sont involontaires</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- Durant laquelle l’épiglotte bascule de 160° vers le bas et l’arrière</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- Déclenche une onde péristaltique au niveau de l’œsophage</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) Parmi les propositions suivantes, lesquelles peuvent être attribuées à la sécrétion gastrique d’acide (HCl) ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- Il est sécrété par les cellules principales</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- Il joue un rôle antiseptique</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- Il permet la conversion de pepsinogène inactif en pepsine active</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- Sa sécrétion au cours du repas est contrôlée uniquement par le système nerveux</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- Il stimule la sécrétion de la cholécystokinine (CCK) au niveau duodénal</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) La pepsine :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- Est sécrétée par les cellules principales</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- Est sécrétée sous l’effet de la gastrine</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- Est sécrétée sous sa forme active « pepsine »</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- Débute la digestion chimique des triglycérides</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- Son action ne nécessite qu’un pH neutre ou légèrement alcalin</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) La sécrétion de la gastrine :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- Est activée par l’arrivée des aliments dans l’estomac</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- Est inhibée par la sécrétine</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- Est activée par la somatostatine</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- Une forte acidité de l’estomac l’active</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- Stimule la sécrétion de HCl</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) Le foie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A- Est le plus petit organe du corps</li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B- Est le deuxième organe traversé par les aliments après l’estomac</li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C- Joue un rôle actif dans le métabolisme du cholestérol</li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D- Est le site le plus important de stockage du fer</li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E- Convertit l’ammoniac en urée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) Le suc pancréatique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A- Est sécrété à raison de 1500 ml quotidiennement</li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B- Constitué uniquement d’eau et d’ions bicarbonate de sodium</li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C- Son pH est légèrement alcalin</li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D- Interrompt l’action de la pepsine</li>
+            
+                    <li><input type="checkbox" id="q33e" name="q33" value="E"> E- Crée un pH défavorable à l’action des enzymes digestives de l’intestin grêle</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) Parmi les éléments suivants, lesquels permettent l’augmentation de la surface d’absorption intestinale ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A- La longueur de l’intestin grêle</li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B- La présence de cellules à mucus</li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C- La présence des villosités et des microvillosités intestinales</li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D- La présence de nombreuses cellules endocrines dans l’épithélium intestinal</li>
+            
+                    <li><input type="checkbox" id="q34e" name="q34" value="E"> E- Aucune bonne réponse</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) La digestion chimique des protéines dans l’intestin grêle :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A- Est assurée uniquement par un suc local</li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B- La bile a un rôle important dans la digestion des protéines</li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C- Un milieu acide est nécessaire à cette digestion</li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D- Est assurée en grande partie par les enzymes du suc pancréatique</li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E- L’intestin grêle n’a aucune action dans la digestion des protéines mais intervient dans leurs absorptions</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-36" class="question-container">
+            <div class="question">
+                <p>36.) L’absorption intestinale est caractérisée par le ou les éléments suivants :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q36a" name="q36" value="A"> A- Elle dépend de la longueur totale de l’intestin</li>
+            
+                    <li><input type="checkbox" id="q36b" name="q36" value="B"> B- Elle nécessite l’intégrité des villosités et des entérocytes</li>
+            
+                    <li><input type="checkbox" id="q36c" name="q36" value="C"> C- Elle nécessite l’hydrolyse des aliments au préalable</li>
+            
+                    <li><input type="checkbox" id="q36d" name="q36" value="D"> D- Elle peut être altérée en cas d’atteinte inflammatoire de l’intestin</li>
+            
+                    <li><input type="checkbox" id="q36e" name="q36" value="E"> E- Elle ne dépend pas de la digestion</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-37" class="question-container">
+            <div class="question">
+                <p>37.) La gastrine :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q37a" name="q37" value="A"> A- Est une hormone sécrétée par les cellules principales gastriques</li>
+            
+                    <li><input type="checkbox" id="q37b" name="q37" value="B"> B- A une action stimulante sur la sécrétion gastrique</li>
+            
+                    <li><input type="checkbox" id="q37c" name="q37" value="C"> C- Intervient directement dans la digestion gastrique</li>
+            
+                    <li><input type="checkbox" id="q37d" name="q37" value="D"> D- Stimule la sécrétion du facteur intrinsèque</li>
+            
+                    <li><input type="checkbox" id="q37e" name="q37" value="E"> E- Est sécrétée au niveau de l’antre</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-38" class="question-container">
+            <div class="question">
+                <p>38.) Concernant la digestion et l’absorption des glucides :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q38a" name="q38" value="A"> A- La digestion se fait uniquement dans l’intestin grêle</li>
+            
+                    <li><input type="checkbox" id="q38b" name="q38" value="B"> B- La digestion est sous la dépendance des amylases salivaires et pancréatiques</li>
+            
+                    <li><input type="checkbox" id="q38c" name="q38" value="C"> C- La digestion est complétée par les enzymes de la bordure en brosse</li>
+            
+                    <li><input type="checkbox" id="q38d" name="q38" value="D"> D- L’absorption se fait essentiellement par diffusion passive</li>
+            
+                    <li><input type="checkbox" id="q38e" name="q38" value="E"> E- L’absorption ne se fait que dans le jéjunum</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-39" class="question-container">
+            <div class="question">
+                <p>39.) Les facteurs de la régulation de la pression artérielle à court terme sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q39a" name="q39" value="A"> A- Les barorécepteurs</li>
+            
+                    <li><input type="checkbox" id="q39b" name="q39" value="B"> B- Le système rénine angiotensine aldostérone</li>
+            
+                    <li><input type="checkbox" id="q39c" name="q39" value="C"> C- Le monoxyde d’azote (NO)</li>
+            
+                    <li><input type="checkbox" id="q39d" name="q39" value="D"> D- Les chémorécepteurs</li>
+            
+                    <li><input type="checkbox" id="q39e" name="q39" value="E"> E- Le système nerveux autonome</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-40" class="question-container">
+            <div class="question">
+                <p>40.) Durant la contraction iso-volumétrique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q40a" name="q40" value="A"> A- Les valves auriculo-ventriculaires sont fermées</li>
+            
+                    <li><input type="checkbox" id="q40b" name="q40" value="B"> B- Les valves sigmoïdes aortiques et pulmonaires sont fermées</li>
+            
+                    <li><input type="checkbox" id="q40c" name="q40" value="C"> C- Le volume ventriculaire diminue rapidement</li>
+            
+                    <li><input type="checkbox" id="q40d" name="q40" value="D"> D- La pression intra-ventriculaire augmente rapidement</li>
+            
+                    <li><input type="checkbox" id="q40e" name="q40" value="E"> E- Le débit ventriculaire gauche augmente</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-41" class="question-container">
+            <div class="question">
+                <p>41.) Les cellules automatiques du cœur sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q41a" name="q41" value="A"> A- Localisées au niveau du myocarde auriculaire</li>
+            
+                    <li><input type="checkbox" id="q41b" name="q41" value="B"> B- Caractérisées par une dépolarisation diastolique spontanée</li>
+            
+                    <li><input type="checkbox" id="q41c" name="q41" value="C"> C- Des cellules contractiles</li>
+            
+                    <li><input type="checkbox" id="q41d" name="q41" value="D"> D- Localisées au niveau du nœud auriculo-ventriculaire</li>
+            
+                    <li><input type="checkbox" id="q41e" name="q41" value="E"> E- Localisées au niveau du myocarde ventriculaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-42" class="question-container">
+            <div class="question">
+                <p>42.) La phase 0 d’une cellule du nœud sinusal est caractérisée par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q42a" name="q42" value="A"> A- Entrée rapide de Na+</li>
+            
+                    <li><input type="checkbox" id="q42b" name="q42" value="B"> B- Entrée rapide de K+</li>
+            
+                    <li><input type="checkbox" id="q42c" name="q42" value="C"> C- Entrée passive du calcium</li>
+            
+                    <li><input type="checkbox" id="q42d" name="q42" value="D"> D- Entrée de chlore</li>
+            
+                    <li><input type="checkbox" id="q42e" name="q42" value="E"> E- Sortie de K+</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-43" class="question-container">
+            <div class="question">
+                <p>43.) La systole ventriculaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q43a" name="q43" value="A"> A- Commence avec la systole auriculaire</li>
+            
+                    <li><input type="checkbox" id="q43b" name="q43" value="B"> B- Commence avec la contraction isovolumétrique</li>
+            
+                    <li><input type="checkbox" id="q43c" name="q43" value="C"> C- Commence avec la fermeture des valves auriculo-ventriculaires</li>
+            
+                    <li><input type="checkbox" id="q43d" name="q43" value="D"> D- Commence avec la fermeture des sigmoïdes aortiques et pulmonaires</li>
+            
+                    <li><input type="checkbox" id="q43e" name="q43" value="E"> E- Est plus courte que la diastole ventriculaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-44" class="question-container">
+            <div class="question">
+                <p>44.) Les facteurs qui augmentent le débit cardiaque sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q44a" name="q44" value="A"> A- Anémie</li>
+            
+                    <li><input type="checkbox" id="q44b" name="q44" value="B"> B- Orthostatisme</li>
+            
+                    <li><input type="checkbox" id="q44c" name="q44" value="C"> C- Hyperthyroïdie</li>
+            
+                    <li><input type="checkbox" id="q44d" name="q44" value="D"> D- Fièvre</li>
+            
+                    <li><input type="checkbox" id="q44e" name="q44" value="E"> E- Insuffisance cardiaque</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-45" class="question-container">
+            <div class="question">
+                <p>45.) Le prélèvement du sang veineux mêlé se fait au niveau :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q45a" name="q45" value="A"> A- Veine cave inférieure</li>
+            
+                    <li><input type="checkbox" id="q45b" name="q45" value="B"> B- Artère pulmonaire</li>
+            
+                    <li><input type="checkbox" id="q45c" name="q45" value="C"> C- Artère fémorale</li>
+            
+                    <li><input type="checkbox" id="q45d" name="q45" value="D"> D- Veine fémorale</li>
+            
+                    <li><input type="checkbox" id="q45e" name="q45" value="E"> E- Veines pulmonaires</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-46" class="question-container">
+            <div class="question">
+                <p>46.) La fraction d’éjection du ventricule gauche est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q46a" name="q46" value="A"> A- Normale si inférieure à 50%</li>
+            
+                    <li><input type="checkbox" id="q46b" name="q46" value="B"> B- Normale si comprise entre 60 et 80%</li>
+            
+                    <li><input type="checkbox" id="q46c" name="q46" value="C"> C- Indépendante du volume télé diastolique du ventricule gauche</li>
+            
+                    <li><input type="checkbox" id="q46d" name="q46" value="D"> D- Un reflet de la fonction systolique du ventricule gauche</li>
+            
+                    <li><input type="checkbox" id="q46e" name="q46" value="E"> E- Est calculée par l’échocardiographie doppler</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-47" class="question-container">
+            <div class="question">
+                <p>47.) Pendant quelle phase du cycle cardiaque, la pression ventriculaire diminue rapidement, les valves auriculo-ventriculaires et sigmoïdes sont fermées et il n’y a pas de débit ventriculaire ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q47a" name="q47" value="A"> A- La contraction iso volumétrique</li>
+            
+                    <li><input type="checkbox" id="q47b" name="q47" value="B"> B- L’éjection ventriculaire rapide</li>
+            
+                    <li><input type="checkbox" id="q47c" name="q47" value="C"> C- L’éjection ventriculaire lente</li>
+            
+                    <li><input type="checkbox" id="q47d" name="q47" value="D"> D- La relaxation iso volumétrique</li>
+            
+                    <li><input type="checkbox" id="q47e" name="q47" value="E"> E- Le remplissage ventriculaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+
+            
+            
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S5" "Radiologie" "Rd2022" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+                
+            <script>
+const correctAnswers = {
+    q1: ['B', 'C', 'E'],
+    q2: ['B', 'E'],
+    q3: ['A', 'B', 'E'],
+    q4: ['A', 'D'],
+    q5: ['E'],
+    q6: ['A', 'D', 'E'],
+    q7: ['C'],
+    q8: ['E'],
+    q9: ['A', 'C', 'E'],
+    q10: ['A', 'C'],
+    q11: ['B', 'D'],
+    q12: ['B', 'C', 'D'],
+    q13: ['B'],
+    q14: ['A', 'B', 'E'],
+    q15: ['A', 'B', 'C', 'D'],
+    q16: ['A', 'B'],
+    q17: ['A', 'C', 'D', 'E'],
+    q18: ['E'],
+    q19: ['B', 'C', 'D'],
+    q20: ['C', 'D', 'E'],
+    q21: ['A', 'B', 'D'],
+    q22: ['A'],
+    q23: ['A', 'B', 'C', 'D', 'E'],
+    q24: ['E'],
+    q25: ['E'],
+    q26: ['A', 'B', 'C', 'D', 'E'],
+    q27: ['B', 'C', 'E'],
+    q28: ['A', 'B', 'E'],
+    q29: ['B', 'C', 'E'],
+    q30: ['A', 'B'],
+    q31: ['A', 'B', 'E'],
+    q32: ['C', 'D', 'E'],
+    q33: ['A', 'C', 'D'],
+    q34: ['A', 'C'],
+    q35: ['D'],
+    q36: ['A', 'B', 'C', 'D'],
+    q37: ['B', 'D', 'E'],
+    q38: ['B', 'C'],
+    q39: ['A', 'D', 'E'],
+    q40: ['A', 'B', 'E'],
+    q41: ['A', 'B', 'D'],
+    q42: ['B', 'C', 'D'],
+    q43: ['C'],
+    q44: ['B', 'C', 'E'],
+    q45: ['A', 'C', 'D'],
+    q46: ['B'],
+    q47: ['A', 'B', 'D'],
+    q48: ['B'],
+    q49: ['B', 'D', 'E'],
+    q50: ['D'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersRd2022'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+<script src="{% static 'java/question-stats.js' %}" defer></script>

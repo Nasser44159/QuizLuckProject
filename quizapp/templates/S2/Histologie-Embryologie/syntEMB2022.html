@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="EMB2022">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) La méiose féminine :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- A- débute une fois la phase de multiplication des ovogonies achevée;</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- B- est caractérisée par un second blocage, en métaphase II, à partir de la puberté;</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- C- débute durant la vie intra-utérine;</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- D- permet la séparation des chromosomes homologues lors de l'anaphase II;</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- E- conduit à la formation de gamètes génétiquement identiques.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Quelle(s) est (sont) la (les) proposition(s) exacte(s) concernant la folliculogenèse :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- A- Les premières cellules folliculaires entourant l'ovocyte sont cubiques;</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- B- Les cellules de la thèque interne sont plus proches de l'ovocyte que les cellules de la granulosa;</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- C- En phase folliculaire, les sécrétions du corps jaune agissent par rétroaction négative sur l'hypophyse;</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- D- La cavité folliculaire ou antrum apparaît au stade follicule tertiaire;</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- E- Le follicule de De Graaf sécrète LH en période préovulatoire.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) A propos de la spermatogenèse :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- A- elle a lieu normalement à la température corporelle;</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- B- elle se déroule dans les tubes séminifères de la périphérie vers la lumière;</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- C- elle est sous contrôle d'hormones hypophysaires;</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- D- elle comprend une seule réplication d'ADN;</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- E- elle concerne toutes les cellules de la paroi du tube séminifère.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) À la fin de la spermatogenèse, le nombre de spermatozoïdes obtenu est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- A- égal au nombre des spermatides;</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- B- le double du nombre de spermatides;</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- C- quatre fois le nombre de spermatocytes I;</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- D- le double du nombre de spermatocytes II;</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- E- 23 fois celui des spermatogonies.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Replacez ces phases dans l'ordre chronologique de la spermatogenèse :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- A- a.b.c;</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- B- b.a.c;</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- C- b.c.a;</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- D- a.c.b;</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- E- c.a.b.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Une obstruction des voies génitales peut être à l'origine de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- A- l'incapacité de rencontre des gamètes;</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- B- l'anovulation;</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- C- l'azoospermie excrétoire;</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- D- l'absence de production spermatique;</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- E- l'asthénospermie.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Dans le follicule mûr ou follicule de DE GRAAF :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- A- la thèque externe élabore des œstrogènes;</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- B- l'ovocyte I est bloqué au stade leptotène de prophase de première division méiotique;</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- C- la LH contrôle la synthèse de la testostérone par la thèque interne;</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- D- les cellules de la granulosa convertissent la progestérone en œstrogènes par l'aromatase;</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- E- la synthèse des œstrogènes dépend de l'action de LH et FSH.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Parmi les propositions relatives à la spermiogenèse, laquelle (lesquelles) est (sont) juste(s) ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- A- elle a une durée de 74 jours;</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- B- elle aboutit à la formation de spermatozoïdes fécondants;</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- C- l'acrosome résulte de la fusion de vésicules de Golgi formées dans la spermatide;</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- D- les mitochondries et les centrioles entrent dans la formation du flagelle;</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- E- les corps résiduels des spermatides matures sont phagocytés par les cellules de Sertoli.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Un rapport sexuel peut être fécondant :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- A- du 9ème jour au 16ème jour du cycle;</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- B- au cours de la fenêtre implantatoire;</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- C- jusqu'à 72h après l'ovulation;</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- D- deux jours avant le pic de LH;</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- E- s'il a lieu 3 jours avant l'ovulation.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) La fixation de ZP3 à ses récepteurs :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- A- empêche le détachement des spermatozoïdes de la zone pellucide;</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- B- déclenche l'exocytose des granules corticaux;</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- C- nécessite la réaction acrosomiale;</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- D- facilite l'adhérence du blastocyste à l'épithélium utérin;</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- E- permet la reconnaissance des gamètes.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) La formation du second globule polaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- A- se retrouve chez le mâle et chez la femelle;</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- B- traduit la reprise de la méiose avant l'ovulation;</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- C- indique que la fécondation a eu lieu;</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- D- s'accompagne d'une réduction de moitié du nombre de chromosomes;</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- E- a lieu dans les trompes utérines.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) L'activation de l'ovocyte par le spermatozoïde entraîne une augmentation rapide et transitoire du calcium dans le cytoplasme ovocytaire dont les conséquences sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- A- le blocage de la polyspermie;</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- B- l'achèvement de la mitose réductionnelle;</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- C- la reprise de la méiose et la formation de deux cellules filles de taille inégale;</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- D- la fusion des granules corticaux avec la membrane plasmique ovocytaire;</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- E- l'exocytose des enzymes acrosomiales.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Les œstrogènes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- A- exercent en permanence une rétroaction négative sur la sécrétion de LH et de FSH;</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- B- préparent la muqueuse utérine à la nidation;</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- C- peuvent se convertir en testostérone dans les cellules de la granulosa;</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- D- provoquent une légère élévation de la température corporelle pendant la phase lutéale;</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- E- sont produits par le corps jaune et le placenta.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) La capacitation des spermatozoïdes a lieu dans les voies génitales féminines, elle consiste en :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- A- le retrait d'une partie du cholestérol situé entre les phospholipides membranaires;</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- B- l'élimination des protéines de surface dans l'épididyme;</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- C- la stabilisation de la membrane plasmique;</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- D- la perte temporaire de la capacité à féconder l'ovocyte;</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- E- les mitochondries s'allongent et s'enroulent pour former le manchon mitochondrial.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Le phénomène de compaction embryonnaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- A- correspond à l'apparition de molécules membranaires de jonction intercellulaire;</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- B- a lieu durant la première semaine du développement;</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- C- permet une fusion des blastomères;</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- D- met en jeu des jonctions communicantes;</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- E- se déroule au cours de la mise en place des feuillets embryonnaires.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Pendant la phase d'apposition et d'adhérence du blastocyste à la paroi utérine :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- A- le blastocyste développe des pinopodes;</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- B- les cellules du bouton embryonnaire forment des microvillosités apicales;</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- C- l'épithélium utérin surexprime des molécules d'adhésion;</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- D- les cellules de l'épithélium endométrial se transforment en cellules déciduales;</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- E- les intégrines du blastocyste reconnaissent les sélectines de l'épithélium utérin.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Durant les 14 premiers jours du développement embryonnaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- A- se forme le disque embryonnaire didermique;</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- B- se met en place la chorde dorsale;</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- C- la sensibilité aux effets tératogènes est maximale;</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- D- le syncytiotrophoblaste devient lacunaire et ses lacunes se remplissent de sang fœtal;</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- E- débute la circulation utéro-lacunaire.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) La transformation du disque embryonnaire didermique en disque embryonnaire tridermique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- A- permet la mise en place du mésoblaste intra-embryonnaire;</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- B- nécessite la mise en place de la ligne primitive;</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- C- a lieu durant la quatrième semaine de développement;</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- D- est suivie par un épaississement de l'ectoblaste en avant du nœud de Hensen;</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- E- est responsable de l'étranglement du lécithocèle primaire.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) La fermeture du tube neural :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- A- commence au niveau crânial et s’étend vers la partie caudale;</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- B- débute par un épaississement de la paroi dorsale du canal chordal;</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- C- s'accompagne d'un détachement des crêtes neurales;</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- D- est à l'origine de l'encéphale et de la moelle épinière;</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- E- cause la spina bifida si le neuropore antérieur reste ouvert.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) À J20 du développement embryonnaire, on peut voir :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- A- des villosités placentaires primaires;</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- B- des cellules germinales primordiales au voisinage de l'allantoïde;</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- C- la membrane pharyngienne tridermique en position crâniale;</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- D- l'ébauche cardiaque en avant de la membrane pharyngienne;</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- E- la mise en place du système hématopoïétique primitif d'origine mésenchymateuse.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Concernant la chorde :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- A- elle constitue l'ébauche du système nerveux central;</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- B- c'est un tube creux le long de l'axe céphalo-caudal de l'embryon à la fin de la gastrulation;</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- C- elle a une origine épiblastique;</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- D- elle donnera la colonne vertébrale;</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- E- elle régressera pour ne former que la partie centrale gélatineuse du disque intervertébral.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) À propos des somites :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- A- elles se forment de part et d'autre de la chorde dorsale;</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- B- elles comportent deux territoires organogènes, le dermatome et le sclérotome;</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- C- elles s'individualisent à partir du mésoblaste intermédiaire;</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- D- chaque somite participe à la formation d'une vertèbre;</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- E- elles apparaissent de façon simultanée tout le long du corps.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Les plicatures transversale et/ou céphalo-caudale permettent :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- A- à l'embryon de passer de l'état didermique à l'état tridermique;</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- B- l'augmentation du volume du lécithocèle secondaire;</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- C- de refouler le cœur dans le thorax;</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- D- à la cavité amniotique d'entourer complètement l'embryon;</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- E- le rapprochement des régions crâniale et caudale de l'embryon.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Le cordon ombilical :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- A- transporte l'oxygène du placenta vers le fœtus par l'artère ombilicale;</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- B- assure la circulation fœto-placentaire par l'intermédiaire de deux veines et une artère;</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- C- relie la face maternelle du placenta à l'ombilic du nouveau-né;</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- D- véhicule les déchets du métabolisme fœtal vers le placenta par les artères ombilicales;</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- E- s'ébauche à partir du pédicule embryonnaire.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Quelle(s) est (sont) la (les) réponse(s) exacte(s) concernant la chambre intervilleuse ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- A- elle est le siège d'un gradient de pression favorisant la circulation du sang maternel;</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- B- elle contient du sang maternel provenant des veines endométriales;</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- C- elle est remplie de sang fœtal;</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- D- elle constitue une cavité unique;</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- E- elle est le siège des échanges en O2 avec les villosités choriales fœtales.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S2" "Histologie-Embryologie" "EMB2022" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['B', 'C'],
+    q2: ['D'],
+    q3: ['B', 'C'],
+    q4: ['A', 'C', 'D'],
+    q5: ['B'],
+    q6: ['A', 'C'],
+    q7: ['B', 'C', 'E'],
+    q8: ['C', 'E'],
+    q9: ['A', 'D', 'E'],
+    q10: ['E'],
+    q11: ['C', 'E'],
+    q12: ['A', 'C', 'D'],
+    q13: ['B', 'E'],
+    q14: ['A'],
+    q15: ['A', 'B', 'D'],
+    q16: ['C'],
+    q17: ['A', 'E'],
+    q18: ['A', 'B', 'D'],
+    q19: ['C', 'D'],
+    q20: ['B', 'D', 'E'],
+    q21: ['C', 'E'],
+    q22: ['A', 'D'],
+    q23: ['C', 'D', 'E'],
+    q24: ['D', 'E'],
+    q25: ['A', 'D', 'E'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersEMB2022'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+<script src="{% static 'java/question-stats.js' %}" defer></script>

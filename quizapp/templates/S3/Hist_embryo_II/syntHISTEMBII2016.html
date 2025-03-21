@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM  Histologie et Embryologie</h1>
+            </div>
+            <form id="quiz-form">
+                <input type="hidden" id='exam_name' name="exam_name" value="HISTEMBII2016">
+    {% csrf_token %}>
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Quels sont les deux segments du tube digestif comportant des glandes dans la sous muqueuse ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Iléon</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Jéjunum</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Duodénum</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Œsophage</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Colon</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Quelles sont les structures observées dans l’iléon ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Plaques de Peyer</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Villosités</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Glandes de Lieberkühn</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Feuillet glandulaire</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Séreuse</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Quelles sont les cellules présentes dans le fundus de l’estomac ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Cellules pariétales</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Cellules principales</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Cellules endocrines</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Cellules de Paneth</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Cellules caliciformes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Dans quel segment du tube digestif sont observées les valvules conniventes ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Jéjunum</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Estomac</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Œsophage</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Colon</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Rectum</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Le pôle vasculaire de l’hépatocyte :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Est au contact avec l’espace de Disse</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Est au contact avec le canalicule biliaire</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Permet les échanges avec le sinusoïde</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Comporte un système de jonction serré</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Comporte des microvillosités</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Quelles sont les structures observées dans l’espace porte hépatique ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Branche de l’artère hépatique</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Branche de la veine porte</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Canal biliaire</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Tissu conjonctif</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Veine centrolobulaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Le lobule hépatique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Est triangulaire</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Est centré par une veine</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Comporte six espaces portes</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Comporte des travées hépatocytaires</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Comporte des capillaires sinusoïdes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Quels sont les organes qui comportent un réseau vasculaire admirable :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Le foie</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Le rein</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Le poumon</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- L’antéhypophyse</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- La thyroïde</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Quelles sont les structures qui composent le pancréas exocrine ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Des acini</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Des glandes tubuleuses droites</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Des glandes muqueuses</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Des glandes séreuses</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Des glandes mixtes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) La glande salivaire parotide est une glande :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Amphicrine homotypique</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Amphicrine hétérotypique</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Séreuse</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Muqueuse</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Mixte</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) La muqueuse du nasopharynx (cavum) comporte :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Des cellules caliciformes</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Un chorion lymphoïde</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Du muscle de Reissessen</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Des cellules ciliées</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Des anneaux cartilagineux</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Le canal alvéolaire comporte :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Des pneumocytes type I</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Des pneumocytes type II</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Des cellules caliciformes</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Des bourrelets</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Des fibres élastiques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) La membrane alvéolo-capillaire dans le poumon est composée des structures suivantes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Endothélium du capillaire</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Membrane basale continue</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Membrane basale discontinue</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Pneumocyte type I (membraneux)</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Pneumocyte type II (granulaire)</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Une paroi d’une bronche de moyen calibre comporte :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Des anneaux cartilagineux</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Du muscle de Reissessen</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Des glandes séro-muqueuses</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Une séreuse</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Des cellules ciliées</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Les cordes vocales du larynx comportent :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Un épithélium de type respiratoire</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Un épithélium malpighien</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Des cellules ciliées</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Des glandes séro-muqueuses</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Du muscle strié</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) La substance médullaire comporte :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- des corpuscules rénaux</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- des tubes contournés proximaux</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- des tubes collecteurs</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- des vasa recta</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- des anses de Henle</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Quelles sont les structures rénales qui comportent des podocytes ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Substance médullaire</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Substance corticale</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Appareil juxta-glomérulaire</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Feuillet viscéral de la capsule de Bowman</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Corpuscule rénal</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Les structures qui composent la barrière de filtration glomérulaire sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- L'endothélium des capillaires glomérulaires</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- L'endothélium des capillaires de la vasa recta</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- une membrane basale épaisse</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- une membrane de filtration</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- une bordure en brosse</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) La zone corticale comporte :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- des pyramides de Malpighi</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- des pyramides de Ferrein</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- des colonnes de Bertin</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- la substance médullaire</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- la substance corticale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) La vessie comporte :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- un épithélium pseudostratifié</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- un épithélium cylindrique stratifié</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- trois couches musculaires</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- une musculeuse plexiforme</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- une adventice ou séreuse</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Le compartiment basal du tube séminifère comporte :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- une partie des cellules de Sertoli</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- des spermatogonies</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- des cellules de Leydig</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- des spermatides</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- des spermatocytes secondaires</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Quels sont les constituants de la prostate ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Des glandes tubulo-alvéolaires</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Une muqueuse avec des replis</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Un stroma fibro-musculaire lisse</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Trois couches musculaires</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Une séreuse</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Le tissu érectile du corps spongieux :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- présente la même structure que celui des corps caverneux</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- est composé d'un réseau veineux caverneux</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- comporte des fibres musculaires lisses</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- comporte du muscle strié</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- est soutenu par un tissu conjonctif</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Quels sont les deux éléments présents dans le canal déférent et qui constituent une différence avec le canal épididymaire ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Un épithélium pseudostratifié</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- des cellules cylindriques</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- des stéréocils</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- une musculeuse en trois couches</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- une lumière étoilée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Quelle est l'architecture de la zone glomérulée de la surrénale ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Cordons parallèles</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Cordons anastomosés</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Cordons arciformes</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Vésicules</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Ilots</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Dans quelle glande endocrine s'observent les cellules chromaffines ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- L'adénohypophyse</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- La neurohypophyse</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- La médullosurrénale</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- La corticosurrénale</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- La parathyroïde</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) À propos de l'unité ducto-lobulaire dans la glande mammaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- Elle est composée d'adipocytes</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- Elle est composée d'acini</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Elle est composée de canalicules intra-lobulaires</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Elle comporte des canalicules extra-lobulaires</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- Elle donne naissance au cancer du sein</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) Le corps jaune dans l'ovaire comporte :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- Des cellules lutéiniques granuleuses</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- Des cellules lutéiniques thécales</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- Des capillaires</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- Des fibroblastes</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- Une zone pellucide</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) L'ovaire est bordé en périphérie par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- une séreuse</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- une adventice</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- une vaginale</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- une capsule</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- un épithélium germinatif</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) L'endocol de l'utérus comporte :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- Un épithélium cylindrique</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- Un épithélium malpighien</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- Des cellules muqueuses</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- Des glandes tubuleuses</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- Une séreuse</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) Quelle est l'origine des glandes fundiques de l'estomac ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- L'endoderme</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- Le mésoderme</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- L'ectoderme</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- L'intestin pharyngien</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- L'intestin moyen</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) Quelles sont les structures dérivées de l'intestin antérieur ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A- L'iléon</li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B- Le jéjunum</li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C- Le foie</li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D- Le pancréas</li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E- La voie biliaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) Quelles sont les dates qui correspondent à une hernie intestinale physiologique ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A- 8 semaines</li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B- 9 semaines</li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C- 10 semaines</li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D- 12 semaines</li>
+            
+                    <li><input type="checkbox" id="q33e" name="q33" value="E"> E- 13 semaines</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) À propos du développement de la thyroïde, elle apparaît :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A- à partir des poches endobranchiales</li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B- dans le plancher de l'intestin pharyngien</li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C- sous la langue</li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D- entre la racine et la partie antérieure de la langue</li>
+            
+                    <li><input type="checkbox" id="q34e" name="q34" value="E"> E- dans le diverticule respiratoire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) Le pancréas :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A- Né dans l’intestin antérieur</li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B- Né dans l’intestin pharyngien</li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C- Né dans l’intestin moyen</li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D- Né à partir d’un seul bourgeon</li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E- Est formé initialement par deux bourgeons</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-36" class="question-container">
+            <div class="question">
+                <p>36.) À propos de l’anse intestinale primitive :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q36a" name="q36" value="A"> A- La partie crâniale donne l’intestin grêle</li>
+            
+                    <li><input type="checkbox" id="q36b" name="q36" value="B"> B- La partie caudale donne le cæcum</li>
+            
+                    <li><input type="checkbox" id="q36c" name="q36" value="C"> C- Se développe provisoirement dans le cordon ombilical</li>
+            
+                    <li><input type="checkbox" id="q36d" name="q36" value="D"> D- Subit une 1ère rotation en plaçant la partie caudale à droite</li>
+            
+                    <li><input type="checkbox" id="q36e" name="q36" value="E"> E- La 2ème rotation permet à la partie caudale de croiser la partie crâniale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-37" class="question-container">
+            <div class="question">
+                <p>37.) Le cloaque :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q37a" name="q37" value="A"> A- Fait partie de l’intestin moyen</li>
+            
+                    <li><input type="checkbox" id="q37b" name="q37" value="B"> B- Est la zone de l’intestin où s’abouche l’allantoïde</li>
+            
+                    <li><input type="checkbox" id="q37c" name="q37" value="C"> C- Subit un cloisonnement</li>
+            
+                    <li><input type="checkbox" id="q37d" name="q37" value="D"> D- Est fermé par une membrane</li>
+            
+                    <li><input type="checkbox" id="q37e" name="q37" value="E"> E- Donne naissance au canal ano-rectal</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-38" class="question-container">
+            <div class="question">
+                <p>38.) Quelle est l’origine du sinus uro-génital ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q38a" name="q38" value="A"> A- Le cordon néphrogène</li>
+            
+                    <li><input type="checkbox" id="q38b" name="q38" value="B"> B- Le canal de Wolff</li>
+            
+                    <li><input type="checkbox" id="q38c" name="q38" value="C"> C- Le cloaque</li>
+            
+                    <li><input type="checkbox" id="q38d" name="q38" value="D"> D- L’intestin moyen</li>
+            
+                    <li><input type="checkbox" id="q38e" name="q38" value="E"> E- Le mésoblaste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-39" class="question-container">
+            <div class="question">
+                <p>39.) Quels sont les dérivés du sinus uro-génital ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q39a" name="q39" value="A"> A- La vessie</li>
+            
+                    <li><input type="checkbox" id="q39b" name="q39" value="B"> B- L’urètre</li>
+            
+                    <li><input type="checkbox" id="q39c" name="q39" value="C"> C- Le bassinet</li>
+            
+                    <li><input type="checkbox" id="q39d" name="q39" value="D"> D- La plaque vaginale</li>
+            
+                    <li><input type="checkbox" id="q39e" name="q39" value="E"> E- La prostate</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-40" class="question-container">
+            <div class="question">
+                <p>40.) Quels sont les dérivés du canal de Wolff ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q40a" name="q40" value="A"> A- Les vésicules séminales</li>
+            
+                    <li><input type="checkbox" id="q40b" name="q40" value="B"> B- Le canal déférent</li>
+            
+                    <li><input type="checkbox" id="q40c" name="q40" value="C"> C- La prostate</li>
+            
+                    <li><input type="checkbox" id="q40d" name="q40" value="D"> D- Le bassinet</li>
+            
+                    <li><input type="checkbox" id="q40e" name="q40" value="E"> E- Les tubes collecteurs</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-41" class="question-container">
+            <div class="question">
+                <p>41.) L’hypospadias est lié à une anomalie de l’un des processus parmi les suivants, lequel ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q41a" name="q41" value="A"> A- Cloisonnement du cloaque</li>
+            
+                    <li><input type="checkbox" id="q41b" name="q41" value="B"> B- Cloisonnement du sinus uro-génital</li>
+            
+                    <li><input type="checkbox" id="q41c" name="q41" value="C"> C- Ouverture de la membrane cloaquale</li>
+            
+                    <li><input type="checkbox" id="q41d" name="q41" value="D"> D- Fusion des replis génitaux</li>
+            
+                    <li><input type="checkbox" id="q41e" name="q41" value="E"> E- Migration testiculaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-42" class="question-container">
+            <div class="question">
+                <p>42.) Quels sont les phénomènes en rapport avec la migration testiculaire ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q42a" name="q42" value="A"> A- Formation du processus vaginal</li>
+            
+                    <li><input type="checkbox" id="q42b" name="q42" value="B"> B- Formation du canal péritonéo-vaginal</li>
+            
+                    <li><input type="checkbox" id="q42c" name="q42" value="C"> C- Raccourcissement du ligament caudal de la gonade</li>
+            
+                    <li><input type="checkbox" id="q42d" name="q42" value="D"> D- Sécrétion de la testostérone</li>
+            
+                    <li><input type="checkbox" id="q42e" name="q42" value="E"> E- Formation du septum uro-rectal</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-43" class="question-container">
+            <div class="question">
+                <p>43.) Dans le système cardio-vasculaire fœtal :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q43a" name="q43" value="A"> A- L’oreillette droite communique avec l’oreillette gauche</li>
+            
+                    <li><input type="checkbox" id="q43b" name="q43" value="B"> B- L’aorte communique avec l’artère pulmonaire</li>
+            
+                    <li><input type="checkbox" id="q43c" name="q43" value="C"> C- L’oreillette gauche reçoit du sang oxygéné par les veines pulmonaires</li>
+            
+                    <li><input type="checkbox" id="q43d" name="q43" value="D"> D- L’oreillette droite reçoit du sang oxygéné par la veine cave inférieure</li>
+            
+                    <li><input type="checkbox" id="q43e" name="q43" value="E"> E- L’artère ombilicale véhicule du sang riche en oxygène</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-44" class="question-container">
+            <div class="question">
+                <p>44.) Dans le cœur fœtal, le septum intermédium permet de cloisonner :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q44a" name="q44" value="A"> A- Le canal atrio-ventriculaire</li>
+            
+                    <li><input type="checkbox" id="q44b" name="q44" value="B"> B- Les oreillettes</li>
+            
+                    <li><input type="checkbox" id="q44c" name="q44" value="C"> C- Les ventricules</li>
+            
+                    <li><input type="checkbox" id="q44d" name="q44" value="D"> D- Le tronc artériel</li>
+            
+                    <li><input type="checkbox" id="q44e" name="q44" value="E"> E- Le sinus veineux</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-45" class="question-container">
+            <div class="question">
+                <p>45.) Quelle est l’origine des valves septales de la valve mitrale et la valve tricuspide ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q45a" name="q45" value="A"> A- Le septum primum</li>
+            
+                    <li><input type="checkbox" id="q45b" name="q45" value="B"> B- Le septum secondum</li>
+            
+                    <li><input type="checkbox" id="q45c" name="q45" value="C"> C- Le septum intermédium</li>
+            
+                    <li><input type="checkbox" id="q45d" name="q45" value="D"> D- Le septum aortico-pulmonaire</li>
+            
+                    <li><input type="checkbox" id="q45e" name="q45" value="E"> E- Le septum membraneux</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-46" class="question-container">
+            <div class="question">
+                <p>46.) Quelles sont les conséquences de l’absence du septum aortico-pulmonaire (septum cono-troncal) ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q46a" name="q46" value="A"> A- Tronc artériel commun</li>
+            
+                    <li><input type="checkbox" id="q46b" name="q46" value="B"> B- Communication inter-ventriculaire</li>
+            
+                    <li><input type="checkbox" id="q46c" name="q46" value="C"> C- Communication inter-auriculaire</li>
+            
+                    <li><input type="checkbox" id="q46d" name="q46" value="D"> D- Absence de septum membraneux</li>
+            
+                    <li><input type="checkbox" id="q46e" name="q46" value="E"> E- Absence de valves</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-47" class="question-container">
+            <div class="question">
+                <p>47.) Les conditions pour un bon développement pulmonaire sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q47a" name="q47" value="A"> A- Une faible quantité de liquide amniotique</li>
+            
+                    <li><input type="checkbox" id="q47b" name="q47" value="B"> B- Un espace suffisant</li>
+            
+                    <li><input type="checkbox" id="q47c" name="q47" value="C"> C- Une contractilité musculaire normale</li>
+            
+                    <li><input type="checkbox" id="q47d" name="q47" value="D"> D- Des mouvements respiratoires</li>
+            
+                    <li><input type="checkbox" id="q47e" name="q47" value="E"> E- Une neuromotricité normale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-48" class="question-container">
+            <div class="question">
+                <p>48.) La maturation pulmonaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q48a" name="q48" value="A"> A- Se fait au cours du stade pseudo-glandulaire</li>
+            
+                    <li><input type="checkbox" id="q48b" name="q48" value="B"> B- Se fait au cours du stade canalaire</li>
+            
+                    <li><input type="checkbox" id="q48c" name="q48" value="C"> C- Peut commencer au stade sacculaire</li>
+            
+                    <li><input type="checkbox" id="q48d" name="q48" value="D"> D- Se définit par la production du surfactant pulmonaire</li>
+            
+                    <li><input type="checkbox" id="q48e" name="q48" value="E"> E- Se définit par la production de bronchioles terminales</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-49" class="question-container">
+            <div class="question">
+                <p>49.) Quelle est l’origine du palais primaire ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q49a" name="q49" value="A"> A- Le bourgeon maxillaire</li>
+            
+                    <li><input type="checkbox" id="q49b" name="q49" value="B"> B- Les processus palatins</li>
+            
+                    <li><input type="checkbox" id="q49c" name="q49" value="C"> C- Les bourgeons nasaux internes</li>
+            
+                    <li><input type="checkbox" id="q49d" name="q49" value="D"> D- Les bourgeons nasaux externes</li>
+            
+                    <li><input type="checkbox" id="q49e" name="q49" value="E"> E- Le bourgeon mandibulaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-50" class="question-container">
+            <div class="question">
+                <p>50.) Quels sont les dérivés du bourgeon frontal de la face ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q50a" name="q50" value="A"> A- La cloison nasale</li>
+            
+                    <li><input type="checkbox" id="q50b" name="q50" value="B"> B- Le palais secondaire</li>
+            
+                    <li><input type="checkbox" id="q50c" name="q50" value="C"> C- Le palais primaire</li>
+            
+                    <li><input type="checkbox" id="q50d" name="q50" value="D"> D- Le massif médian de la face</li>
+            
+                    <li><input type="checkbox" id="q50e" name="q50" value="E"> E- Les ailes du nez</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+
+            
+            
+                   
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S5" "Radiologie" "Rd2022" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['C', 'D'],
+    q2: ['A', 'B', 'C', 'E'],
+    q3: ['A', 'B', 'C'],
+    q4: ['A'],
+    q5: ['A', 'C', 'E'],
+    q6: ['A', 'B', 'C', 'D'],
+    q7: ['B', 'C', 'D', 'E'],
+    q8: ['A', 'B', 'D'],
+    q9: ['A', 'D'],
+    q10: ['C'],
+    q11: ['A', 'B', 'C'],
+    q12: ['A', 'B', 'D', 'E'],
+    q13: ['A', 'B', 'D'],
+    q14: ['B', 'C', 'E'],
+    q15: ['B', 'E'],
+    q16: ['C', 'D', 'E'],
+    q17: ['B', 'D', 'E'],
+    q18: ['A', 'C', 'D'],
+    q19: ['B', 'D', 'E'],
+    q20: ['A', 'C', 'D', 'E'],
+    q21: ['A', 'B'],
+    q22: ['A', 'C'],
+    q23: ['A', 'B', 'C', 'E'],
+    q24: ['D', 'E'],
+    q25: ['C'],
+    q26: ['C'],
+    q27: ['B', 'C', 'E'],
+    q28: ['A', 'B', 'C', 'D'],
+    q29: ['E'],
+    q30: ['A', 'C', 'D'],
+    q31: ['A'],
+    q32: ['C', 'D', 'E'],
+    q33: ['A', 'B', 'C'],
+    q34: ['B', 'C', 'D'],
+    q35: ['A', 'E'],
+    q36: ['A', 'B', 'C', 'E'],
+    q37: ['B', 'C', 'D', 'E'],
+    q38: ['C'],
+    q39: ['A', 'B', 'D', 'E'],
+    q40: ['A', 'B', 'D', 'E'],
+    q41: ['D'],
+    q42: ['A', 'B', 'C', 'D'],
+    q43: ['A', 'B', 'D'],
+    q44: ['A'],
+    q45: ['C'],
+    q46: ['A', 'B', 'D'],
+    q47: ['B', 'C', 'D', 'E'],
+    q48: ['B', 'C'],
+    q49: ['C'],
+    q50: ['A', 'C', 'D', 'E'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersRd2022'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

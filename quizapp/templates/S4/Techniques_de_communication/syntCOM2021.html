@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="COM2021">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Dans le schéma de la communication, quel est l'élément le plus important ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- L'émetteur.</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Le récepteur.</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Les moyens.</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Dit quoi ?</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- L'effet.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Dans le domaine de la santé, l'émetteur peut appartenir à 4 des catégories suivantes. Lesquelles ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Un médecin.</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Un hôpital.</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Le ministère de la santé.</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Un poste émetteur.</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Un malade.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) L'impact de la communication non verbale lors d'une communication interpersonnelle est estimée à :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- 20%.</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- 30%.</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- 55%.</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- 75%.</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- 90%.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Le médecin peut communiquer d'une façon non verbale avec lesquels des éléments suivants ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- L'apparence corporelle.</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- La parole.</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- La posture.</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Le regard.</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Les gestes.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Le malade peut communiquer d'une façon non verbale avec lesquels des éléments suivants ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- La parole.</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Les pleurs.</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- L'expression du visage.</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Le regard.</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Les gestes.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Quand le médecin parle, le récepteur peut être :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Le malade.</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Un parent du malade.</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Un tuteur du malade.</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Un accompagnant du malade.</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Aucune réponse n'est juste.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Parmi les parasites qui interférent dans la réception du message par le patient on peut avoir :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Le bruit dans la salle d'examen.</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Les préjugés du médecin.</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Le jargon médical utilisé par le médecin.</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Le dialecte utilisé par le médecin.</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- L'âge du médecin.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Au cours de l'entretien, le médecin doit utiliser avec le malade un seul registre de langage. Lequel ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Registre soigné.</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Registre courant.</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Registre médical.</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Registre entre amis.</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Registre scientifique.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Pour annoncer une mauvaise nouvelle au malade, le médecin utilise quel type de communication avec le malade ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Communication intrapersonnelle.</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Communication interpersonnelle.</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Communication par petit groupe.</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Communication publique.</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Aucune réponse n'est juste.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Le médecin doit utiliser ses compétences émotionnelles pour :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Faire face aux complications des maladies.</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Poser des diagnostics.</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Ressentir et comprendre les malades.</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Prescrire des examens complémentaires.</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Vivre avec les malades.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Un médecin annonce à un malade un cancer. Le malade commence à soupirer, croise et décroise les bras et son ton change. Ces éléments sont caractéristiques d'un seul état. Lequel ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Une agitation.</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Une sidération.</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Une émotion.</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Une acceptation de la maladie.</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Un déni de la maladie.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Parmi les propositions suivantes concernant l'empathie, 2 sont justes. Lesquelles ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- L'adaptation du discours du médecin en fonction de l'âge du malade.</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- La capacité de se mettre à la place du malade.</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- La sympathie pour le malade.</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- L'adaptation du discours du médecin en fonction du niveau d'instruction du malade.</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- La capacité de sentir les émotions du malade.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Que doit faire en premier lieu un médecin qui arrive en retard à sa consultation ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Refuser de voir en consultation les malades qui sont en colère à cause du retard.</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Voir les malades urgents et renvoyer les autres.</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Commencer par demander aux malades de l'excuser pour le retard.</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Commencer immédiatement à voir ses malades.</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Voir d'abord les femmes puis les hommes par la suite.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Comment le médecin doit communiquer avec la famille du malade ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Refuser d'expliquer à la famille la maladie après l'avoir expliqué au malade.</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Évaluer la souffrance du malade mais aussi de ses proches.</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Mettre le malade au centre de la relation médecin-malade.</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Révéler le diagnostic de SIDA à tous les membres de la famille.</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Ne pas communiquer le diagnostic des maladies graves aux familles.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Un médecin peut tutoyer un malade adulte :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- S'il le connaît de longue date.</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- S'il veut lui annoncer une maladie grave.</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Lorsque le malade commence à tutoyer le médecin.</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Lorsque le malade est très gentil.</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Aucune proposition n'est juste.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Au cours de l'écoute quelles sont les étapes qui doivent être utilisées ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- La réception.</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- La mémorisation.</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- La compréhension.</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- La récitation.</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- L'interprétation.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Quelles sont parmi les raisons suivantes celles qui conduisent à une mauvaise écoute ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- La quantité d'information reçue par le malade.</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Les jugements hâtifs du médecin.</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Les différences d'âge entre médecin et malade.</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Les réactions émotives du malade.</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Le manque d'habilités du médecin.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Pour écouter activement son malade, le médecin doit :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Se taire quand le malade parle.</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Poser des questions pour demander des précisions.</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Baisser les yeux quand le malade parle.</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Permettre au malade de parler.</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Utiliser la technique de la reformulation.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Parmi les attitudes suivantes, trois peuvent bloquer la communication entre le soignant et le patient. Lesquelles ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Regarder le patient quand il parle.</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- S'arrêter de parler si le malade commence à pleurer.</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Interrompre la consultation pour répondre au téléphone.</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Regarder sa montre en permanence.</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Jouer avec un stylo.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Avant de commencer l'entrevue, le médecin doit :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Rester dans son bureau et demander à sa secrétaire de faire rentrer le malade.</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Utiliser un microphone pour appeler les malades selon l'ordre.</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Se lever et aller chercher le malade dans la salle d'attente.</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Appeler le malade par son nom dans la salle d'attente.</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Se présenter au malade et l'accompagner dans le bureau.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Au début de l'entrevue, le médecin doit :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Saluer le patient.</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Obtenir le nom du patient.</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Se présenter et préciser son rôle.</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- Demander au patient de payer les honoraires.</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Obtenir le consentement du patient si nécessaire.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Au début de l'entrevue le médecin doit :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Avoir une posture corporelle ouverte.</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Avoir une expression faciale indiquant l'intérêt.</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Croiser les mains pour bien écouter le patient.</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Regarder le malade quand le médecin lui parle.</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Baisser les yeux pour ne pas déranger le malade.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Les questions qui sont posées par le médecin en début d'entrevue doivent obéir aux règles suivantes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Des questions ouvertes générales.</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Ne contenant pas de termes techniques médicales.</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Faciles à comprendre par le malade.</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Des questions fermées exclusives.</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Posées en dialecte parlé par le malade.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Pour que le malade puisse comprendre et retenir les informations délivrées par le médecin, ce dernier doit :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Utiliser des termes médicaux pour expliquer la maladie.</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Répéter les informations si nécessaire.</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Diviser l'information en parties logiquement organisées.</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Utiliser les résumés pour renforcer l'information.</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Utiliser des aides visuelles pour transmettre l'information.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) La communication intrapersonnelle est utile pour le médecin, car elle lui permet de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Se connaître soi-même et se juger.</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Évaluer le degré de compréhension du malade.</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Bien écouter le malade.</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Évaluer les décisions à prendre.</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Répéter les messages destinés au malade.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Buckman définit la mauvaise nouvelle comme une nouvelle qui change radicalement :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- L'idée que se fait le patient de sa famille.</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- L'idée que se fait le patient de son avenir.</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- L'idée que se fait le patient de son pays.</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- L'idée que se fait le patient du monde.</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- L'idée que se fait le patient de sa religion.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) Parmi les thèmes suivants, quels sont ceux qui rentrent dans le cadre de l'annonce d'une mauvaise nouvelle ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- Une sclérose en plaques.</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- Une grippe.</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Un zona.</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Un diabète.</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- Un SIDA.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) On parle d'une annonce d'une mauvaise nouvelle quand le médecin annonce au malade :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- La rechute d'une maladie.</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- L'échec de son traitement.</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- La guérison de la maladie.</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- Son transfert en réanimation.</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- L'apparition de complications de la maladie.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) Parmi les compétences suivantes, 4 sont nécessaires pour être un bon annonceur. Lesquelles ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- Un savoir.</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- Un savoir-faire.</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- Un savoir-être.</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- Un savoir dire.</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- Un savoir spirituel.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) Après l'annonce d'une maladie grave, le malade peut réagir par le déni ou la révolte. Comment se manifeste cette réaction ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- Le malade refuse le diagnostic posé par le médecin.</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- Le malade n'entend pas les explications données par le médecin.</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- Le patient (ou sa famille) demande l'avis d'autres médecins.</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- Le médecin peut être désigné comme responsable de la maladie grave.</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- Le malade accepte le diagnostic mais il essaye de marchander.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) Un médecin termine sa consultation par dire à son malade « il faut faire une angiographie rétinienne ». Le malade, énervé, lui répond « je n'ai rien compris ».</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- Le médecin doit dire à la malade que sa secrétaire va lui expliquer.</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- Le médecin doit demander au malade de chercher la réponse sur internet.</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- Le médecin doit demander au malade de poser des questions à sa famille.</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- Le médecin doit dire au malade qu'il n'a pas le temps de lui expliquer.</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- Le médecin doit expliquer à son malade la signification de « rétine, angiographie ».</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) Si le médecin utilise l'ordinateur au moment de l'entretien avec le malade :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A- L'ordinateur ne doit pas constituer un obstacle entre le médecin et le malade.</li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B- L'ordinateur ne doit pas interférer avec la relation avec le malade.</li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C- Le médecin doit regarder l'ordinateur au moment d'écouter le malade.</li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D- L'ordinateur ne doit pas interférer avec le dialogue avec le malade.</li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E- Le médecin doit regarder le malade lorsque ce dernier parle.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) Lors de l'entrevue, l'exploration de la perspective du patient par le médecin comprend :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A- L'impact de la maladie sur la vie familiale du patient.</li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B- L'impact de la maladie sur le travail du patient.</li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C- L'aspect financier de la prise en charge de sa maladie.</li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D- Les croyances du patient sur les causes de sa maladie.</li>
+            
+                    <li><input type="checkbox" id="q33e" name="q33" value="E"> E- Les craintes du patient concernant ses symptômes.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) Lors de l'élaboration conjointe d'un plan d'action thérapeutique avec le malade, le médecin doit :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A- Fournir au malade de l'information sur les étapes du traitement.</li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B- Discuter des alternatives.</li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C- Cacher les effets secondaires pour éviter le refus de traitement.</li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D- Obtenir compte de l'avis du patient.</li>
+            
+                    <li><input type="checkbox" id="q34e" name="q34" value="E"> E- Fournir au malade de l'information sur les bénéfices et les avantages.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) Pour fournir la quantité et le type adéquats d'information, le médecin doit :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A- Fournir au malade l'information par portions gérables.</li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B- Demander au patient pendant combien de temps peut lui parler.</li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C- Vérifier la compréhension du patient.</li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D- Utiliser les réponses du patient comme guide pour adapter ses explications.</li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E- S'enquiert des connaissances préalables du patient.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-36" class="question-container">
+            <div class="question">
+                <p>36.) Lors d'une auscultation cardiaque un médecin s'approche d'un malade. La distance qui les sépare est de 40 cm. Le médecin est entré dans quel espace ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q36a" name="q36" value="A"> A- L'espace social.</li>
+            
+                    <li><input type="checkbox" id="q36b" name="q36" value="B"> B- L'espace personnel.</li>
+            
+                    <li><input type="checkbox" id="q36c" name="q36" value="C"> C- L'espace intime.</li>
+            
+                    <li><input type="checkbox" id="q36d" name="q36" value="D"> D- L'espace public.</li>
+            
+                    <li><input type="checkbox" id="q36e" name="q36" value="E"> E- L'espace normal.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-37" class="question-container">
+            <div class="question">
+                <p>37.) Comment le médecin doit se comporter avec les proches d'un malade ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q37a" name="q37" value="A"> A- Expliquer au malade et expliquer après à ses proches.</li>
+            
+                    <li><input type="checkbox" id="q37b" name="q37" value="B"> B- Écouter les proches du malade au même titre que le malade.</li>
+            
+                    <li><input type="checkbox" id="q37c" name="q37" value="C"> C- Voir les proches du malade et leur demander d'annoncer le diagnostic au malade.</li>
+            
+                    <li><input type="checkbox" id="q37d" name="q37" value="D"> D- Évaluer la souffrance du malade mais aussi de ses proches.</li>
+            
+                    <li><input type="checkbox" id="q37e" name="q37" value="E"> E- Évaluer la souffrance du malade sans se soucier de ses proches.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-38" class="question-container">
+            <div class="question">
+                <p>38.) La disponibilité du médecin pour le malade permet de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q38a" name="q38" value="A"> A- Améliorer la communication.</li>
+            
+                    <li><input type="checkbox" id="q38b" name="q38" value="B"> B- Une meilleure concentration.</li>
+            
+                    <li><input type="checkbox" id="q38c" name="q38" value="C"> C- Prévoir les réactions du malade.</li>
+            
+                    <li><input type="checkbox" id="q38d" name="q38" value="D"> D- Une meilleure observation.</li>
+            
+                    <li><input type="checkbox" id="q38e" name="q38" value="E"> E- Une meilleure réceptivité.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-39" class="question-container">
+            <div class="question">
+                <p>39.) Parmi ces éléments, quels sont les 4 qui font partie de la composante physiologique de l'émotion ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q39a" name="q39" value="A"> A- Une élévation de la température.</li>
+            
+                    <li><input type="checkbox" id="q39b" name="q39" value="B"> B- Une dilatation des pupilles.</li>
+            
+                    <li><input type="checkbox" id="q39c" name="q39" value="C"> C- Une accélération du rythme respiratoire.</li>
+            
+                    <li><input type="checkbox" id="q39d" name="q39" value="D"> D- Une moiteur des mains.</li>
+            
+                    <li><input type="checkbox" id="q39e" name="q39" value="E"> E- Une tachycardie.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-40" class="question-container">
+            <div class="question">
+                <p>40.) Les réactions immédiates du patient et de ses proches à l'égard du médecin :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q40a" name="q40" value="A"> A- Sont des réactions d'attaques personnelles à l'égard du médecin.</li>
+            
+                    <li><input type="checkbox" id="q40b" name="q40" value="B"> B- Sont les signes du travail d'acceptation de la maladie.</li>
+            
+                    <li><input type="checkbox" id="q40c" name="q40" value="C"> C- Ne doivent pas être tolérées par le médecin.</li>
+            
+                    <li><input type="checkbox" id="q40d" name="q40" value="D"> D- Sont des réactions de défense.</li>
+            
+                    <li><input type="checkbox" id="q40e" name="q40" value="E"> E- Sont le témoin d'une mauvaise éducation du patient.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-41" class="question-container">
+            <div class="question">
+                <p>41.) Devant un malade mécontent ou en colère le médecin doit :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q41a" name="q41" value="A"> A- Hausser le ton.</li>
+            
+                    <li><input type="checkbox" id="q41b" name="q41" value="B"> B- Accélérer le débit.</li>
+            
+                    <li><input type="checkbox" id="q41c" name="q41" value="C"> C- Faire asseoir le malade.</li>
+            
+                    <li><input type="checkbox" id="q41d" name="q41" value="D"> D- Lui dire qu'il n'a pas raison.</li>
+            
+                    <li><input type="checkbox" id="q41e" name="q41" value="E"> E- Adopter une expression concentrée et attentive.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-42" class="question-container">
+            <div class="question">
+                <p>42.) Devant un patient mécontent ou en colère, quel est le geste que le médecin ne doit jamais faire ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q42a" name="q42" value="A"> A- Parler avec un ton calme.</li>
+            
+                    <li><input type="checkbox" id="q42b" name="q42" value="B"> B- Toucher le patient.</li>
+            
+                    <li><input type="checkbox" id="q42c" name="q42" value="C"> C- S'asseoir devant le patient.</li>
+            
+                    <li><input type="checkbox" id="q42d" name="q42" value="D"> D- Écouter le patient.</li>
+            
+                    <li><input type="checkbox" id="q42e" name="q42" value="E"> E- Poser des questions au patient.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-43" class="question-container">
+            <div class="question">
+                <p>43.) Un médecin reçoit une malade accompagnée de sa mère et de sa sœur. La malade ramène les résultats d'un test de confirmation d'une infection par le VIH. Le test confirme l'infection. Le médecin doit faire l'annonce de la maladie. Avant l'annonce 3 étudiants demandent au médecin d'assister avec lui lors de l'annonce. Combien d'étudiant(s) il peut autoriser :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q43a" name="q43" value="A"> A- Un seul étudiant.</li>
+            
+                    <li><input type="checkbox" id="q43b" name="q43" value="B"> B- Deux étudiants.</li>
+            
+                    <li><input type="checkbox" id="q43c" name="q43" value="C"> C- Trois étudiants.</li>
+            
+                    <li><input type="checkbox" id="q43d" name="q43" value="D"> D- Quatre étudiants.</li>
+            
+                    <li><input type="checkbox" id="q43e" name="q43" value="E"> E- Aucune réponse n'est juste.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-44" class="question-container">
+            <div class="question">
+                <p>44.) Avant d'annoncer l'infection par le VIH, comment le médecin doit procéder ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q44a" name="q44" value="A"> A- Faire l'annonce en la présence de la mère et de la sœur.</li>
+            
+                    <li><input type="checkbox" id="q44b" name="q44" value="B"> B- Faire l'annonce en la présence seulement de la sœur.</li>
+            
+                    <li><input type="checkbox" id="q44c" name="q44" value="C"> C- Faire l'annonce en la présence seulement de la mère.</li>
+            
+                    <li><input type="checkbox" id="q44d" name="q44" value="D"> D- Faire l'annonce seulement au malade.</li>
+            
+                    <li><input type="checkbox" id="q44e" name="q44" value="E"> E- Laisser au malade le choix.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-45" class="question-container">
+            <div class="question">
+                <p>45.) Au moment de l'annonce, le malade commence à pleurer. Qu'est-ce que le médecin doit faire ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q45a" name="q45" value="A"> A- Il lui dit : 'Arrêtez de pleurer comme une femme'.</li>
+            
+                    <li><input type="checkbox" id="q45b" name="q45" value="B"> B- Il lui dit : 'Il fallait prendre les précautions avant de se contaminer'.</li>
+            
+                    <li><input type="checkbox" id="q45c" name="q45" value="C"> C- Il lui dit : 'Ça ne sert à rien de pleurer maintenant, c'est trop tard'.</li>
+            
+                    <li><input type="checkbox" id="q45d" name="q45" value="D"> D- Il respecte un moment de silence jusqu'à ce que le malade se calme.</li>
+            
+                    <li><input type="checkbox" id="q45e" name="q45" value="E"> E- Il continue à parler sans faire attention aux pleurs du malade.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-46" class="question-container">
+            <div class="question">
+                <p>46.) Après l'annonce de l'infection par le VIH, le malade a eu pendant une semaine une insomnie, une perte d'appétit et une altération de la sexualité. Comment appelle-t-on cette réaction à la maladie ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q46a" name="q46" value="A"> A- Un déni.</li>
+            
+                    <li><input type="checkbox" id="q46b" name="q46" value="B"> B- Une révolte.</li>
+            
+                    <li><input type="checkbox" id="q46c" name="q46" value="C"> C- Une dramatisation excessive.</li>
+            
+                    <li><input type="checkbox" id="q46d" name="q46" value="D"> D- Une culpabilité.</li>
+            
+                    <li><input type="checkbox" id="q46e" name="q46" value="E"> E- Une sidération.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-47" class="question-container">
+            <div class="question">
+                <p>47.) Lors de votre première communication il faut :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q47a" name="q47" value="A"> A- Porter des vêtements neufs.</li>
+            
+                    <li><input type="checkbox" id="q47b" name="q47" value="B"> B- Porter des chaussures neuves.</li>
+            
+                    <li><input type="checkbox" id="q47c" name="q47" value="C"> C- Porter un jean.</li>
+            
+                    <li><input type="checkbox" id="q47d" name="q47" value="D"> D- Porter des vêtements amples.</li>
+            
+                    <li><input type="checkbox" id="q47e" name="q47" value="E"> E- S'habiller avec discrétion en évitant les couleurs trop voyantes.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-48" class="question-container">
+            <div class="question">
+                <p>48.) Au début d'une communication scientifique, pour montrer votre respect pour l'auditoire, les modérateurs et les organisateurs vous devriez :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q48a" name="q48" value="A"> A- Remercier la personne qui vous a donné la parole.</li>
+            
+                    <li><input type="checkbox" id="q48b" name="q48" value="B"> B- Saluer manuellement les modérateurs.</li>
+            
+                    <li><input type="checkbox" id="q48c" name="q48" value="C"> C- Remercier les organisateurs du congrès.</li>
+            
+                    <li><input type="checkbox" id="q48d" name="q48" value="D"> D- Respecter le temps qui vous a été alloué.</li>
+            
+                    <li><input type="checkbox" id="q48e" name="q48" value="E"> E- Dépasser le temps de 10 minutes et demander des excuses.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-49" class="question-container">
+            <div class="question">
+                <p>49.) Parmi les propositions suivantes, 4 doivent être utilisées pour avoir un débit calme au moment d'une communication scientifique. Lesquelles ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q49a" name="q49" value="A"> A- S'imposer de ralentir.</li>
+            
+                    <li><input type="checkbox" id="q49b" name="q49" value="B"> B- Prendre le temps d'articuler.</li>
+            
+                    <li><input type="checkbox" id="q49c" name="q49" value="C"> C- Faire des phrases courtes.</li>
+            
+                    <li><input type="checkbox" id="q49d" name="q49" value="D"> D- Être 'dans ses mots' et non courir à l'idée suivante.</li>
+            
+                    <li><input type="checkbox" id="q49e" name="q49" value="E"> E- Ne pas respecter un silence entre les mots.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-50" class="question-container">
+            <div class="question">
+                <p>50.) Pour lutter contre le trac au moment d'un exposé oral il faut :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q50a" name="q50" value="A"> A- Maîtriser le sujet.</li>
+            
+                    <li><input type="checkbox" id="q50b" name="q50" value="B"> B- Préparer votre introduction.</li>
+            
+                    <li><input type="checkbox" id="q50c" name="q50" value="C"> C- Être reposé le jour de la conférence.</li>
+            
+                    <li><input type="checkbox" id="q50d" name="q50" value="D"> D- Boire 2 tasses de café.</li>
+            
+                    <li><input type="checkbox" id="q50e" name="q50" value="E"> E- Boire du lait chaud avant la conférence.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S4" "Techniques de communication" "COM2021" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['A', 'B', 'C', 'D', 'E'],
+    q2: ['A', 'B', 'C', 'D'],
+    q3: ['C'],
+    q4: ['A', 'B', 'C', 'D', 'E'],
+    q5: ['B', 'C', 'D', 'E'],
+    q6: ['A', 'B', 'C', 'D'],
+    q7: ['A', 'B', 'C', 'D'],
+    q8: ['B'],
+    q9: ['B'],
+    q10: ['A', 'B', 'C', 'D'],
+    q11: ['C'],
+    q12: ['B', 'E'],
+    q13: ['C'],
+    q14: ['B', 'C'],
+    q15: ['E'],
+    q16: ['A', 'B', 'C', 'E'],
+    q17: ['A', 'B', 'D', 'E'],
+    q18: ['A', 'B', 'D', 'E'],
+    q19: ['C', 'D', 'E'],
+    q20: ['C', 'D', 'E'],
+    q21: ['A', 'B', 'C', 'E'],
+    q22: ['A', 'B', 'D'],
+    q23: ['A', 'B', 'C'],
+    q24: ['B', 'C', 'D', 'E'],
+    q25: ['A', 'D', 'E'],
+    q26: ['B'],
+    q27: ['A', 'D', 'E'],
+    q28: ['A', 'B', 'D', 'E'],
+    q29: ['A', 'B', 'C', 'D'],
+    q30: ['A', 'B', 'D'],
+    q31: ['E'],
+    q32: ['A', 'B', 'D', 'E'],
+    q33: ['A', 'B', 'D', 'E'],
+    q34: ['A', 'B', 'D', 'E'],
+    q35: ['A', 'C', 'D', 'E'],
+    q36: ['C'],
+    q37: ['A', 'D'],
+    q38: ['A', 'B', 'D', 'E'],
+    q39: ['B', 'C', 'D', 'E'],
+    q40: ['B', 'C', 'D'],
+    q41: ['C', 'E'],
+    q42: ['B'],
+    q43: ['A'],
+    q44: ['D'],
+    q45: ['D'],
+    q46: ['E'],
+    q47: ['D', 'E'],
+    q48: ['A', 'C', 'D'],
+    q49: ['A', 'B', 'C', 'D'],
+    q50: ['A', 'B', 'C'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersCOM2021'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

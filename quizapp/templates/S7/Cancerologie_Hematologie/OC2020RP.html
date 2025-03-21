@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+{% load static %}
+
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'css/stylequiz.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+
+</head>
+<body>
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+
+    <div id="content">
+
+         <div class="quiz-title">
+            <h1>
+Oncologie 2020
+</h1>
+         </div>
+         <form id="quiz-form">
+    <input type="hidden" id='exam_name' name="exam_name" value="OC2020RP">
+    {% csrf_token %}
+            <div class="question-container" id="question-1">
+               <div class="question">
+                  <p> 1.) Quelle est ou quelles sont la ou les affirmation(s) vraie(s) à propos du cancer du col de l'utérus ? </p>
+                  <ul>
+                     <li>
+                        <input id="q1a" name="q1" type="checkbox" value="A" /> A- Facilement curable si diagnostiqué à un stade précoce </li>
+                     <li>
+                        <input id="q1b" name="q1" type="checkbox" value="B" /> B- Intérêt de la sérologie HPV (Human Papilloma Virus) dans le suivi post-thérapeutique </li>
+                     <li>
+                        <input id="q1c" name="q1" type="checkbox" value="C" /> C- Histologie la plus fréquente : carcinome épidermoïde </li>
+                     <li>
+                        <input id="q1d" name="q1" type="checkbox" value="D" /> D- Evolution locorégionale prédominante </li>
+                     <li>
+                        <input id="q1e" name="q1" type="checkbox" value="E" /> E- La radio-chimiothérapie est le traitement de référence en cas d’extension au-delà du col sans métastase </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-1')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q1')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="1"> ❤ </button>
+                  <button class="comment-button" data-question-id="OC2020RP_1" onclick="toggleCommentSection('OC2020RP_1', event)"> 💬 <span class="badge" data-comment-id="OC2020RP_1">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-2">
+               <div class="question">
+                  <p> 2.) Quelle est ou quelles sont la ou les affirmation(s) vraie(s) concernant le dépistage du cancer du col utérin par frottis cervico vaginal ?
+                     </p>
+                  <ul>
+                     <li>
+                        <input id="q2a" name="q2" type="checkbox" value="A" /> A- Annuel durant toute la période d’activité sexuelle </li>
+                     <li>
+                        <input id="q2b" name="q2" type="checkbox" value="B" /> B- Inutile si vaccination HPV </li>
+                     <li>
+                        <input id="q2c" name="q2" type="checkbox" value="C" /> C- De 25 à 65 ans </li>
+                     <li>
+                        <input id="q2d" name="q2" type="checkbox" value="D" /> D- Permet une diminution d’incidence des cancers invasifs du col </li>
+                     <li>
+                        <input id="q2e" name="q2" type="checkbox" value="E" /> E- N’est plus recommandé après la ménopause </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-2')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q2')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="2"> ❤ </button>
+                  <button class="comment-button" data-question-id="OC2020RP_2" onclick="toggleCommentSection('OC2020RP_2', event)"> 💬 <span class="badge" data-comment-id="OC2020RP_2">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-3">
+               <div class="question">
+                  <p> 3.) Parmi les marqueurs suivants pouvant être obtenus sur un tissu tumoral, le ou lesquels peuvent déterminer un traitement médical du cancer spécifique
+                     ? </p>
+                  <ul>
+                     <li>
+                        <input id="q3a" name="q3" type="checkbox" value="A" /> A- Her2 </li>
+                     <li>
+                        <input id="q3b" name="q3" type="checkbox" value="B" /> B- PDL1 </li>
+                     <li>
+                        <input id="q3c" name="q3" type="checkbox" value="C" /> C- Ki67 </li>
+                     <li>
+                        <input id="q3d" name="q3" type="checkbox" value="D" /> D- EGFR </li>
+                     <li>
+                        <input id="q3e" name="q3" type="checkbox" value="E" /> E- ACE </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-3')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q3')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="3"> ❤ </button>
+                  <button class="comment-button" data-question-id="OC2020RP_3" onclick="toggleCommentSection('OC2020RP_3', event)"> 💬 <span class="badge" data-comment-id="OC2020RP_3">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-4">
+               <div class="question">
+                  <p> 4.) Dans le compte rendu pathologique d’un cancer quels est ou quelles sont la ou les information(s) de type pronostique que vous pourriez retrouver
+                     ? </p>
+                  <ul>
+                     <li>
+                        <input id="q4a" name="q4" type="checkbox" value="A" /> A- Stade TNM </li>
+                     <li>
+                        <input id="q4b" name="q4" type="checkbox" value="B" /> B- Score de Gleason </li>
+                     <li>
+                        <input id="q4c" name="q4" type="checkbox" value="C" /> C- Expression de cytokératines </li>
+                     <li>
+                        <input id="q4d" name="q4" type="checkbox" value="D" /> D- Nombre de mitoses </li>
+                     <li>
+                        <input id="q4e" name="q4" type="checkbox" value="E" /> E- Degré de différenciation glandulaire (ou architecture tumorale) </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-4')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q4')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="4"> ❤ </button>
+                  <button class="comment-button" data-question-id="OC2020RP_4" onclick="toggleCommentSection('OC2020RP_4', event)"> 💬 <span class="badge" data-comment-id="OC2020RP_4">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-5">
+               <div class="question">
+                  <p> 5.) Quelle est ou quelles sont la ou les affirmation(s) épidémiologique(s) vraie(s) au Maroc ? </p>
+                  <ul>
+                     <li>
+                        <input id="q5a" name="q5" type="checkbox" value="A" /> A- L'incidence du cancer du poumon est à peine plus élevée que son taux de mortalité </li>
+                     <li>
+                        <input id="q5b" name="q5" type="checkbox" value="B" /> B- Le taux de mortalité par cancer du sein est inférieur de moitié à son incidence </li>
+                     <li>
+                        <input id="q5c" name="q5" type="checkbox" value="C" /> C- Le cancer du sein et le cancer du col de l’utérus sont les deux premiers cancers chez la femme en terme d’incidence </li>
+                     <li>
+                        <input id="q5d" name="q5" type="checkbox" value="D" /> D- La survie à 5 ans pour le cancer du col est actuellement inférieure à 50% </li>
+                     <li>
+                        <input id="q5e" name="q5" type="checkbox" value="E" /> E- Chez l’homme, le cancer du poumon est le premier cancer en terme de mortalité </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-5')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q5')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="5"> ❤ </button>
+                  <button class="comment-button" data-question-id="OC2020RP_5" onclick="toggleCommentSection('OC2020RP_5', event)"> 💬 <span class="badge" data-comment-id="OC2020RP_5">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-6">
+               <div class="question">
+                  <p> 6.) Parmi les processus impliqués dans la cancérogenèse certains sont dus : </p>
+                  <ul>
+                     <li>
+                        <input id="q6a" name="q6" type="checkbox" value="A" /> A- À des oncogènes responsables d’une activation et d’une hyperproduction non régulée de signaux protéiques de prolifération </li>
+                     <li>
+                        <input id="q6b" name="q6" type="checkbox" value="B" /> B- À des oncogènes par anomalie génétique mono-allélique </li>
+                     <li>
+                        <input id="q6c" name="q6" type="checkbox" value="C" /> C- À des gènes suppresseurs de tumeur dont l’atteinte est nécessairement bi-allélique pour concourir à l’expression du phénotype cancéreux
+                        </li>
+                     <li>
+                        <input id="q6d" name="q6" type="checkbox" value="D" /> D- À des oncogènes dont l’expression peut être modifiée par translocation </li>
+                     <li>
+                        <input id="q6e" name="q6" type="checkbox" value="E" /> E- À des oncogènes dont l’expression peut être modifiée par translocation </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-6')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q6')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="6"> ❤ </button>
+                  <button class="comment-button" data-question-id="OC2020RP_6" onclick="toggleCommentSection('OC2020RP_6', event)"> 💬 <span class="badge" data-comment-id="OC2020RP_6">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-7">
+               <div class="question">
+                  <p> 7.) Les modifications génétiques constatées sur un tissu cancéreux et pouvant être impliquées dans la cancérogenèse : </p>
+                  <ul>
+                     <li>
+                        <input id="q7a" name="q7" type="checkbox" value="A" /> A- Peuvent être acquises au cours du développement tumoral </li>
+                     <li>
+                        <input id="q7b" name="q7" type="checkbox" value="B" /> B- Ne sont jamais retrouvées sur les tissus sains </li>
+                     <li>
+                        <input id="q7c" name="q7" type="checkbox" value="C" /> C- Sont le plus souvent multiples </li>
+                     <li>
+                        <input id="q7d" name="q7" type="checkbox" value="D" /> D- Peuvent consister en une délétion de chromosome </li>
+                     <li>
+                        <input id="q7e" name="q7" type="checkbox" value="E" /> E- Peuvent être responsable d’une déficience dans la réparation de l’ADN </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-7')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q7')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="7"> ❤ </button>
+                  <button class="comment-button" data-question-id="OC2020RP_7" onclick="toggleCommentSection('OC2020RP_7', event)"> 💬 <span class="badge" data-comment-id="OC2020RP_7">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-8">
+               <div class="question">
+                  <p> 8.) Parmi les cancers suivants le ou lesquels est ou sont ceux qui sont accessible(s) à des programmes de prévention ciblant un virus ? </p>
+                  <ul>
+                     <li>
+                        <input id="q8a" name="q8" type="checkbox" value="A" /> A- Hépato-carcinome </li>
+                     <li>
+                        <input id="q8b" name="q8" type="checkbox" value="B" /> B- Cancer de l’oropharynx </li>
+                     <li>
+                        <input id="q8c" name="q8" type="checkbox" value="C" /> C- Lymphomes </li>
+                     <li>
+                        <input id="q8d" name="q8" type="checkbox" value="D" /> D- Cancer du col de l’utérus </li>
+                     <li>
+                        <input id="q8e" name="q8" type="checkbox" value="E" /> E- Cancer de la vessie </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-8')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q8')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="8"> ❤ </button>
+                  <button class="comment-button" data-question-id="OC2020RP_8" onclick="toggleCommentSection('OC2020RP_8', event)"> 💬 <span class="badge" data-comment-id="OC2020RP_8">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-9">
+               <div class="question">
+                  <p> 9.) La ou lesquelles des affirmations concernant la radiothérapie est ou sont exactes ? </p>
+                  <ul>
+                     <li>
+                        <input id="q9a" name="q9" type="checkbox" value="A" /> A- L’étalement est la durée totale de la première à la dernière dose </li>
+                     <li>
+                        <input id="q9b" name="q9" type="checkbox" value="B" /> B- L’étalement est la dimension du champ d’irradiation </li>
+                     <li>
+                        <input id="q9c" name="q9" type="checkbox" value="C" /> C- Le facteur temps est la durée de l’irradiation à chaque séance </li>
+                     <li>
+                        <input id="q9d" name="q9" type="checkbox" value="D" /> D- Un déficit de réparation de l’ADN augmente la radio-sensibilité </li>
+                     <li>
+                        <input id="q9e" name="q9" type="checkbox" value="E" /> E- Le fractionnement prend en compte la dose par fraction, le nombre de séances et leur dose ainsi que leur répartition sur le calendrier
+                        de traitement </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-9')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q9')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="9"> ❤ </button>
+                  <button class="comment-button" data-question-id="OC2020RP_9" onclick="toggleCommentSection('OC2020RP_9', event)"> 💬 <span class="badge" data-comment-id="OC2020RP_9">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-10">
+               <div class="question">
+                  <p> 10.) Lors de la planification du traitement effectuée par le radiothérapeute avec le physicien médical on définit : </p>
+                  <ul>
+                     <li>
+                        <input id="q10a" name="q10" type="checkbox" value="A" /> A- Le GTV ou Volume tumoral macroscopique, volume apparent de la tumeur sur l’imagerie qui a conduit au diagnostic du cancer </li>
+                     <li>
+                        <input id="q10b" name="q10" type="checkbox" value="B" /> B- Le CTV : Volume cible anatomo-clinique qui prend en compte une estimation de l’extension microscopique de la tumeur selon l’histoire
+                        naturelle du cancer </li>
+                     <li>
+                        <input id="q10c" name="q10" type="checkbox" value="C" /> C- Le PTV : Volume cible prévisionnel qui prend en compte les mouvements du malade et les erreurs de positionnement </li>
+                     <li>
+                        <input id="q10d" name="q10" type="checkbox" value="D" /> D- La délinéation des organes à risque </li>
+                     <li>
+                        <input id="q10e" name="q10" type="checkbox" value="E" /> E- Le choix du type de rayonnement </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-10')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q10')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="10"> ❤ </button>
+                  <button class="comment-button" data-question-id="OC2020RP_10" onclick="toggleCommentSection('OC2020RP_10', event)"> 💬 <span class="badge" data-comment-id="OC2020RP_10">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-11">
+               <div class="question">
+                  <p> 11.) Le dépistage de masse des cancers est valide : </p>
+                  <ul>
+                     <li>
+                        <input id="q11a" name="q11" type="checkbox" value="A" /> A- S'il s'adresse à des groupes de patients à risque individuel de cancer très élevé </li>
+                     <li>
+                        <input id="q11b" name="q11" type="checkbox" value="B" /> B- Pour des cancers graves et rares </li>
+                     <li>
+                        <input id="q11c" name="q11" type="checkbox" value="C" /> C- Pour des cancers fréquents et facilement curables </li>
+                     <li>
+                        <input id="q11d" name="q11" type="checkbox" value="D" /> D- Si le taux de participation est supérieur à 50% </li>
+                     <li>
+                        <input id="q11e" name="q11" type="checkbox" value="E" /> E- S'il bénéficie d'une structure de coordination et d'évaluation </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-11')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q11')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="11"> ❤ </button>
+                  <button class="comment-button" data-question-id="OC2020RP_11" onclick="toggleCommentSection('OC2020RP_11', event)"> 💬 <span class="badge" data-comment-id="OC2020RP_11">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-12">
+               <div class="question">
+                  <p> 12.) Une chimiothérapie à ambition curative pour un lymphome de haut grade : </p>
+                  <ul>
+                     <li>
+                        <input id="q12a" name="q12" type="checkbox" value="A" /> A- Ne peut être administrée après 75 ans </li>
+                     <li>
+                        <input id="q12b" name="q12" type="checkbox" value="B" /> B- Est rarement toxique </li>
+                     <li>
+                        <input id="q12c" name="q12" type="checkbox" value="C" /> C- Est potentiellement létale </li>
+                     <li>
+                        <input id="q12d" name="q12" type="checkbox" value="D" /> D- Nécessite la mise en place d'une voie veineuse centrale </li>
+                     <li>
+                        <input id="q12e" name="q12" type="checkbox" value="E" /> E- Bénéficie des facteurs de croissance granulocytaire </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-12')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q12')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="12"> ❤ </button>
+                  <button class="comment-button" data-question-id="OC2020RP_12" onclick="toggleCommentSection('OC2020RP_12', event)"> 💬 <span class="badge" data-comment-id="OC2020RP_12">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-13">
+               <div class="question">
+                  <p> 13.) Les agents alkylants utilisés en chimiothérapie cytotoxique : </p>
+                  <ul>
+                     <li>
+                        <input id="q13a" name="q13" type="checkbox" value="A" /> A- Ciblent le fuseau mitotique </li>
+                     <li>
+                        <input id="q13b" name="q13" type="checkbox" value="B" /> B- Sont potentiellement mutagènes </li>
+                     <li>
+                        <input id="q13c" name="q13" type="checkbox" value="C" /> C- Ciblent exclusivement les bases puriques </li>
+                     <li>
+                        <input id="q13d" name="q13" type="checkbox" value="D" /> D- Comprennent la doxorubicine </li>
+                     <li>
+                        <input id="q13e" name="q13" type="checkbox" value="E" /> E- Comprennent le Cisplatine </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-13')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q13')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="13"> ❤ </button>
+                  <button class="comment-button" data-question-id="OC2020RP_13" onclick="toggleCommentSection('OC2020RP_13', event)"> 💬 <span class="badge" data-comment-id="OC2020RP_13">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-14">
+               <div class="question">
+                  <p> 14.) Le tamoxifène : </p>
+                  <ul>
+                     <li>
+                        <input id="q14a" name="q14" type="checkbox" value="A" /> A- Est exclusivement utilisé contre le cancer du sein </li>
+                     <li>
+                        <input id="q14b" name="q14" type="checkbox" value="B" /> B- Inhibe la synthèse des œstrogènes </li>
+                     <li>
+                        <input id="q14c" name="q14" type="checkbox" value="C" /> C- Peut provoquer des thromboses veineuses </li>
+                     <li>
+                        <input id="q14d" name="q14" type="checkbox" value="D" /> D- S'administre uniquement en situation palliative </li>
+                     <li>
+                        <input id="q14e" name="q14" type="checkbox" value="E" /> E- Est donné préférentiellement avant la ménopause </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-14')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q14')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="14"> ❤ </button>
+                  <button class="comment-button" data-question-id="OC2020RP_14" onclick="toggleCommentSection('OC2020RP_14', event)"> 💬 <span class="badge" data-comment-id="OC2020RP_14">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-15">
+               <div class="question">
+                  <p> 15.) Les anticorps monoclonaux en hémato-cancérologie : </p>
+                  <ul>
+                     <li>
+                        <input id="q15a" name="q15" type="checkbox" value="A" /> A- Peuvent cibler des antigènes de différenciation </li>
+                     <li>
+                        <input id="q15b" name="q15" type="checkbox" value="B" /> B- Peuvent cibler des ligands impliqués dans le contrôle immunitaire </li>
+                     <li>
+                        <input id="q15c" name="q15" type="checkbox" value="C" /> C- Peuvent cibler le versant intracellulaire de l'Epidermal Growth factor </li>
+                     <li>
+                        <input id="q15d" name="q15" type="checkbox" value="D" /> D- Sont administrés par voie orale </li>
+                     <li>
+                        <input id="q15e" name="q15" type="checkbox" value="E" /> E- Peuvent être associés à une chimiothérapie cytotoxique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-15')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q15')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="15"> ❤ </button>
+                  <button class="comment-button" data-question-id="OC2020RP_15" onclick="toggleCommentSection('OC2020RP_15', event)"> 💬 <span class="badge" data-comment-id="OC2020RP_15">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-16">
+               <div class="question">
+                  <p> 16.) En présence d'une neutropénie à 300 polynucléaires neutrophiles non fébrile après chimiothérapie adjuvante pour cancer du sein il est essentiel
+                     : </p>
+                  <ul>
+                     <li>
+                        <input id="q16a" name="q16" type="checkbox" value="A" /> A- D'hospitaliser le patient </li>
+                     <li>
+                        <input id="q16b" name="q16" type="checkbox" value="B" /> B- De demander des hémocultures systématiques </li>
+                     <li>
+                        <input id="q16c" name="q16" type="checkbox" value="C" /> C- De prescrire des facteurs de croissance granulocytaire </li>
+                     <li>
+                        <input id="q16d" name="q16" type="checkbox" value="D" /> D- De débuter une antibiothérapie prophylactique </li>
+                     <li>
+                        <input id="q16e" name="q16" type="checkbox" value="E" /> E- De préciser l'intervalle de temps avec le début de la cure de chimiothérapie </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-16')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q16')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="16"> ❤ </button>
+                  <button class="comment-button" data-question-id="OC2020RP_16" onclick="toggleCommentSection('OC2020RP_16', event)"> 💬 <span class="badge" data-comment-id="OC2020RP_16">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-17">
+               <div class="question">
+                  <p> 17.) Quelles sont les conséquences de la constatation d'une mutation germinale BRCA1 chez une patiente dont le traitement pour cancer du sein se
+                     termine ? </p>
+                  <ul>
+                     <li>
+                        <input id="q17a" name="q17" type="checkbox" value="A" /> A- Contre-indication à une hormonothérapie </li>
+                     <li>
+                        <input id="q17b" name="q17" type="checkbox" value="B" /> B- Évaluation du risque d'autres cancers </li>
+                     <li>
+                        <input id="q17c" name="q17" type="checkbox" value="C" /> C- Évaluation du risque de transmission à la descendance de la patiente </li>
+                     <li>
+                        <input id="q17d" name="q17" type="checkbox" value="D" /> D- Proposition de traitement prophylactique </li>
+                     <li>
+                        <input id="q17e" name="q17" type="checkbox" value="E" /> E- Information aux apparentés </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-17')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q17')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="17"> ❤ </button>
+                  <button class="comment-button" data-question-id="OC2020RP_17" onclick="toggleCommentSection('OC2020RP_17', event)"> 💬 <span class="badge" data-comment-id="OC2020RP_17">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-18">
+               <div class="question">
+                  <p> 18.) Parmi les anomalies ci-dessous décrites sur une mammographie, la ou lesquelles doive(nt) conduire à demander une biopsie ? </p>
+                  <ul>
+                     <li>
+                        <input id="q18a" name="q18" type="checkbox" value="A" /> A- Image spiculée à centre dense </li>
+                     <li>
+                        <input id="q18b" name="q18" type="checkbox" value="B" /> B- Micro calcifications irrégulières polymorphes nombreuses et groupées </li>
+                     <li>
+                        <input id="q18c" name="q18" type="checkbox" value="C" /> C- Micro calcification de topographie galactophorique </li>
+                     <li>
+                        <input id="q18d" name="q18" type="checkbox" value="D" /> D- Micro calcifications ayant augmenté en nombre ou ayant changé de morphologie ou de distribution </li>
+                     <li>
+                        <input id="q18e" name="q18" type="checkbox" value="E" /> E- Opacité mal circonscrite aux contours flous et irréguliers, ou spiculée à centre dense </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-18')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q18')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="18"> ❤ </button>
+                  <button class="comment-button" data-question-id="OC2020RP_18" onclick="toggleCommentSection('OC2020RP_18', event)"> 💬 <span class="badge" data-comment-id="OC2020RP_18">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-19">
+               <div class="question">
+                  <p> 19.) Un cancer du sein dit triple négatif est un cancer du sein avec une ou plusieurs des caractéristiques suivantes : </p>
+                  <ul>
+                     <li>
+                        <input id="q19a" name="q19" type="checkbox" value="A" /> A- Curage axillaire négatif </li>
+                     <li>
+                        <input id="q19b" name="q19" type="checkbox" value="B" /> B- Her 2 négatif </li>
+                     <li>
+                        <input id="q19c" name="q19" type="checkbox" value="C" /> C- KI 67 négatif </li>
+                     <li>
+                        <input id="q19d" name="q19" type="checkbox" value="D" /> D- Récepteurs œstrogènes négatif </li>
+                     <li>
+                        <input id="q19e" name="q19" type="checkbox" value="E" /> E- Récepteurs progestérone négatif </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-19')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q19')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="19"> ❤ </button>
+                  <button class="comment-button" data-question-id="OC2020RP_19" onclick="toggleCommentSection('OC2020RP_19', event)"> 💬 <span class="badge" data-comment-id="OC2020RP_19">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="question-container" id="question-20">
+               <div class="question">
+                  <p> 20.) Dans la démarche diagnostique d'une lésion de 3 cm du lobe supérieur droit pulmonaire constatée à la radio de thorax après survenue d'une
+                     hémoptysie chez un fumeur vous demandez : </p>
+                  <ul>
+                     <li>
+                        <input id="q20a" name="q20" type="checkbox" value="A" /> A- TEP TDM </li>
+                     <li>
+                        <input id="q20b" name="q20" type="checkbox" value="B" /> B- Fibroscopie bronchique </li>
+                     <li>
+                        <input id="q20c" name="q20" type="checkbox" value="C" /> C- TDM Thoracique </li>
+                     <li>
+                        <input id="q20d" name="q20" type="checkbox" value="D" /> D- Contrôle à 3 mois après antibiothérapie </li>
+                     <li>
+                        <input id="q20e" name="q20" type="checkbox" value="E" /> E- IRM thoracique </li>
+                  </ul>
+               </div>
+               <div class="action-buttons">
+                  <button class="correct-button" onclick="correctAndSubmitQuestion('question-20')" type="button"> Corriger </button>
+                  <button class="reset-button" onclick="resetQuestion('q20')" type="button"> Réessayer </button>
+                  <button class="favorite-button" data-question="20"> ❤ </button>
+                  <button class="comment-button" data-question-id="OC2020RP_20" onclick="toggleCommentSection('OC2020RP_20', event)"> 💬 <span class="badge" data-comment-id="OC2020RP_20">
+0
+</span> </button>
+               </div>
+            </div>
+            <div class="button-container">
+               <button class="submit-quiz-button" onclick="submitQuiz()" type="button"> Soumettre tout le Quiz </button>
+               <button class="favorite-button" id="voir-favoris-btn" onclick="voirFavoris()"> Voir Favoris </button>
+               <!-- Nouveau bouton -->
+            </div>
+            <div class="blur-background" id="blur-background"> </div>
+            <div class="result-popup" id="result-popup">
+               <h3>
+Résultat du Quiz
+</h3>
+               <div id="result"> </div>
+               <button class="close-button" id="close-result" onclick="closeResult(event)"> Fermer </button>
+               <button class="detail-button" id="voir-detail-btn" onclick="afficherDetails(event)" style="display: none;"> Voir Détail </button>
+               <button class="reset-quiz-button" onclick="resetAll()" type="button"> Réessayer tout le Quiz </button>
+            </div>
+            <div class="details-section" id="details-section" style="display: none;">
+               <h3>
+Tableau des questions
+</h3>
+               <div class="question-links" id="question-links"> </div>
+            </div>
+            <div id="timer-container"> <span id="timer">
+60:00
+</span> </div>
+<div class="comments-section" id="comments-section">
+    <h3>Commentaires</h3>
+    <textarea id="new-comment" placeholder="Écrire un commentaire..."></textarea>
+    <button type="button" onclick="addComment(event)">Ajouter</button>
+    <div id="comment-alert" class="alert" style="display: none;"></div>
+    <div id="comments-list"></div>
+</div>
+
+    <div id="comments-list"></div>
+</div>
+
+<!-- Boutons flottants -->
+<div id="floating-buttons" class="floating-buttons" style="position: fixed; bottom: 50px; right: 50px; z-index: 1000;">
+    <!-- Bouton pour afficher le cours -->
+    <button id="show-course-btn" class="floating-btn" type="button" 
+            onclick="window.open('https://drive.google.com/drive/folders/1Xd_FaJbPk4FJv3G5-96L7G0UlQnUZuSf', '_blank');">📚</button>
+    <!-- Bouton pour afficher le contact -->
+<button id="open-contact-modal" class="floating-btn" type="button">
+    ✉️
+</button>
+
+</div>
+
+
+
+
+
+<div class="message-container" id="message-container" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#f9f9f9; padding:40px; box-shadow:0 4px 12px rgba(0,0,0,0.15); border-radius:12px; z-index:1001; width:600px; max-width:90%; font-family:Arial, sans-serif;">
+    <div style="text-align:center; margin-bottom:30px;">
+        <h2 style="margin:0; font-size:24px; font-weight:bold; color:#333;">Posez vos observations <span>📝</span></h2>
+        <p style="margin:10px 0 0; font-size:16px; color:#666;">Nous sommes à votre écoute</p>
+    </div>
+    <div class="mb-3" style="margin-bottom:30px;">
+        <p style="font-size:16px; color:#333; margin:0;">En tant Que :</p>
+        <div style="margin-top:10px;">
+            <input type="radio" id="username" name="mode" value="username" style="margin-right:8px;">
+            <label for="username" style="font-size:16px; color:#333; cursor:pointer;">{{ user_full_name}}</label>
+            <br>
+            <input type="radio" id="anonymous" name="mode" value="anonymous" checked style="margin-right:8px; margin-top:10px;">
+            <label for="anonymous" style="font-size:16px; color:#333; cursor:pointer;">Anonyme</label>
+        </div>
+    </div>
+    <div class="mb-3">
+        <label for="message" class="form-label" style="font-size:18px; font-weight:bold; color:#333; margin-bottom:10px; display:block;">Votre message :</label>
+        <textarea class="form-control" id="message" rows="6" placeholder="Precisez l'examen si c'est en rapport avec une question..." style="width:100%; font-size:16px; padding:15px; border:1px solid #ccc; border-radius:8px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.1); background:#fff;"></textarea>
+    </div>
+<span class="close-btn" id="close-btn" style="cursor:pointer; position:absolute; top:15px; right:15px; font-size:51px; color:#ff0000; font-weight:bold;">&times;</span>
+<!-- Bouton Envoyer stylé -->
+<div style="text-align:center; margin-top:30px;">
+    <button type="button" class="btn btn-primary" id="send-message" style="background-color:#007bff; color:white; border:none; padding:12px 30px; border-radius:8px; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 4px 8px rgba(0, 0, 0, 0.2); transition:all 0.3s ease;">
+        Envoyer
+    </button>
+</div>
+</div>
+
+
+
+
+<div id="blur-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;"></div>
+
+
+
+<script src="{% static 'java/contact.js' %}"></script>
+            </div>
+            <script>
+            // Réponses correctes pour les questions
+            const correctAnswers = {};
+            // Contenu du fichier JavaScript
+            // Variable globale pour stocker l'intervalle du timer
+            let timerInterval;
+            const userAnswers = {}; // Object pour stocker les réponses de l'utilisateur
+            // Fonction pour démarrer le timer
+            function startTimer(duration, display) {
+               let timer = duration,
+                  minutes, seconds;
+               timerInterval = setInterval(() => {
+                  minutes = parseInt(timer / 60, 10);
+                  seconds = parseInt(timer % 60, 10);
+                  minutes = minutes < 10 ? "0" + minutes : minutes;
+                  seconds = seconds < 10 ? "0" + seconds : seconds;
+                  display.textContent = minutes + ":" + seconds;
+                  // Vérifie si le temps est écoulé
+                  if (--timer < 0) {
+                     clearInterval(timerInterval);
+                     showEndMessage();
+                  }
+               }, 1000);
+            }
+            // Fonction pour afficher le message de fin de test
+            function showEndMessage() {
+               const blurBackground = document.createElement('div');
+               blurBackground.id = 'test-end-blur';
+               blurBackground.style.position = 'fixed';
+               blurBackground.style.top = '0';
+               blurBackground.style.left = '0';
+               blurBackground.style.width = '100%';
+               blurBackground.style.height = '100%';
+               blurBackground.style.background = 'rgba(0, 0, 0, 0.5)';
+               blurBackground.style.zIndex = '100';
+               blurBackground.style.display = 'flex';
+               blurBackground.style.alignItems = 'center';
+               blurBackground.style.justifyContent = 'center';
+               const endMessage = document.createElement('div');
+               endMessage.id = 'test-end-message';
+               endMessage.style.padding = '40px';
+               endMessage.style.background = '#ffffff';
+               endMessage.style.borderRadius = '8px';
+               endMessage.style.textAlign = 'center';
+               endMessage.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+               endMessage.innerHTML = '<h2>Test terminé</h2><p>Le temps imparti est écoulé.</p><button onclick="location.reload()">Recommencer</button>';
+               blurBackground.appendChild(endMessage);
+               document.body.appendChild(blurBackground);
+               // Optionnel : masquer le conteneur de timer
+               const timerContainer = document.getElementById('timer-container');
+               timerContainer.classList.add('hide');
+            }
+            function resetAll() {
+               const form = document.getElementById('quiz-form');
+               // Réinitialiser toutes les questions
+               for (const question of Object.keys(correctAnswers)) {
+                  const questionDiv = document.querySelector(`input[name="${question}"]`).closest('.question-container');
+                  form.elements[question].forEach(input => {
+                     input.checked = false; // Décocher toutes les cases
+                  });
+                  // Supprimer les styles correct/incorrect sans toucher au style des bonnes réponses
+                  questionDiv.classList.remove('correct', 'incorrect');
+                  questionDiv.querySelectorAll('li').forEach(li => {
+                     li.style.color = ''; // Réinitialiser la couleur du texte
+                     li.style.fontWeight = ''; // Supprimer les styles ajoutés
+                     li.style.textShadow = ''; // Réinitialiser l'ombre du texte
+                     li.style.backgroundColor = ''; // Remettre le fond par défaut
+                     li.style.border = ''; // Réinitialiser la bordure
+                  });
+               }
+               // Réinitialiser l'affichage du timer
+               const timerDuration = 60 * 60; // Remettre à 60 minutes (ou 10 secondes pour le test)
+               const display = document.querySelector('#timer');
+               startTimer(timerDuration, display); // Redémarrer le timer
+               // Masquer la boîte de résultat
+               const resultPopup = document.getElementById('result-popup');
+               const blurBackground = document.getElementById('blur-background');
+               resultPopup.classList.remove('show');
+               blurBackground.classList.remove('show');
+               setTimeout(() => {
+                  resultPopup.style.display = 'none';
+                  blurBackground.style.display = 'none';
+               }, 500);
+               // Remonter en haut de la page
+               window.scrollTo({
+                  top: 0,
+                  behavior: 'smooth'
+               });
+               document.getElementById('voir-detail-btn').style.display = 'none'; // Masquer le bouton "Voir Détail"
+            }
+            // Fonction pour fermer la popup et garder les couleurs des bonnes/mauvaises réponses
+            function closeResult(event) {
+               event.preventDefault(); // Empêche le comportement par défaut du bouton
+               const resultPopup = document.getElementById('result-popup');
+               const blurBackground = document.getElementById('blur-background');
+               // Masquer la boîte de résultat
+               resultPopup.classList.remove('show');
+               blurBackground.classList.remove('show');
+               setTimeout(() => {
+                  resultPopup.style.display = 'none';
+                  blurBackground.style.display = 'none';
+               }, 500);
+               // Décocher toutes les cases sans changer la couleur des bonnes/mauvaises réponses
+               const form = document.getElementById('quiz-form');
+               for (const question of Object.keys(correctAnswers)) {
+                  form.elements[question].forEach(input => {
+                     input.checked = false; // Décocher toutes les cases
+                  });
+               }
+            }
+            // Fonction pour afficher les détails et rediriger vers Syntanatomie2023
+            function afficherDetails(event) {
+               event.preventDefault(); // Empêche le comportement par défaut du bouton
+               saveUserAnswers(); // Enregistrer les réponses avant de quitter la page
+               window.location.href = '{% url 'dynamic_view' 'S7' 'Cancerologie_Hematologie' 'syntanat2020' %}'; // Redirection vers Syntanatomie2023
+            }
+            // Fonction pour défiler jusqu'à la question
+            function scrollToQuestion(questionNumber) {
+               const questionDiv = document.querySelector(`.question-container:nth-of-type(${questionNumber})`);
+               if (questionDiv) {
+                  questionDiv.scrollIntoView({
+                     behavior: 'smooth'
+                  });
+               }
+            }
+
+            function saveUserAnswers() {
+               // Change la clé pour la version 2020
+               localStorage.setItem('userAnswersAnatomie2020', JSON.stringify(userAnswers));
+            }
+            // Fonction pour afficher les confettis et ajouter le message de félicitations dans la popup de résultats
+            function lancerConfettisEtMessage(score) {
+    if (score === 20) {
+                  // Lancer les confettis
+                  confetti({
+                     particleCount: 200,
+                     spread: 70,
+                     origin: {
+                        y: 0.6
+                     },
+                     colors: ['#bb0000', '#ffffff'], // Couleurs de confettis
+                  });
+                  // Ajouter un message de félicitations à la boîte de résultat
+                  const resultDiv = document.getElementById('result');
+                  const felicitationMessage = `<p>Félicitations! Vous avez obtenu ${score} bonnes réponses. Vous serez un grand médecin !</p>`;
+                  // Ajouter le message à la fin du résultat
+                  resultDiv.innerHTML += felicitationMessage;
+               }
+            }
+            // Partie favori pour Anatomie2020
+            // Tableau pour stocker les questions favorites, récupéré depuis le localStorage (Anatomie2020RP)
+            let favoriteQuestionsCAN2020RP = JSON.parse(localStorage.getItem('favoriteQuestionsCAN2020RP')) || [];
+            console.log('Favorite questions loaded from localStorage:', favoriteQuestionsCAN2020RP);
+
+            function toggleFavorite(event, questionNumber) {
+               event.preventDefault(); // Empêche le rafraîchissement de la page
+               const button = document.querySelector(`.favorite-button[data-question="${questionNumber}"]`);
+               const questionContent = document.querySelector(`#question-${questionNumber}`).innerHTML; // Récupère le contenu HTML de la question
+               // Vérifie si la question est déjà dans les favoris
+               const isFavorited = favoriteQuestionsCAN2020RP.includes(questionNumber);
+               if (isFavorited) {
+                  // Si elle est déjà favorisée, on la retire des favoris
+                  favoriteQuestionsCAN2020RP = favoriteQuestionsCAN2020RP.filter(q => q !== questionNumber);
+                  button.classList.remove('favorited'); // Retire la classe favori
+                  localStorage.removeItem(`favoriteContent2020RP-${questionNumber}`); // Supprime le contenu de la question
+               } else {
+                  // Si elle n'est pas favorisée, on l'ajoute
+                  favoriteQuestionsCAN2020RP.push(questionNumber);
+                  button.classList.add('favorited'); // Ajoute la classe favori
+                  localStorage.setItem(`favoriteContent2020RP-${questionNumber}`, questionContent); // Stocke le contenu de la question dans le localStorage
+               }
+               // Sauvegarde uniquement les favoris
+               saveFavoriteState2020RP(); // <== Remplacez par saveFavoriteState2020RP
+               // Mise à jour du bouton "Voir Favori" sans rafraîchir la page
+               showFavoriteButton();
+            }
+
+            function saveFavoriteState2020RP() {
+               localStorage.setItem('favoriteQuestionsCAN2020RP', JSON.stringify(favoriteQuestionsCAN2020RP)); // Sauvegarde les questions favorites
+            }
+
+            function initializeFavoriteButtons() {
+               const allFavoriteButtons = document.querySelectorAll('.favorite-button');
+               allFavoriteButtons.forEach(button => {
+                  const questionNumber = parseInt(button.getAttribute('data-question'), 10);
+                  // Vérifie si cette question est dans les favoris et applique la classe
+                  if (favoriteQuestionsCAN2020RP.includes(questionNumber)) {
+                     button.classList.add('favorited'); // Ajoute l'état favori
+                  } else {
+                     button.classList.remove('favorited'); // Retire l'état favori
+                  }
+                  // Ajoute un événement de clic pour chaque bouton et empêche le rafraîchissement
+                  button.addEventListener('click', (event) => toggleFavorite(event, questionNumber));
+               });
+            }
+
+            function showFavoriteButton() {
+               const voirFavorisBtn = document.getElementById('voir-favoris-btn');
+               if (favoriteQuestionsCAN2020RP.length > 0) {
+                  voirFavorisBtn.style.display = 'inline-block'; // Affiche le bouton si des questions sont favorisées
+               } else {
+                  voirFavorisBtn.style.display = 'none'; // Cache le bouton si aucun favori
+               }
+            }
+            // Appelle cette fonction après avoir ajouté ou retiré des favoris
+            window.onload = function() {
+               console.log('Page loaded, initializing favorite buttons for 2020RP.');
+               initializeFavoriteButtons(); // Charger les boutons de favoris
+               showFavoriteButton(); // Afficher le bouton "Voir Favori" si des favoris existent
+               const timerDuration = 60 * 60; // 60 minutes
+               const display = document.querySelector('#timer');
+               startTimer(timerDuration, display);
+               // Récupère toutes les listes (li) qui contiennent des propositions
+               const propositions = document.querySelectorAll('li');
+               propositions.forEach(function(proposition) {
+                  // Trouve la checkbox dans chaque liste
+                  const checkbox = proposition.querySelector('input[type="checkbox"]');
+                  if (checkbox) {
+                     // Créer un label
+                     const label = document.createElement('label');
+                     // Donner un id à la checkbox si elle n'en a pas
+                     if (!checkbox.id) {
+                        checkbox.id = checkbox.name + '-' + checkbox.value; // Ex: q1-A
+                     }
+                     // Déplacer le texte de la proposition dans le label
+                     label.htmlFor = checkbox.id; // Le 'for' du label correspond à l'id de la checkbox
+                     label.appendChild(checkbox); // Déplacer la checkbox dans le label
+                     label.appendChild(document.createTextNode(proposition.textContent.trim())); // Ajouter le texte de la proposition
+                     // Remplacer le contenu original par le nouveau label
+                     proposition.innerHTML = ''; // Vider le contenu de l'élément <li>
+                     proposition.appendChild(label); // Ajouter le label modifié
+                  }
+               });
+            };
+            try {
+               localStorage.setItem('testKey', 'testValue');
+               const testValue = localStorage.getItem('testKey');
+               if (testValue !== 'testValue') {
+                  console.error('localStorage is not functioning as expected.');
+               }
+            } catch (error) {
+               console.error('localStorage error:', error);
+            }
+
+            function voirFavoris() {
+               console.log('Redirection vers la page des favoris');
+               window.location.href = "{% url 'render_favorite' 'S7' 'favori12' %}";
+            }
+            // Fonction pour afficher les confettis et ajouter le message de félicitations dans la popup de résultats
+            function lancerConfettisEtMessage(score) {
+    if (score === 20) {
+                  // Lancer les confettis
+                  confetti({
+                     particleCount: 200,
+                     spread: 70,
+                     origin: {
+                        y: 0.6
+                     },
+                     colors: ['#bb0000', '#ffffff'], // Couleurs de confettis
+                  });
+                  // Ajouter un message de félicitations à la boîte de résultat
+                  const resultDiv = document.getElementById('result');
+                  const felicitationMessage = `<p>Félicitations! Vous avez obtenu ${score} bonnes réponses. Vous serez un grand médecin !</p>`;
+                  // Ajouter le message à la fin du résultat
+                  resultDiv.innerHTML += felicitationMessage;
+               }
+            }
+
+            </script>
+            <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js">
+
+
+            </script>
+         </form>
+      </div>
+      
+   </body>
+
+</html>      <script>
+// Fonction pour réinitialiser une seule question
+function resetQuestion(questionName) {
+    console.log(`[DEBUG] Réinitialisation de la question : ${questionName}`);
+
+    const form = document.getElementById('quiz-form');
+    const questionDiv = document.querySelector(`input[name="${questionName}"]`).closest('.question-container');
+
+    if (!form || !questionDiv) {
+        console.error(`[ERROR] Formulaire ou conteneur de la question introuvable pour : ${questionName}`);
+        return;
+    }
+
+    // Décocher toutes les cases de cette question
+    const inputs = Array.from(form.elements[questionName]);
+    inputs.forEach(input => {
+        input.checked = false;
+        console.log(`[DEBUG] Case décochée : ${input.value}`);
+    });
+
+    // Supprimer les styles correct/incorrect et remettre les couleurs par défaut
+    questionDiv.classList.remove('correct', 'incorrect');
+    questionDiv.querySelectorAll('li').forEach(li => {
+        li.style.color = ''; // Réinitialiser la couleur
+        li.style.fontWeight = ''; // Réinitialiser le texte en gras
+        li.style.textShadow = ''; // Réinitialiser l'ombre du texte
+        li.style.backgroundColor = ''; // Réinitialiser le fond
+        li.style.border = ''; // Réinitialiser la bordure
+    });
+
+    // Supprimer les conteneurs ou les éléments liés aux pourcentages
+    const percentageContainers = questionDiv.querySelectorAll('.percentage-container');
+    percentageContainers.forEach(container => {
+        console.log(`[DEBUG] Suppression du conteneur de pourcentage :`, container);
+        container.remove();
+    });
+
+    // Supprimer les informations enregistrées sur la réponse de cette question
+    if (userAnswers && userAnswers[questionName]) {
+        delete userAnswers[questionName];
+        console.log(`[DEBUG] Réponse supprimée pour la question : ${questionName}`);
+    }
+
+    console.log(`[DEBUG] Question réinitialisée avec succès : ${questionName}`);
+}
+
+
+function correctAndSubmitQuestion(questionId) {
+    console.log("Début de la fonction correctAndSubmitQuestion.");
+    console.log("ID de la question reçue :", questionId);
+
+    // Transform the ID to match the backend's expected format
+    const transformedId = questionId.replace('question-', 'OC2020RP_');
+    console.log("ID transformé pour le backend :", transformedId);
+
+    // Get the question number from the questionId
+    const questionNumber = questionId.split('-')[1];
+    console.log("Numéro de la question extrait :", questionNumber);
+
+    // Get selected choices (checkbox values) dynamically for the specific question
+    const selectedChoices = [];
+    const checkboxes = document.querySelectorAll(`input[name="q${questionNumber}"]:checked`);
+    console.log(`Nombre de checkboxes sélectionnées pour la question ${questionNumber}:`, checkboxes.length);
+
+    checkboxes.forEach((checkbox) => {
+        // Append the transformed choice ID in the format "question_id_l"
+        const choiceId = `${transformedId}_${checkbox.value.toLowerCase()}`;
+        selectedChoices.push(choiceId);
+        console.log(`Transformed choice ID ajouté : ${choiceId}`);
+    });
+
+    console.log("Choix sélectionnés après transformation :", selectedChoices);
+
+    if (selectedChoices.length === 0) {
+        console.log("Aucune réponse sélectionnée. Alerte affichée.");
+        alert("Veuillez sélectionner au moins une réponse.");
+        return;
+    }
+
+    // Step 1: Submit the user's response
+    const formData = new URLSearchParams();
+    formData.append("question_id", transformedId);
+    selectedChoices.forEach((choice) => formData.append("choices[]", choice));
+    console.log("Données envoyées au backend :", [...formData.entries()]);
+
+    fetch("/submit_response/", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": getCsrfToken(),
+        },
+        body: formData,
+    })
+        .then((response) => {
+            if (!response.ok) {
+                console.error("Erreur lors de l'enregistrement des réponses.");
+                throw new Error("Erreur lors de l'enregistrement des réponses.");
+            }
+            console.log("Réponse soumise avec succès.");
+            return response.json();
+        })
+        .then((data) => {
+            console.log("Données reçues après soumission :", data);
+
+            // Step 2: Fetch updated percentages for this question
+            console.log(`Requête pour calculer les pourcentages pour l'ID ${transformedId}.`);
+            return fetch(`/calculate_percentages/${transformedId}/`);
+        })
+        .then((response) => {
+            if (!response.ok) {
+                console.error("Erreur lors du calcul des pourcentages.");
+                throw new Error("Erreur lors du calcul des pourcentages.");
+            }
+            console.log("Calcul des pourcentages réussi.");
+            return response.json();
+        })
+        .then((data) => {
+            console.log("Pourcentages reçus :", data);
+
+            // Display percentages for each choice
+            const questionContainer = document.getElementById(questionId);
+            Object.entries(data.percentages).forEach(([choiceId, percentage]) => {
+                console.log(`Traitement du choix ${choiceId} avec pourcentage ${percentage}%.`);
+                const choiceElement = questionContainer.querySelector(`input[value="${choiceId.split('_').pop().toUpperCase()}"]`);
+                if (choiceElement) {
+                    // Ajouter un conteneur pour le pourcentage si nécessaire
+                    let percentageContainer = choiceElement.parentElement.querySelector(".percentage-container");
+
+                    if (!percentageContainer) {
+                        console.log(`Conteneur de pourcentage manquant pour ${choiceId}. Création en cours.`);
+                        percentageContainer = document.createElement("span");
+                        percentageContainer.classList.add("percentage-container");
+
+                        // Ajout du conteneur dans la parentElement
+                        choiceElement.parentElement.style.display = "flex";
+                        choiceElement.parentElement.style.alignItems = "center";
+                        choiceElement.parentElement.appendChild(percentageContainer);
+                    }
+
+                    // Mettre à jour le texte avec le pourcentage
+                    percentageContainer.textContent = `${percentage}%`;
+percentageContainer.style.color = "blue";
+percentageContainer.style.fontWeight = "bold";
+percentageContainer.style.marginLeft = "auto"; // Aligne le pourcentage à droite
+percentageContainer.style.textAlign = "right"; // Alignement du texte dans le conteneur
+percentageContainer.style.paddingLeft = "10px"; // Optionnel, ajoute un espace entre la case et le pourcentage
+
+                    console.log(`Pourcentage mis à jour pour ${choiceId}: ${percentage}%.`);
+                } else {
+                    console.warn(`Checkbox non trouvée pour le choix ${choiceId}.`);
+                }
+            });
+        })
+        .catch((error) => {
+            console.error("Erreur :", error);
+            alert("Une erreur est survenue lors de la soumission ou du calcul des pourcentages.");
+        })
+        .finally(() => {
+            console.log("Fin de la fonction correctAndSubmitQuestion.");
+        });
+}
+
+
+// Function to retrieve CSRF token
+function getCsrfToken() {
+    const csrfCookie = document.cookie
+        .split('; ')
+        .find((row) => row.startsWith('csrftoken='));
+    return csrfCookie ? csrfCookie.split('=')[1] : null;
+}
+
+
+
+
+</script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+    <script src="{% static 'java/comment.js' %}"></script>

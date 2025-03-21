@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="EMB2015">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) A propos de la fécondation,</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Elle correspond à la fusion d'un spermatozoïde et d'un ovocyte II bloqué en métaphase.</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Elle peut avoir lieu en dehors des voies génitales de la femme.</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Elle se fait entre deux gamètes haploïdes.</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Normalement, elle a lieu au 28ème jour du cycle menstruel de la femme.</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Un ovocyte 23,X fécondé par un spermatozoïde 23,Y formera un zygote de sexe masculin.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Dans un embryon de 3 semaines de développement, on observe les feuillets suivants :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- L'ectoblaste.</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Le mésoblaste extra-embryonnaire.</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- L'angioblaste.</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Le mésoblaste.</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- L'entoblaste.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Au cours de la 4ème semaine de développement, les principaux phénomènes de la neurulation primaire sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- L'apparition de la plaque neurale.</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- L'apparition de la gouttière neurale.</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- La fermeture du tube neural.</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Le stade à 3 vésicules du segment antérieur du tube neural.</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- La différenciation des cellules nerveuses.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) A propos du blastocyste :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Le blastocyste avec sa zone pellucide se fixe au fond de l'utérus maternel.</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- L'implantation du blastocyste se fait par le pôle embryonnaire.</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- La nidation au niveau de la trompe de Fallope est impossible.</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Le syncytiotrophoblaste se différencie à partir des cellules embryonic stem.</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Se forme à j7.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) La chorde dorsale :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Correspond au mésoblaste latéral.</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- S'individualise à la 3ème semaine de développement.</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Induit la formation de la plaque neurale.</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Est située en avant de la ligne primitive.</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Va former les vertèbres.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Parmi les structures suivantes, laquelle ou lesquelles est /sont présente(s) à la deuxième semaine de développement ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- La gouttière neurale.</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- La vésicule vitelline primaire.</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Le cytotrophoblaste.</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- La cavité amniotique.</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- L'embryon tridermique.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Le placenta praevia :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Correspond à une anomalie du disque didermique.</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Est une malformation vasculaire du placenta.</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Correspond à une localisation anormale de l'implantation de l'œuf.</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Peut s'accompagner d'hémorragies importantes.</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Est souvent lié à une anomalie génétique.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Le mésoblaste :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Se divise en mésoblaste axial et mésoblaste latéral.</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Est à l'origine, notamment, des ébauches rénales.</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Provient de la différenciation et de la migration des cellules épiblastiques au niveau de la ligne primitive.</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Apparaît au début de la 4ème semaine de développement.</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Se différencie notamment en myotome.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) A propos des spermatozoïdes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Ils acquièrent leur mobilité dans les tubes séminifères : c'est la spermiation.</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Leur garniture chromosomique est 23,X ou 23,Y.</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Dans un sperme normal, il y a normalement 60 à 300 millions/ml de spermatozoïdes.</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Ils ne possèdent pas de centriole.</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Ils sont fécondants dans l'épididyme du testicule.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) La spermatogenèse :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Est terminée à la puberté.</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Dure 24 jours.</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- S'effectue dans l'épididyme.</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Aboutit à la formation de cellules diploïdes.</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Donne 16 spermatozoïdes pour une spermatogonie ad.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S2" "Histologie-Embryologie" "EMB2015" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['A', 'B', 'C', 'E'],
+    q2: ['A', 'D', 'E'],
+    q3: ['C', 'D'],
+    q4: ['B'],
+    q5: ['B', 'C', 'D'],
+    q6: ['B', 'C', 'D'],
+    q7: ['C', 'D'],
+    q8: ['A', 'B', 'C', 'E'],
+    q9: ['B', 'C'],
+    q10: ['E'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersEMB2015'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+<script src="{% static 'java/question-stats.js' %}" defer></script>

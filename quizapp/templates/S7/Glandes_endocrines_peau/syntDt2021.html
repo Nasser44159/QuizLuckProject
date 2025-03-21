@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="Dt2021">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Au cours de la lèpre lépromateuse :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- L'atteinte cutanée est souvent diffuse</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Les nerfs sont hypertrophiques</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Les déficits sensitivo-moteurs sont précoces</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Les index bactériologique et morphologique sont négatifs</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Le visage peut prendre l'aspect d'un faciès léonin</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) La primo-infection herpétique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Est souvent symptomatique</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- La gingivo-stomatite est la forme la plus fréquente</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Se caractérise par des vésicules groupées en bouquet avec une disposition métamérique</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- La sérologie n'a aucun intérêt</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Est parfois sexuellement transmissible</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Au cours d'un Zona :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- La douleur est fréquente</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Le pronostic visuel peut être mis en jeu au cours d'un zona ophtalmique</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Les AINS et les salicylés peuvent être indiqués</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- L'atteinte viscérale est possible</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Les lésions vésiculeuses ont une disposition métamérique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) L'HPV (Human papillomavirus) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Est l'agent causal de verrues</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Est l'agent causal de condylomes</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Les types 16 et 18 ont un faible pouvoir oncogène</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Se caractérise par un tropisme pour les épithéliums</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Peut être responsable du cancer du col utérin</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) La varicelle :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Est la récurrence du virus varicelle zona</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Est une virose très contagieuse</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Est caractérisée par la présence d'une virémie</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Peut se compliquer d'une atteinte pulmonaire</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Est une dermato-noso polymorphe avec des lésions d'âge différent</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) La dermatite atopique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Est due à une réaction d'hypersensibilité immédiate</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Débute habituellement à l'âge adulte</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Se localise avant l'âge de 2 ans au niveau des zones convexes du visage</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Est une contre-indication absolue à la vaccination</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Peut être associée à un asthme</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Concernant le psoriasis, quelle(s) est (sont) les propositions exactes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Peut être déclenché par une infection streptococcique</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Peut être aggravé par la corticothérapie orale</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Touche essentiellement l'enfant</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Peut être transmis génétiquement</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- S'améliore souvent après une exposition solaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Le psoriasis peut se compliquer de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Érythrodermie</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Arthropathie</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Psoriasis pustuleux</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Carcinome cutané</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) L'eczéma de contact :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Est dû à une allergie retardée à médiation cellulaire</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Survient lors du premier contact avec les allergènes</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Peut être lié à un mécanisme phototoxique</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Peut nécessiter un reclassement professionnel</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Le traitement repose sur l'éviction de l'allergène</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Le chancre syphilitique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Est une ulcération profonde</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Repose sur une base indurée</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Ne s'accompagne jamais d'adénopathie satellite</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Est douloureux</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Peut se localiser au niveau de la cavité buccale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) La physiopathologie de l'acné implique les mécanismes physiopathologiques suivants :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- L'hyperkératose du canal pilosébacé</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- L'hyperséborrhée</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Prolifération bactérienne de Propionibacterium acnés</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Inflammation de la glande eccrine</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Un mécanisme immunoallergique médié par les IgE</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Une urticaire aiguë peut être d'origine :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Infectieuse</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Alimentaire</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Médicamenteuse</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Physique</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Cholinergique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Les signes de gravité de l'urticaire sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Prurit</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Dyspnée</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Dysphagie</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Hyper-sialorrhée</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Hypersudation</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Le diagnostic de la tuberculose cutanée repose sur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- L'examen direct et la culture</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- La présence d'un granulome épithélio-gigantocellulaire sans nécrose caséeuse en histologie</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- L'intradermoréaction à la tuberculine (IDR)</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Les Méthodes d'amplification génique (PCR) dans les formes paucibacillaires</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Sérologie du Mycobacterium tuberculosis</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Concernant l'agent causal de l'urétrite, toutes les propositions suivantes sont justes sauf une, laquelle ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Neisseria gonorrhoeae</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Chlamydia trachomatis</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Trichomonas vaginalis</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Treponema pallidum</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Ureaplasma urealyticum</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Une jeune patiente de 18 ans, vient consulter pour une lésion ulcéro-croûteuse du visage évoluant depuis 3 mois. En faveur du diagnostic de leishmaniose, on recherchera</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Le caractère douloureux de la lésion</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- L'absence de prurit</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- La résistance au traitement antibiotique banal</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- La notion de séjour au sud du Maroc</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- La notion d'exposition prolongée au soleil</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Pour confirmer votre diagnostic, vous réalisez en 1ère intention</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Un examen parasitologique direct des sérosités de la lésion à la recherche de leishmanie</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Une culture sur milieu NNN</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Une PCR</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Une biopsie cutanée</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Une NFS</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Une femme au foyer vient consulter pour un onyxis et un péri-onyxis du pouce droit, évoluant depuis 1 mois. Vous retenez comme diagnostic :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Un panaris staphylococcique</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Une candidose unguéale</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Un eczéma de contact</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Une onychomycose à dermatophyte</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Un panaris herpétique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) La gale chez le nourrisson est caractérisée par</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Une atteinte du visage</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Une atteinte palmo-plantaire</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- L'atteinte du dos</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- La présence de prurit</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- L'atteinte des plis de flexion</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) La teigne tondante trichophytique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Est due au microsporum canis</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Est de type endothrix</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Est caractérisée par de petites plaques multiples</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Est caractérisée par des cheveux cassés à ras</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Doit faire rechercher un animal contaminant</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S7" "Glandes_endocrines_peau" "Dt2021" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['A', 'B', 'E'],
+    q2: ['B', 'E'],
+    q3: ['A', 'B', 'D', 'E'],
+    q4: ['A', 'B', 'D', 'E'],
+    q5: ['B', 'C', 'D', 'E'],
+    q6: ['C', 'E'],
+    q7: ['A', 'B', 'D', 'E'],
+    q8: ['A', 'B', 'C'],
+    q9: ['A', 'C', 'D', 'E'],
+    q10: ['B', 'E'],
+    q11: ['A', 'B', 'C'],
+    q12: ['A', 'B', 'C'],
+    q13: ['B', 'C', 'D'],
+    q14: ['A', 'C', 'D'],
+    q15: ['D'],
+    q16: ['C', 'E'],	//ChatGPT
+    q17: ['A'],	//ChatGPT
+    q18: ['E'],	//ChatGPT
+    q19: ['D', 'E'],	//ChatGPT
+    q20: ['C', 'E']	//ChatGPT
+
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersDt2021'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

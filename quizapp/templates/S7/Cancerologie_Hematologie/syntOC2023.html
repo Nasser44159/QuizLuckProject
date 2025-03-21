@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="OC2023">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Le dépistage du cancer consiste à rechercher une maladie chez une personne en bonne santé apparent avec l'apparition de tout symptôme :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Permet de détecter les stades infra-cliniques (ou lésions précancéreuses)</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Il s'agit d'un moyen de prévention secondaire</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Permet de diagnostiquer les cancers rares et graves</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Permet de réduire l'incidence du cancer</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Permet de réduire la mortalité due au cancer</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) La classification TNM est une classification internationale qui permet de préciser le stade d'un cancer :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Est un facteur pronostic majeur</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Est commun pour tous les cancers</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Se base sur les données cliniques et para-cliniques du bilan d'extension</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Permet de déterminer la stratégie thérapeutique du cancer</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Peut être établie après chirurgie sur pièce opératoire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Concernant la cellule cancéreuse et la carcinogenèse :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- La cellule cancéreuse échappe aux mécanismes de contrôle immunitaire.</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- La cellule cancéreuse est caractérisée par des anomalies morphologiques telles que l'anisocytose.</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- C'est une cellule qui peut manifester des anomalies fonctionnelles comme la sécrétion de mucus.</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Le processus multi-étape de carcinogenèse associe : l'initiation, la promotion et la progression</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Aucune proposition n’est correcte.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Dans le cadre de la prévention du cancer :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Un test de dépistage ne doit pas être réalisé chez un patient asymptomatique.</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Le test de dépistage doit être simple, non spécifique et invasif.</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Le dépistage permet de réduire l'incidence d'une pathologie fréquente, grave et potentiellement curable.</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Fait appel à la vaccination et au Frottis cervico vaginal pour le cancer du poumon</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Aucune proposition n’est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Concernant les voies d’extension de la maladie néoplasique, Quelles sont les propositions justes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- La voie de dissémination hématogène est la plus importante dans l’extension du cancer.</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Le cancer ostéophile peut se disséminer via les canaux lymphatiques.</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Le cancer de type syndrome peut se disséminer à travers la gaine des nerfs.</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Le cancer in-situ franchit la membrane basale.</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Aucune proposition n’est juste.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Concernant le modèle de Skipper :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Théorie établie sur le modèle murin de la leucémie L1210</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Les cellules sont en croissance logarithmique (exponentielle)</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Toutes les cellules sont en division sans cellule en phase de repos (G0), avec un temps de doublement constant</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Une dose fixe de médicament va tuer un pourcentage constant de cellules tumorales, quelle que soit la masse tumorale initiale</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Le nombre de cellules en phase de repos (phase G0) et le temps de doublement peut varier entre des cellules au sein d’une même tumeur</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Le principe d'association des cytotoxiques :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- On associe des médicaments ayant des mécanismes d'action similaires</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- On associe des médicaments ayant des mécanismes d'action différents</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- On cherche des compétitions médicamenteuses : 2 médicaments alkylants</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- On évite d'administrer deux médicaments ayant des mécanismes de résistance croisés</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Éviter l'additivité des effets indésirables</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Principaux sites d'action des médicaments anticancéreux :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- L'ADN</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Le métabolisme des acides nucléiques</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Les enzymes de synthèse de l'ADN : les anti-topoisomérases, les anti-foliques</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Le domaine intra-cellulaire de l'EGFR (Epidermal Growth Factor Receptor)</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Les microtubules : les poisons du fuseau mitotique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Un patient qui se présente pour un syndrome douloureux lombaire en rapport avec son adénocarcinome de la prostate. Quelles sont les conclusions tirées de l’interne de garde.</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Au vu de l'urgence, il n'est pas nécessaire d'évaluer l'intensité de la douleur avant de commencer un traitement antalgique.</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Le patient a une composante douloureuse neuropathique clar au l'examen neurologique montre une hypoesthésie.</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Le patient a une douleur neuropathique car l'échelle verbale simple est à 4.</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Le patient présente une douleur nociceptive rachidienne en rapport avec des métastases osseuses vertébrales.</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- En cas de prescription d'un antalgique de palier 3 de l'OMS ; Un traitement préventif de la constipation est systématiquement associé</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Concernant les soins palliatifs chez un patient suivi pour un cancer :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Ils peuvent concerner toute personne en phase avancée ou terminale de la maladie</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Ils peuvent concerner toute personne en fin de vie</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Ils offrent un système de soutien pour permettre aux proches de composer avec la maladie du patient et la période de deuil</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Ils permettent de retarder le décès</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Ils n’intègrent pas les aspects psychologiques et spirituels des soins</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Les cancers de l’enfant :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- La prise en charge spécifique est discutée en réunion de concertation pluridisciplinaire</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Les cancers de l'enfant sont caractérisés par une chimiorésistance et la radiothérapie peut présenter plusieurs séquelles</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Les lymphomes sont traités uniquement par chirurgie</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- La chimiothérapie permet une régression sur la tumeur primitive mais n'a aucun effet sur les métastases</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Le dispositif d'annonce du diagnostic en hospitalier est construit autour de quatre temps</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) La leucémie aiguë de l'enfant :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Correspond à 10% des cancers de l'enfant</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- La majorité des leucémies aiguës sont de type lymphoblastique</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Le tableau clinique correspond à l'association d'une insuffisance médullaire uniquement</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Le tableau clinique correspond à l'association d'une insuffisance médullaire et d'un syndrome tumoral</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Au moindre doute de leucémie aiguë, il faut administrer rapidement des corticoïdes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Les tumeurs cérébrales chez l'enfant :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Correspond à la première cause de mortalité par tumeur chez l'enfant</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Les tumeurs cérébrales les plus fréquentes chez l'enfant correspondent à l'astrocytome et au médulloblastome et à l'épendymome</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Toutes les tumeurs sont accessibles à la chirurgie y compris les tumeurs infiltrantes du tronc cérébral et des tumeurs bilatérales des noyaux gris centraux</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- La radiothérapie est prescrite pour les enfants de moins de 3 ans, puisqu'il n'y a aucun risque de séquelles</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- L'IRM est le meilleur examen radiologique pour l'exploration des tumeurs cérébrales</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) La radiothérapie externe est un des traitements locorégionaux du cancer :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- La dose prescrite varie selon le type histologique</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Elle passe par plusieurs étapes avant l'administration du traitement</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- La source du rayonnement est en dehors du corps</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- La surveillance des patients en cours de traitement est hebdomadaire</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Toutes les réponses sont justes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Dans le cadre des volumes cibles en radiothérapie externe :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Il existe trois principaux volumes cibles : GTV, CTV et PTV</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Le CTV correspond au volume apparent de la tumeur</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Le PTV correspond au volume apparent de la tumeur</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Le CTV prend en compte les erreurs de positionnement</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Le PTV prend en compte les erreurs de positionnement</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Le fractionnement en Radiothérapie externe</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Le schéma standard est une séance par jour à raison de 3Gy par fraction</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Le schéma standard est une séance par jour à raison de 2Gy par fraction</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Le schéma Hypo fractionné est défini par une dose par séance < 2Gy</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Le schéma Hypo fractionné est défini par une dose par séance >2Gy</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Aucune réponse n’est juste</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Indiquer parmi les médicaments suivants, celui (ceux) qui agit (agissent) sur la phase S de la synthèse de l'ADN</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Les alkylants</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Les intercalants</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Les antitopoisomérases</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Le méthotrexate</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- La bléomycine</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Indiquer parmi les médicaments suivants, la (les) proposition (s) exacte (s)</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Le cyclophosphamide est une prodrogue</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Le cyclophosphamide est métabolisé en 4 hydroxy – cyclophosphamide par le CYP 450 2B6</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Le cyclophosphamide est métabolisé en 4 hydroxy – cyclophosphamide par le CYP 450 2D6</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Le cyclophosphamide est métabolisé en 4 hydroxy – cyclophosphamide par le CYP 3A4</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Le cyclophosphamide est métabolisé en 4 hydroxy – cyclophosphamide par le CYP 450 2C9</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) L’association d’un anticancéreux aux vaccins vivants atténués (VVA) est formellement contre-indiquée (1) car lors de l’association d’un anticancéreux aux VVA il y a un risque de la survenue d’une maladie vaccinale généralisée éventuellement mortelle (2)</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Les 2 propositions sont vraies avec relation de cause à effet</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Les 2 propositions sont vraies sans relation de cause à effet</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- La proposition n°1 est vraie, la proposition n°2 est fausse</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- La proposition n°1 est fausse, la proposition n°2 est vraie</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Les 2 propositions sont fausses</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Indiquer parmi les suivants le (s) anticancéreux cycle-dépendants :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Les inhibiteurs de la topoisomérase I</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Les inhibiteurs de la topoisomérase II</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Les agents alkylants</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Les sels de platines</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Aucune des propositions n’est exacte</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S7" "Cancerologie_Hematologie" "OC2023" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['A', 'B', 'E'],
+    q2: ['A', 'C', 'D', 'E'],
+    q3: ['A', 'B', 'C', 'D'],
+    q4: ['C'],
+    q5: ['A', 'C'],
+    q6: ['A', 'B', 'C', 'D'],
+    q7: ['B', 'D', 'E'],
+    q8: ['A', 'B', 'C', 'E'],
+    q9: ['B', 'D', 'E'],
+    q10: ['A', 'B', 'C'],
+    q11: ['A', 'E'],
+    q12: ['B', 'D'],
+    q13: ['A', 'B', 'E'],
+    q14: ['A', 'B', 'C', 'D', 'E'],
+    q15: ['A', 'E'],
+    q16: ['B', 'D'],
+    q17: ['A', 'B'],
+    q18: ['A', 'B'],
+    q19: ['A'],
+    q20: ['B', 'C'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersOC2023'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script><script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

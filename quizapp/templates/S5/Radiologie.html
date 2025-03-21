@@ -1,0 +1,326 @@
+{% csrf_token %}
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radiologie  - QuizLuck</title>
+     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    {% load static %}
+<link rel="stylesheet" href="{% static 'css/stylepagedexam.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+    <!-- Section Contactez-Nous -->
+    <h3><i class="fas fa-envelope"></i> Contactez-Nous</h3>
+    <button id="open-contact-modal" class="contact-btn">
+        <i class="fas fa-paper-plane"></i> Contactez-Nous
+    </button>
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+<!-- Conteneur de message -->
+<div class="message-container" id="message-container" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#f9f9f9; padding:40px; box-shadow:0 4px 12px rgba(0,0,0,0.15); border-radius:12px; z-index:1001; width:600px; max-width:90%; font-family:Arial, sans-serif;">
+    <span class="close-btn" id="close-btn" style="cursor:pointer; position:absolute; top:15px; right:15px; font-size:24px; color:#ff0000; font-weight:bold;">&times;</span>
+    <div style="text-align:center; margin-bottom:30px;">
+        <h2 style="margin:0; font-size:24px; font-weight:bold; color:#333;">Posez vos observations <span>📝</span></h2>
+        <p style="margin:10px 0 0; font-size:16px; color:#666;">Nous sommes à votre écoute</p>
+    </div>
+    <div class="mb-3" style="margin-bottom:30px;">
+        <p style="font-size:16px; color:#333; margin:0;">En tant Que :</p>
+        <div style="margin-top:10px;">
+            <input type="radio" id="username" name="mode" value="username" style="margin-right:8px;">
+            <label for="username" style="font-size:16px; color:#333; cursor:pointer;">{{ user_full_name|default:"Anonyme" }}</label>
+            <br>
+            <input type="radio" id="anonymous" name="mode" value="anonymous" checked style="margin-right:8px; margin-top:10px;">
+            <label for="anonymous" style="font-size:16px; color:#333; cursor:pointer;">Anonyme</label>
+        </div>
+    </div>
+    <div class="mb-3">
+        <label for="message" class="form-label" style="font-size:18px; font-weight:bold; color:#333; margin-bottom:10px; display:block;">Votre message :</label>
+        <textarea class="form-control" id="message" rows="6" placeholder="À votre écoute, toujours !" style="width:100%; font-size:16px; padding:15px; border:1px solid #ccc; border-radius:8px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.1); background:#fff;"></textarea>
+    </div>
+    <div style="text-align:center; margin-top:30px;">
+        <button type="button" class="btn btn-primary" id="send-message" style="background-color:#007bff; color:white; border:none; padding:12px 30px; border-radius:8px; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 4px 8px rgba(0, 0, 0, 0.2); transition:all 0.3s ease;">
+            Envoyer
+        </button>
+    </div>
+</div>
+<div id="blur-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;"></div>
+
+
+    <div id="content">
+
+    <!-- En-tête de la page -->
+    <div class="container text-center">
+        <h1>Radiologie </h1>
+        <hr>
+    </div>
+    <div class="separator"></div>
+
+    <!-- Section des examens -->
+    <section class="container">
+        <div class="row">
+            <!-- Examen 1 -->
+            <div class="col-md-4">
+                <div class="exam-card">
+                    <i class="fas fa-star fa-3x"></i>
+                    <h4>2023</h4>
+                    <p>Normale</p>
+                    <a href="{% url 'dynamic_view' 'S5' 'Radiologie' 'Rd2023' %}" class="btn btn-primary">Accéder</a>
+                </div>
+            </div>
+            <!-- Examen 2 -->
+            <div class="col-md-4">
+                <div class="exam-card">
+                    <i class="fas fa-star fa-3x"></i>
+                    <h4>2022</h4>
+                    <p>Normale</p>
+                    <a href="{% url 'dynamic_view' 'S5' 'Radiologie' 'Rd2022' %}" class="btn btn-primary">Accéder</a>
+                </div>
+            </div>
+            <!-- Examen 3 -->
+            <div class="col-md-4">
+                <div class="exam-card">
+                    <i class="fas fa-star fa-3x"></i>
+                    <h4>2022</h4>
+                    <p>Rattrapage</p>
+                    <a href="{% url 'dynamic_view' 'S5' 'Radiologie' 'Rd2022R' %}" class="btn btn-primary">Accéder</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Examen 4 -->
+            <div class="col-md-4">
+                <div class="exam-card">
+                    <i class="fas fa-star fa-3x"></i>
+                    <h4>2021</h4>
+                    <p>Normale</p>
+                    <a href="{% url 'dynamic_view' 'S5' 'Radiologie' 'Rd2021' %}" class="btn btn-primary">Accéder</a>
+                </div>
+            </div>
+            <!-- Examen 5 -->
+            <div class="col-md-4">
+                <div class="exam-card">
+                    <i class="fas fa-star fa-3x"></i>
+                    <h4>2021</h4>
+                    <p>RATTRAPAGE</p>
+                    <a href="{% url 'dynamic_view' 'S5' 'Radiologie' 'Rd2021R' %}" class="btn btn-primary">Accéder</a>
+                </div>
+            </div>
+            <!-- Examen 6 -->
+            <div class="col-md-4">
+                <div class="exam-card">
+                    <i class="fas fa-star fa-3x"></i>
+                    <h4>2020</h4>
+                    <p>Normale</p>
+                    <a href="{% url 'dynamic_view' 'S5' 'Radiologie' 'Rd2020' %}" class="btn btn-primary">Accéder</a>
+                </div>
+            </div>
+        </div>
+
+         <div class="row">
+            <!-- Examen 7 -->
+            <div class="col-md-4">
+                <div class="exam-card">
+                    <i class="fas fa-star fa-3x"></i>
+                    <h4>2020</h4>
+                    <p>Rattrapage</p>
+                    <a href="{% url 'dynamic_view' 'S5' 'Radiologie' 'Rd2020R' %}" class="btn btn-primary">Accéder</a>
+                </div>
+            </div>
+            <!-- Examen 8 -->
+            <div class="col-md-4">
+                <div class="exam-card">
+                    <i class="fas fa-star fa-3x"></i>
+                    <h4>2019</h4>
+                    <p>Normale</p>
+                    <a href="{% url 'dynamic_view' 'S5' 'Radiologie' 'Rd2019' %}" class="btn btn-primary">Accéder</a>
+                </div>
+            </div>
+            <!-- Examen 9 -->
+            <div class="col-md-4">
+                <div class="exam-card">
+                    <i class="fas fa-star fa-3x"></i>
+                    <h4>2019</h4>
+                    <p>Rattrapage</p>
+                    <a href="{% url 'dynamic_view' 'S5' 'Radiologie' 'Rd2019R' %}" class="btn btn-primary">Accéder</a>
+                </div>
+            </div>
+        </div>
+
+         <div class="row">
+            <!-- Examen 10 -->
+            <div class="col-md-4">
+                <div class="exam-card">
+                    <i class="fas fa-star fa-3x"></i>
+                    <h4>2018</h4>
+                    <p>Normale</p>
+                    <a href="{% url 'dynamic_view' 'S5' 'Radiologie' 'Rd2018' %}" class="btn btn-primary">Accéder</a>
+                </div>
+            </div>
+            <!-- Examen 11 -->
+            <div class="col-md-4">
+                <div class="exam-card">
+                    <i class="fas fa-star fa-3x"></i>
+                    <h4>2018</h4>
+                    <p>Rattrapage</p>
+                    <a href="{% url 'dynamic_view' 'S5' 'Radiologie' 'Rd2018R' %}" class="btn btn-primary">Accéder</a>
+                </div>
+            </div>
+<!-- Examen 12 -->
+            <div class="col-md-4">
+                <div class="exam-card">
+                    <i class="fas fa-star fa-3x"></i>
+                    <h4>2017</h4>
+                    <p>Normale</p>
+                    <a href="{% url 'dynamic_view' 'S5' 'Radiologie' 'Rd2017P' %}" class="btn btn-primary">Accéder</a>
+</div>
+            </div>
+        </div>
+
+         <div class="row">
+            <!-- Examen 13 -->
+            <div class="col-md-4">
+                <div class="exam-card">
+                    <i class="fas fa-star fa-3x"></i>
+                    <h4>2017</h4>
+                    <p>Rattrapage</p>
+                    <a href="{% url 'dynamic_view' 'S5' 'Radiologie' 'Rd2017R' %}" class="btn btn-primary">Accéder</a>
+    </div>
+</div>
+
+<div class="favorite-btn-container">
+    <a href="{% url 'render_favorite' 'S5' 'favori9' %}" class="btn btn-primary">Voir Favori</a>
+        </div>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+
+    </section>
+
+    <!-- Pied de page -->
+    <footer class="text-center">
+        <p>© 2024 QuizLuck - Tous droits réservés</p>
+    </footer>
+</body>
+</html>

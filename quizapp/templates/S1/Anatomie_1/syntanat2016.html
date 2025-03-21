@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / 50</span></h3>
+</div>
+
+        <div class="quiz-title">
+            <h1>Résultats détaillés - Syntanatomie 2016</h1>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div></div>
+<form id="quiz-form">
+<input type="hidden" name="file_name" value="Anatomie2016">
+
+<div id="question-1"  class="question-container">  <div class="question">
+    <p>1.) Le muscle supra supinatus:</p>
+    <ul>
+        <li><input type="checkbox" name="q1" value="A"> A- A une origine scapulaire</li>
+        <li><input type="checkbox" name="q1" value="B"> B- Est innervé par le nerf axillaire (circonflexe)</li>
+        <li><input type="checkbox" name="q1" value="C"> C- Est un Muscle Abducteur de l'épaule</li>
+        <li><input type="checkbox" name="q1" value="D"> D- Est un Muscle de la loge antérieure de l'épaule</li>
+        <li><input type="checkbox" name="q1" value="E"> E- Se termine sur le trachiter</li>
+    </ul>
+</div></div>
+
+<div id="question-2"  class="question-container">    <div class="question">
+    <p>2.) Les muscles qui se terminent sur le Trochiter sont:</p>
+    <ul>
+        <li><input type="checkbox" name="q2" value="A"> A- Teres minor</li>
+        <li><input type="checkbox" name="q2" value="B"> B- Supra suppinatus</li>
+        <li><input type="checkbox" name="q2" value="C"> C- Rhamboidis</li>
+        <li><input type="checkbox" name="q2" value="D"> D- Angulaire</li>
+        <li><input type="checkbox" name="q2" value="E"> E- Infra supinatus</li>
+    </ul>
+</div></div>
+
+<div id="question-3"  class="question-container">    <div class="question">
+    <p>3.) Le muscle subscapularis:</p>
+    <ul>
+        <li><input type="checkbox" name="q3" value="A"> A- Prend origine sur l'omoplate</li>
+        <li><input type="checkbox" name="q3" value="B"> B- Est innervé par le nerf axillaire</li>
+        <li><input type="checkbox" name="q3" value="C"> C- Se termine sur le trochin</li>
+        <li><input type="checkbox" name="q3" value="D"> D- Forme la paroi postérieure du creux axillaire</li>
+        <li><input type="checkbox" name="q3" value="E"> E- A une insertion costale</li>
+    </ul>
+</div></div>
+
+<div id="question-4"  class="question-container">    <div class="question">
+    <p>4.) Sur l'apophyse coracoïde s'attachent les muscles:</p>
+    <ul>
+        <li><input type="checkbox" name="q4" value="A"> A- Subclavis (sous clavier)</li>
+        <li><input type="checkbox" name="q4" value="B"> B- Pectoralis minor</li>
+        <li><input type="checkbox" name="q4" value="C"> C- Subscapularis</li>
+        <li><input type="checkbox" name="q4" value="D"> D- Oma hyodien</li>
+        <li><input type="checkbox" name="q4" value="E"> E- Caraco brachialis</li>
+    </ul>
+</div></div>
+
+<div id="question-5"  class="question-container">    <div class="question">
+    <p>5.) Le muscle serratus antérieur (grand dentelé) prend ses insertions au niveau:</p>
+    <ul>
+        <li><input type="checkbox" name="q5" value="A"> A- Du bord spinal de la scapula</li>
+        <li><input type="checkbox" name="q5" value="B"> B- De la clavicule</li>
+        <li><input type="checkbox" name="q5" value="C"> C- Sur la face latérale des côtes</li>
+        <li><input type="checkbox" name="q5" value="D"> D- Du sternum</li>
+        <li><input type="checkbox" name="q5" value="E"> E- De l'apophyse coracoïde</li>
+    </ul>
+</div></div>
+
+<div id="question-6"  class="question-container">    <div class="question">
+    <p>6.) Relevez des muscles de la région scapulaire postérieure:</p>
+    <ul>
+        <li><input type="checkbox" name="q6" value="A"> A- Subclavius (sous clavier)</li>
+        <li><input type="checkbox" name="q6" value="B"> B- Teres minor (petit rond)</li>
+        <li><input type="checkbox" name="q6" value="C"> C- Supra supinatus (sus épineux)</li>
+        <li><input type="checkbox" name="q6" value="D"> D- Coraco Brachialis</li>
+        <li><input type="checkbox" name="q6" value="E"> E- Rhomboidis</li>
+    </ul>
+</div></div>
+
+<div id="question-7"  class="question-container">    <div class="question">
+    <p>7.) L'Artere humérale:</p>
+    <ul>
+        <li><input type="checkbox" name="q7" value="A"> A- Passe sur le côté médial du bras</li>
+        <li><input type="checkbox" name="q7" value="B"> B- Accompagne le nerf axillaire (circonflexe)</li>
+        <li><input type="checkbox" name="q7" value="C"> C- Fait suite à l'artère axillaire</li>
+        <li><input type="checkbox" name="q7" value="D"> D- Donne l'artère humérale profonde</li>
+        <li><input type="checkbox" name="q7" value="E"> E- Donne les artères radiale et cubitale</li>
+    </ul>
+</div></div>
+
+<div id="question-8"  class="question-container">    <div class="question">
+    <p>8.) Le nerf radial:</p>
+    <ul>
+        <li><input type="checkbox" name="q8" value="A"> A- Innerve le muscle triceps brachii</li>
+        <li><input type="checkbox" name="q8" value="B"> B- Innerve le muscle pronator quadratus</li>
+        <li><input type="checkbox" name="q8" value="C"> C- Passe dans une gouttière au niveau de l'humérus</li>
+        <li><input type="checkbox" name="q8" value="D"> D- Est un nerf mixte</li>
+        <li><input type="checkbox" name="q8" value="E"> E- Est issu du tronc secondaire postérieur</li>
+    </ul>
+</div></div>
+
+<div id="question-9"  class="question-container">    <div class="question">
+    <p>9.) Les éléments anatomiques de l'extrémité supérieure de l'ulna (cubitus) sont:</p>
+    <ul>
+        <li><input type="checkbox" name="q9" value="A"> A- La grande cavité sigmoïde</li>
+        <li><input type="checkbox" name="q9" value="B"> B- Le capitellum</li>
+        <li><input type="checkbox" name="q9" value="C"> C- L'olécrane</li>
+        <li><input type="checkbox" name="q9" value="D"> D- La tubérosité bicipitale</li>
+        <li><input type="checkbox" name="q9" value="E"> E- L'apophyse coronoïde</li>
+    </ul>
+</div></div>
+
+<div id="question-10"  class="question-container">    <div class="question">
+    <p>10.) Relevez des muscles du plan superficiel de l'avant-bras:</p>
+    <ul>
+        <li><input type="checkbox" name="q10" value="A"> A- Flexor pollicis longus</li>
+        <li><input type="checkbox" name="q10" value="B"> B- Pronator teres (rond pronateur)</li>
+        <li><input type="checkbox" name="q10" value="C"> C- Palmaris longus (petit palmaire)</li>
+        <li><input type="checkbox" name="q10" value="D"> D- Flexor carpi radialis</li>
+        <li><input type="checkbox" name="q10" value="E"> E- Supinator (court supinateur)</li>
+    </ul>
+</div></div>
+
+
+
+<div id="question-11"  class="question-container">    <div class="question">
+    <p>11.) Le nerf ulnaris (cubital):</p>
+    <ul>
+        <li><input type="checkbox" name="q11" value="A"> A- Est un nerf mixte</li>
+        <li><input type="checkbox" name="q11" value="B"> B- Est partagé par le pisiforme</li>
+        <li><input type="checkbox" name="q11" value="C"> C- Innerve les muscles interosseux</li>
+        <li><input type="checkbox" name="q11" value="D"> D- Innerve le muscle brachialis (long supinatus)</li>
+        <li><input type="checkbox" name="q11" value="E"> E- Passe dans la gouttière épitrochléenne olécranienne</li>
+    </ul>
+</div></div>
+
+<div id="question-12"  class="question-container">    <div class="question">
+    <p>12.) Relevez des muscles de la loge latérale de l'avant-bras:</p>
+    <ul>
+        <li><input type="checkbox" name="q12" value="A"> A- Pronator teres (rond pronateur)</li>
+        <li><input type="checkbox" name="q12" value="B"> B- Flexor pollicis longus</li>
+        <li><input type="checkbox" name="q12" value="C"> C- Brachioradialis (long supinateur)</li>
+        <li><input type="checkbox" name="q12" value="D"> D- Extensor radialis longus</li>
+        <li><input type="checkbox" name="q12" value="E"> E- Flexor digitorum superficialis (fléchisseur commun superficiel)</li>
+    </ul>
+</div></div>
+
+<div id="question-13"  class="question-container">    <div class="question">
+    <p>13.) Le muscle Brachialis (brachial antérieur) est innervé par le nerf:</p>
+    <ul>
+        <li><input type="checkbox" name="q13" value="A"> A- Radialis</li>
+        <li><input type="checkbox" name="q13" value="B"> B- Ulnaire (cubital)</li>
+        <li><input type="checkbox" name="q13" value="C"> C- Médian</li>
+        <li><input type="checkbox" name="q13" value="D"> D- Musculocutané</li>
+        <li><input type="checkbox" name="q13" value="E"> E- Axillaire (circonflexe)</li>
+    </ul>
+</div></div>
+
+<div id="question-14"  class="question-container">    <div class="question">
+    <p>14.) Les os de la première rangée du carpe sont:</p>
+    <ul>
+        <li><input type="checkbox" name="q14" value="A"> A- Le lunatum</li>
+        <li><input type="checkbox" name="q14" value="B"> B- Le pisiforme</li>
+        <li><input type="checkbox" name="q14" value="C"> C- Le scaphoïde</li>
+        <li><input type="checkbox" name="q14" value="D"> D- Le triquetrum (pyramidal)</li>
+        <li><input type="checkbox" name="q14" value="E"> E- L'hamatum (os crochu)</li>
+    </ul>
+</div></div>
+
+<div id="question-15"  class="question-container">    <div class="question">
+    <p>15.) Le muscle pollicis longus (long extenseur du pouce) se termine au niveau:</p>
+    <ul>
+        <li><input type="checkbox" name="q15" value="A"> A- De la base du premier métacarpien</li>
+        <li><input type="checkbox" name="q15" value="B"> B- Du scaphoïde</li>
+        <li><input type="checkbox" name="q15" value="C"> C- De la base de la deuxième phalange</li>
+        <li><input type="checkbox" name="q15" value="D"> D- Du trapèze</li>
+        <li><input type="checkbox" name="q15" value="E"> E- Du corps du premier métacarpien</li>
+    </ul>
+</div></div>
+
+<div id="question-16"  class="question-container">    <div class="question">
+    <p>16.) Sur l'apophyse styloïde du radius se termine le muscle:</p>
+    <ul>
+        <li><input type="checkbox" name="q16" value="A"> A- Flexor carpi radialis</li>
+        <li><input type="checkbox" name="q16" value="B"> B- Palmaris longus</li>
+        <li><input type="checkbox" name="q16" value="C"> C- Pronator teres (rond pronateur)</li>
+        <li><input type="checkbox" name="q16" value="D"> D- Brachioradialis</li>
+        <li><input type="checkbox" name="q16" value="E"> E- Abductor pollicis longus</li>
+    </ul>
+</div></div>
+
+<div id="question-17"  class="question-container">    <div class="question">
+    <p>17.) Le muscle opponens (opposant du pouce) est innervé par le nerf:</p>
+    <ul>
+        <li><input type="checkbox" name="q17" value="A"> A- Ulnaris</li>
+        <li><input type="checkbox" name="q17" value="B"> B- Radialis</li>
+        <li><input type="checkbox" name="q17" value="C"> C- Médian</li>
+        <li><input type="checkbox" name="q17" value="D"> D- Interosseux</li>
+        <li><input type="checkbox" name="q17" value="E"> E- Musculocutané</li>
+    </ul>
+</div></div>
+
+<div id="question-18"  class="question-container">    <div class="question">
+    <p>18.) L'arcade palmaire profonde est formée par l'anastomose des artères:</p>
+    <ul>
+        <li><input type="checkbox" name="q18" value="A"> A- Radio palmaire</li>
+        <li><input type="checkbox" name="q18" value="B"> B- Dorsale du carpe</li>
+        <li><input type="checkbox" name="q18" value="C"> C- Radiale</li>
+        <li><input type="checkbox" name="q18" value="D"> D- Cubito palmaire</li>
+        <li><input type="checkbox" name="q18" value="E"> E- Interdigitale</li>
+    </ul>
+</div></div>
+
+<div id="question-19"  class="question-container">    <div class="question">
+    <p>19.) Le nerf médian:</p>
+    <ul>
+        <li><input type="checkbox" name="q19" value="A"> A- Passe au niveau de la région antérieure de l'avant-bras</li>
+        <li><input type="checkbox" name="q19" value="B"> B- Innerve le muscle extensor pollicis brevis</li>
+        <li><input type="checkbox" name="q19" value="C"> C- Permet la flexion des doigts</li>
+        <li><input type="checkbox" name="q19" value="D"> D- Passe dans le canal carpien</li>
+        <li><input type="checkbox" name="q19" value="E"> E- Est
+    </ul>
+</div></div>
+
+<div id="question-21"  class="question-container">    <div class="question">
+    <p>21.) Au niveau du triangle de Scarpa l'artère fémorale donne les artères collatérales:</p>
+    <ul>
+        <li><input type="checkbox" name="q21" value="A"> A- Sous cutanée abdominale</li>
+        <li><input type="checkbox" name="q21" value="B"> B- Obturatrice</li>
+        <li><input type="checkbox" name="q21" value="C"> C- Circonflexe iliaque superficielle</li>
+        <li><input type="checkbox" name="q21" value="D"> D- Honteuses externes</li>
+        <li><input type="checkbox" name="q21" value="E"> E- Ischiatique</li>
+    </ul>
+</div></div>
+
+<div id="question-22"  class="question-container">    <div class="question">
+    <p>22.) Les muscles ischio jambiers sont innervés par le nerf:</p>
+    <ul>
+        <li><input type="checkbox" name="q22" value="A"> A- Fémoro cutané</li>
+        <li><input type="checkbox" name="q22" value="B"> B- Obturateur</li>
+        <li><input type="checkbox" name="q22" value="C"> C- Crural</li>
+        <li><input type="checkbox" name="q22" value="D"> D- Saphène interne</li>
+        <li><input type="checkbox" name="q22" value="E"> E- Grand sciatique</li>
+    </ul>
+</div></div>
+
+<div id="question-23"  class="question-container">    <div class="question">
+    <p>23.) Sur la tubérosité tibiale médiale se terminent les muscles:</p>
+    <ul>
+        <li><input type="checkbox" name="q23" value="A"> A- Gracilis (droit interne)</li>
+        <li><input type="checkbox" name="q23" value="B"> B- Tensor fasciae latae</li>
+        <li><input type="checkbox" name="q23" value="C"> C- Demi-tendineux</li>
+        <li><input type="checkbox" name="q23" value="D"> D- Sartorius (couturier)</li>
+        <li><input type="checkbox" name="q23" value="E"> E- Demi-membraneux</li>
+    </ul>
+</div></div>
+
+<div id="question-24"  class="question-container">    <div class="question">
+    <p>24.) Le muscle triceps est formé de 3 chefs musculaires qui sont:</p>
+    <ul>
+        <li><input type="checkbox" name="q24" value="A"> A- Popliteus (poplité)</li>
+        <li><input type="checkbox" name="q24" value="B"> B- Gastrocnemius latéral (jumeau externe)</li>
+        <li><input type="checkbox" name="q24" value="C"> C- Soleus (solaire)</li>
+        <li><input type="checkbox" name="q24" value="D"> D- Plantaire grêle</li>
+        <li><input type="checkbox" name="q24" value="E"> E- Gastrocnemius médial (jumeau médial)</li>
+    </ul>
+</div></div>
+
+<div id="question-25"  class="question-container">    <div class="question">
+    <p>25.) Le muscle biceps femoris :</p>
+    <ul>
+        <li><input type="checkbox" name="q25" value="A"> A- A une origine ischiatique</li>
+        <li><input type="checkbox" name="q25" value="B"> B- Est un muscle postérieur de la cuisse</li>
+        <li><input type="checkbox" name="q25" value="C"> C- Est innervé par le nerf crural</li>
+        <li><input type="checkbox" name="q25" value="D"> D- Se termine sur le condyle médial</li>
+        <li><input type="checkbox" name="q25" value="E"> E- Est un fléchisseur du genou</li>
+    </ul>
+</div></div>
+
+<div id="question-26"  class="question-container">    <div class="question">
+    <p>26.) Les éléments vasculo-nerveux du creux poplité sont:</p>
+    <ul>
+        <li><input type="checkbox" name="q26" value="A"> A- Les vaisseaux poplités</li>
+        <li><input type="checkbox" name="q26" value="B"> B- Le nerf obturateur</li>
+        <li><input type="checkbox" name="q26" value="C"> C- Le nerf crural</li>
+        <li><input type="checkbox" name="q26" value="D"> D- Les branches de division du nerf sciatique</li>
+        <li><input type="checkbox" name="q26" value="E"> E- L'artère fémorale profonde</li>
+    </ul>
+</div></div>
+
+<div id="question-27"  class="question-container">    <div class="question">
+    <p>27.) Le muscle quadriceps:</p>
+    <ul>
+        <li><input type="checkbox" name="q27" value="A"> A- Est un muscle antérieur de la cuisse</li>
+        <li><input type="checkbox" name="q27" value="B"> B- Se termine sur le tubercule de Gerdy</li>
+        <li><input type="checkbox" name="q27" value="C"> C- A une origine Ischiatique</li>
+        <li><input type="checkbox" name="q27" value="D"> D- Permet l'extension du genou</li>
+        <li><input type="checkbox" name="q27" value="E"> E- Est innervé par le nerf crural</li>
+    </ul>
+</div></div>
+
+<div id="question-28"  class="question-container">    <div class="question">
+    <p>28.) Le ligamentum patellae se termine sur :</p>
+    <ul>
+        <li><input type="checkbox" name="q28" value="A"> A- Sur la tubérosité antérieure du tibia</li>
+        <li><input type="checkbox" name="q28" value="B"> B- Tête du fibula (péroné)</li>
+        <li><input type="checkbox" name="q28" value="C"> C- Sur le condyle médial</li>
+        <li><input type="checkbox" name="q28" value="D"> D- Sur la face interne du tibia</li>
+        <li><input type="checkbox" name="q28" value="E"> E- Sur le tubercule de Gerdy</li>
+    </ul>
+</div></div>
+
+<div id="question-29"  class="question-container">    <div class="question">
+    <p>29.) L'appareil extenseur du genou est formé par:</p>
+    <ul>
+        <li><input type="checkbox" name="q29" value="A"> A- Les épines tibiales</li>
+        <li><input type="checkbox" name="q29" value="B"> B- Le ligamentum patellae (ligament rotulien)</li>
+        <li><input type="checkbox" name="q29" value="C"> C- Le muscle quadriceps</li>
+        <li><input type="checkbox" name="q29" value="D"> D- Le tubercule de Gerdy</li>
+        <li><input type="checkbox" name="q29" value="E"> E- La patella</li>
+    </ul>
+</div></div>
+
+<div id="question-30"  class="question-container">    <div class="question">
+    <p>30.) Sur la tubérosité postérieure du calcanéum se termine le tendon du muscle:</p>
+    <ul>
+        <li><input type="checkbox" name="q30" value="A"> A- Tibialis postérieur (jambier postérieur)</li>
+        <li><input type="checkbox" name="q30" value="B"> B- Extensor hallucis</li>
+        <li><input type="checkbox" name="q30" value="C"> C- Triceps</li>
+        <li><input type="checkbox" name="q30" value="D"> D- Peroneus brevis</li>
+        <li><input type="checkbox" name="q30" value="E"> E- Popliteus</li>
+    </ul>
+</div></div>
+
+
+<div id="question-31"  class="question-container">    <div class="question">
+    <p>31.) La glande mammaire:</p>
+    <ul>
+        <li><input type="checkbox" name="q31" value="A"> A- Sécrète le lait sous l'effet de la prolactine et de façon permanente.</li>
+        <li><input type="checkbox" name="q31" value="B"> B- Couverte par une peau glabre centrée par l'aréole</li>
+        <li><input type="checkbox" name="q31" value="C"> C- Subit des modifications en fonction de l'âge, le cycle menstruel et de la gestation.</li>
+        <li><input type="checkbox" name="q31" value="D"> D- Vascularisée par l'artère axillaire, thoracique interne et intercostales</li>
+        <li><input type="checkbox" name="q31" value="E"> E- Son drainage lymphatique de la moitié externe se fait en endo-thoracique.</li>
+    </ul>
+</div></div>
+
+<div id="question-32"  class="question-container">    <div class="question">
+    <p>32.) Le diaphragme:</p>
+    <ul>
+        <li><input type="checkbox" name="q32" value="A"> A- Est constitué des trois portions sternale, costale et vertébrale.</li>
+        <li><input type="checkbox" name="q32" value="B"> B- Sa coupole droite est plus bas située que sa coupole gauche</li>
+        <li><input type="checkbox" name="q32" value="C"> C- Est un muscle expiratoire</li>
+        <li><input type="checkbox" name="q32" value="D"> D- Innervé par un seul nerf phrénique qui provient de C3-C4-C5.</li>
+        <li><input type="checkbox" name="q32" value="E"> E- Est traversé par l'œsophage au niveau de sa portion sternale.</li>
+    </ul>
+</div></div>
+
+<div id="question-33"  class="question-container">    <div class="question">
+    <p>33.) Les orifices du diaphragme:</p>
+    <ul>
+        <li><input type="checkbox" name="q33" value="A"> A- Sont tous situés en dehors du centre phrénique</li>
+        <li><input type="checkbox" name="q33" value="B"> B- L'orifice de la veine cave inférieure se trouve dans la foliole gauche.</li>
+        <li><input type="checkbox" name="q33" value="C"> C- L'orifice de la veine cave inférieure se trouve entre foliole antérieure et foliole droite.</li>
+        <li><input type="checkbox" name="q33" value="D"> D- L'orifice œsophagien se trouve en avant et à gauche par rapport à l'orifice aortique.</li>
+        <li><input type="checkbox" name="q33" value="E"> E- L'orifice aortique est en regard de T12 (12e vertèbre thoracique).</li>
+    </ul>
+</div></div>
+
+<div id="question-34"  class="question-container">    <div class="question">
+    <p>34.) Précisez les propositions exactes:</p>
+    <ul>
+        <li><input type="checkbox" name="q34" value="A"> A- La fourchette sternale est en regard de Th3</li>
+        <li><input type="checkbox" name="q34" value="B"> B- La bifurcation trachéale est en regard de Th5</li>
+        <li><input type="checkbox" name="q34" value="C"> C- Le processus xiphoïde est en regard de Th10</li>
+        <li><input type="checkbox" name="q34" value="D"> D- L'orifice aortique est en regard de Th12</li>
+        <li><input type="checkbox" name="q34" value="E"> E- Le début de la trachée est en regard de C6.</li>
+    </ul>
+</div></div>
+
+<div id="question-35"  class="question-container">    <div class="question">
+    <p>35.) Au niveau de l'espace intercostal:</p>
+    <ul>
+        <li><input type="checkbox" name="q35" value="A"> A- Les fibres du muscle intercostal latéral sont orientées en bas et en arrière.</li>
+        <li><input type="checkbox" name="q35" value="B"> B- Les fibres des muscles intercostal moyen et médial sont orientées en bas et en arrière.</li>
+        <li><input type="checkbox" name="q35" value="C"> C- Le muscle intercostal latéral est inspiratoire.</li>
+        <li><input type="checkbox" name="q35" value="D"> D- Les trois muscles de l'espace ont la même fonction</li>
+        <li><input type="checkbox" name="q35" value="E"> E- Les muscles intercostal moyen et médial abaissent les côtes.</li>
+    </ul>
+</div></div>
+
+<div id="question-36"  class="question-container">    <div class="question">
+    <p>36.) Les propositions suivantes concernent le cœur:</p>
+    <ul>
+        <li><input type="checkbox" name="q36" value="A"> A- Chaque atrium possède une auricule.</li>
+        <li><input type="checkbox" name="q36" value="B"> B- L'atrium droit reçoit les veines pulmonaires.</li>
+        <li><input type="checkbox" name="q36" value="C"> C- L'atrium droit reçoit les veines caves supérieure et inférieure.</li>
+        <li><input type="checkbox" name="q36" value="D"> D- L'aorte est placée sur le flanc gauche de la veine cave supérieure</li>
+        <li><input type="checkbox" name="q36" value="E"> E- L'aorte se trouve derrière l'infundibulum et l'artère pulmonaire.</li>
+    </ul>
+</div></div>
+
+<div id="question-37"  class="question-container">    <div class="question">
+    <p>37.) Sur la vue antérieure du cœur = face sterno-costale, on arrive à voir:</p>
+    <ul>
+        <li><input type="checkbox" name="q37" value="A"> A- L'atrium gauche</li>
+        <li><input type="checkbox" name="q37" value="B"> B- La totalité du ventricule gauche</li>
+        <li><input type="checkbox" name="q37" value="C"> C- Le ventricule droit</li>
+        <li><input type="checkbox" name="q37" value="D"> D- La partie antérieure du sillon coronaire</li>
+        <li><input type="checkbox" name="q37" value="E"> E- La face pulmonaire du cœur.</li>
+    </ul>
+</div></div>
+
+<div id="question-38"  class="question-container">    <div class="question">
+    <p>38.) Les propositions suivantes concernent le cœur:</p>
+    <ul>
+        <li><input type="checkbox" name="q38" value="A"> A- Le cœur est divisé en cœur droit et cœur gauche séparés par des septums</li>
+        <li><input type="checkbox" name="q38" value="B"> B- Le cœur droit contient du sang oxygéné</li>
+        <li><input type="checkbox" name="q38" value="C"> C- L'orifice mitral sépare l'atrium droit du ventricule droit</li>
+        <li><input type="checkbox" name="q38" value="D"> D- L'orifice tricuspide sépare l'atrium droit du ventricule droit</li>
+        <li><input type="checkbox" name="q38" value="E"> E- Les valves atrioventriculaires s'ouvrent toujours vers les atriums.</li>
+    </ul>
+</div></div>
+
+<div id="question-39"  class="question-container">    <div class="question">
+    <p>39.) Les propositions suivantes concernent le cœur:</p>
+    <ul>
+        <li><input type="checkbox" name="q39" value="A"> A- L'orifice mitral est bicuspide.</li>
+        <li><input type="checkbox" name="q39" value="B"> B- L'orifice mitral comprend une valve septale et un valve latérale</li>
+        <li><input type="checkbox" name="q39" value="C"> C- L'orifice aortique est formé de trois valves semi-circulaires:</li>
+        <li><input type="checkbox" name="q39" value="D"> D- L'orifice aortique est situé en avant de l'orifice pulmonaire</li>
+        <li><input type="checkbox" name="q39" value="E"> E- L'orifice tricuspide est situé dans le cœur gauche.</li>
+    </ul>
+</div></div>
+
+<div id="question-40"  class="question-container">    <div class="question">
+    <p>40.) L'atrium droit:</p>
+    <ul>
+        <li><input type="checkbox" name="q40" value="A"> A- Présente deux pôles et quatre faces.</li>
+        <li><input type="checkbox" name="q40" value="B"> B- La face antérieure correspond à l'orifice mitral.</li>
+        <li><input type="checkbox" name="q40" value="C"> C- La face antérieure c'est la face septale</li>
+        <li><input type="checkbox" name="q40" value="D"> D- Le pôle inférieur comprend deux ostiums: veine cave inférieure et coronaire.</li>
+        <li><input type="checkbox" name="q40" value="E"> E- La face postérieure reçoit les veines pulmonaires.</li>
+    </ul>
+</div></div>
+
+<div id="question-41"  class="question-container">    <div class="question">
+    <p>41.) Au niveau de l'atrium droit:</p>
+    <ul>
+        <li><input type="checkbox" name="q41" value="A"> A- La face septale contient la fosse ovale</li>
+        <li><input type="checkbox" name="q41" value="B"> B- La face latérale est musculaire, muscle pectin</li>
+        <li><input type="checkbox" name="q41" value="C"> C- L'ostium de la veine cave supérieure présente une valve semi-lunaire.</li>
+        <li><input type="checkbox" name="q41" value="D"> D- La face postérieure présente le tubercule inter veineux de Lower.</li>
+        <li><input type="checkbox" name="q41" value="E"> E- Le pôle inférieur comprend un seul ostium.</li>
+    </ul>
+</div></div>
+
+<div id="question-42"  class="question-container">    <div class="question">
+    <p>42.) La vue de la base du cœur avec atriums coupés:</p>
+    <ul>
+        <li><input type="checkbox" name="q42" value="A"> A- Les deux orifices atrioventriculaires sont reliés par un squelette fibreux.</li>
+        <li><input type="checkbox" name="q42" value="B"> B- L'aorte est l'élément le plus antérieur</li>
+        <li><input type="checkbox" name="q42" value="C"> C- L'orifice pulmonaire comprend trois valves: antérieure, droite et gauche.</li>
+        <li><input type="checkbox" name="q42" value="D"> D- L'orifice aortique comprend trois valves: antérieure, droite et gauche.</li>
+        <li><input type="checkbox" name="q42" value="E"> E- L'orifice tricuspide est situé à gauche.</li>
+    </ul>
+</div></div>
+
+<div id="question-43"  class="question-container">    <div class="question">
+    <p>43.) Parmi ces propositions, laquelle (lesquelles) est (sont) vraie(s)?</p>
+    <ul>
+        <li><input type="checkbox" name="q43" value="A"> A- Le cœur droit reçoit le sang provenant des veines caves inférieures et supérieures</li>
+        <li><input type="checkbox" name="q43" value="B"> B- Les valves cardiaques correspondent à un système anti-retour</li>
+        <li><input type="checkbox" name="q43" value="C"> C- Le cœur possède des fibres spécialisées dans la conduction de l'influx nerveux.</li>
+        <li><input type="checkbox" name="q43" value="D"> D- Le cœur est vascularisé par les artères carotides.</li>
+        <li><input type="checkbox" name="q43" value="E"> E- L'endocarde est la couche musculaire du cœur.</li>
+    </ul>
+</div></div>
+
+<div id="question-44"  class="question-container">    <div class="question">
+    <p>44.) La vascularisation du cœur:</p>
+    <ul>
+        <li><input type="checkbox" name="q44" value="A"> A- Est assurée par deux artères coronaires</li>
+        <li><input type="checkbox" name="q44" value="B"> B- La coronaire droite prend origine au niveau du sinus aortique au-dessous de la valve semi-circulaire droite.</li>
+        <li><input type="checkbox" name="q44" value="C"> C- L'artère coronaire gauche passe derrière l'artère pulmonaire</li>
+        <li><input type="checkbox" name="q44" value="D"> D- La coronaire gauche assure de manière constante la vascularisation du tissu cardio-necteur</li>
+        <li><input type="checkbox" name="q44" value="E"> E- La coronaire droite se divise en deux branches: circonflexe et interventriculaire antérieure.</li>
+    </ul>
+</div></div>
+
+<div id="question-45"  class="question-container">    <div class="question">
+    <p>45.) Le septum interventriculaire :</p>
+    <ul>
+        <li><input type="checkbox" name="q45" value="A"> A- Est vascularisé par une seule artère coronaire</li>
+        <li><input type="checkbox" name="q45" value="B"> B- Est vascularisé dans son 2/3 antérieurs par l'artère coronaire droite</li>
+        <li><input type="checkbox" name="q45" value="C"> C- Est vascularisé dans son 2/3 antérieurs par l'artère coronaire gauche.</li>
+        <li><input type="checkbox" name="q45" value="D"> D- Est vascularisé dans son 1/3 postérieur par l'artère coronaire droite</li>
+        <li><input type="checkbox" name="q45" value="E"> E- Peut être le siège de défaut (malformation) responsable de communication interventriculaire.</li>
+    </ul>
+</div></div>
+
+<div id="question-46"  class="question-container">    <div class="question">
+    <p>46.) La coronaire droite vascularise:</p>
+    <ul>
+        <li><input type="checkbox" name="q46" value="A"> A- Le ventricule droit</li>
+        <li><input type="checkbox" name="q46" value="B"> B- L'atrium droit</li>
+        <li><input type="checkbox" name="q46" value="C"> C- L'auricule droite</li>
+        <li><input type="checkbox" name="q46" value="D"> D- Le 1/3 postérieur du septum interventriculaire.</li>
+        <li><input type="checkbox" name="q46" value="E"> E- L'atrium gauche</li>
+    </ul>
+</div></div>
+
+<div id="question-47"  class="question-container">    <div class="question">
+    <p>47.) Au niveau cervical, les rapports postérieurs de la trachée sont:</p>
+    <ul>
+        <li><input type="checkbox" name="q47" value="A"> A- Les nerfs récurrents</li>
+        <li><input type="checkbox" name="q47" value="B"> B- Les glandes parathyroïdes</li>
+        <li><input type="checkbox" name="q47" value="C"> C- L'isthme de la glande thyroïde</li>
+        <li><input type="checkbox" name="q47" value="D"> D- L'œsophage</li>
+        <li><input type="checkbox" name="q47" value="E"> E- L'artère thyroïdienne inférieure.</li>
+    </ul>
+</div></div>
+
+<div id="question-48"  class="question-container">    <div class="question">
+    <p>48.) Le nerf récurrent gauche :</p>
+    <ul>
+        <li><input type="checkbox" name="q48" value="A"> A- Descend au niveau de l'angle dièdre postérieur formé par la carotide primitive et la veine jugulaire interne</li>
+        <li><input type="checkbox" name="q48" value="B"> B- Croise la face latérale de la crosse de l'aorte</li>
+        <li><input type="checkbox" name="q48" value="C"> C- Passe en arrière du tronc veineux brachio-céphalique gauche</li>
+        <li><input type="checkbox" name="q48" value="D"> D- Donne le nerf récurrent au bord supérieur de la crosse de l'aorte</li>
+        <li><input type="checkbox" name="q48" value="E"> E- Donne le nerf récurrent au bord inférieur de l'artère subclavière gauche.</li>
+    </ul>
+</div></div>
+
+<div id="question-49"  class="question-container">    <div class="question">
+    <p>49.) Au niveau thoracique, la face antérieure de la trachée répond :</p>
+    <ul>
+        <li><input type="checkbox" name="q49" value="A"> A- En avant au tronc veineux brachio-céphalique gauche.</li>
+        <li><input type="checkbox" name="q49" value="B"> B- À la glande thyroïde</li>
+        <li><input type="checkbox" name="q49" value="C"> C- Aux veines thyroïdiennes inférieures</li>
+        <li><input type="checkbox" name="q49" value="D"> D- Au tronc artériel brachio-céphalique.</li>
+        <li><input type="checkbox" name="q49" value="E"> E- À l'artère subclavière gauche.</li>
+    </ul>
+</div></div>
+
+<div id="question-50"  class="question-container">    <div class="question">
+    <p>50.) La veine cave supérieure:</p>
+    <ul>
+        <li><input type="checkbox" name="q50" value="A"> A- Résulte de la réunion de la veine jugulaire interne et de la veine subclavière</li>
+        <li><input type="checkbox" name="q50" value="B"> B- Résulte de la réunion des deux troncs veineux brachio-céphaliques.</li>
+        <li><input type="checkbox" name="q50" value="C"> C- Se jette dans l'atrium droit</li>
+        <li><input type="checkbox" name="q50" value="D"> D- Recueille la grande veine azygos.</li>
+        <li><input type="checkbox" name="q50" value="E"> E- L'aorte ascendante se place sur son flanc gauche</li>
+    </ul>
+</div></div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S1" "Anatomie_1" "anatomie2016" %}';">Réessayer tout le Quiz</button>
+</div></div>
+
+
+<div id="details-section" class="details-section" style="display: none;">
+    <h3>Tableau des questions</h3>
+    <div id="question-links" id="question-links"></div></div>
+</div></div>
+
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+
+<script>
+// Réponses correctes pour les questions 1 à 50
+    const correctAnswers = {
+    q1: ['A', 'C', 'E'],
+    q2: ['A', 'B', 'E'],
+    q3: ['A', 'C', 'D'],
+    q4: ['B', 'E'],
+    q5: ['C', 'A'],
+    q6: ['B', 'C', 'E'],
+    q7: ['A', 'C', 'D', 'E'],
+    q8: ['A', 'C', 'D', 'E'],
+    q9: ['A', 'C', 'E'],
+    q10: ['B', 'C', 'D'],
+    q11: ['A', 'C', 'B', 'E'],
+    q12: ['C', 'D'],
+    q13: ['D'],
+    q14: ['A', 'C', 'D', 'B'],
+    q15: ['C'],
+    q16: ['D'],
+    q17: ['C'],
+    q18: ['C', 'D'],
+    q19: ['A', 'C', 'D'],
+    q21: ['A', 'D', 'C'],
+    q22: ['E'],
+    q23: ['A', 'C', 'D', 'E'],
+    q24: ['B', 'C', 'E'],
+    q25: ['B', 'A', 'E'],
+    q26: ['A', 'D'],
+    q27: ['A', 'E', 'D'],
+    q28: ['A'],
+    q29: ['B', 'C', 'E'],
+    q30: ['C'],
+    q31: ['B', 'C', 'D'],
+    q32: ['A'],
+    q33: ['E', 'C', 'D'],
+    q34: ['A', 'B', 'C', 'D', 'E'],
+    q35: ['B', 'C', 'E'],
+    q36: ['A', 'C', 'D', 'E'],
+    q37: ['C', 'D'],
+    q38: ['D', 'A'],
+    q39: ['A', 'C', 'B'],
+    q40: ['A', 'B', 'D'],
+    q41: ['B', 'D', 'A'],
+    q42: ['A', 'C'],
+    q43: ['A', 'C', 'B'],
+    q44: ['B', 'C', 'A'],
+    q45: ['D', 'C', 'E'],
+    q46: ['A', 'C', 'D', 'B'],
+    q47: ['A', 'B', 'D', 'E'],
+    q48: ['A', 'B', 'C'],
+    q49: ['A', 'C', 'D'],
+    q50: ['B', 'C', 'D', 'E'],
+};
+
+function loadUserAnswersFromAnatomie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersAnatomie2016')); // Clé modifiée pour 2016
+
+    if (savedAnswers) {
+        console.log('Réponses récupérées de Anatomie2016:', savedAnswers); // Debug pour voir les réponses enregistrées
+        loadedAnswers = savedAnswers;
+
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`).closest('.question-container');
+
+            if (questionDiv) {
+                console.log(`Question ${questionName} chargée avec les réponses :`, answerData.selected);
+
+                correctAnswers[questionName].forEach(correctAnswer => {
+                    const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`).closest('li');
+               if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+                answerData.selected.forEach(selectedAnswer => {
+                    const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`).closest('li');
+                    if (correctAnswers[questionName].includes(selectedAnswer)) {
+                        selectedLi.style.color = 'lightgreen'; // Met en vert clair les réponses sélectionnées et correctes
+                    } else {
+                        selectedLi.style.color = 'red'; // Met en rouge les mauvaises réponses sélectionnées
+                    }
+                });
+
+                const inputs = questionDiv.querySelectorAll('input');
+                inputs.forEach(input => input.disabled = true); // Désactiver les inputs après affichage
+            } else {
+                console.log(`Impossible de trouver la question : ${questionName}`);
+            }
+        }
+    } else {
+        console.log('Aucune réponse récupérée de Anatomie2016.');
+    }
+}
+
+window.onload = function() {
+    loadUserAnswersFromAnatomie();
+    generateCircles();
+    evaluateQuiz();
+};
+
+// Fonction pour générer les cercles
+function generateCircles() {
+    const totalCircles = 50;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalCircles; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow');
+        circle.innerText = i;
+
+        circle.onclick = function() {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Scroll to specific question
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Fonction pour évaluer les réponses du quiz
+function evaluateQuiz() {
+    const totalQuestions = 50;
+    const circleContainer = document.getElementById('circle-container');
+    let totalCorrectCircles = 0;
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const questionName = `q${i}`;
+        const circle = circleContainer.children[i - 1];
+
+        const selectedAnswers = loadedAnswers[questionName]?.selected || [];
+
+        if (correctAnswers[questionName]) {
+            let allCorrect = true;
+
+            selectedAnswers.forEach(answer => {
+                if (!correctAnswers[questionName].includes(answer)) {
+                    allCorrect = false;
+                }
+            });
+
+            if (selectedAnswers.length === 0) {
+                circle.classList.add('yellow');
+                circle.classList.remove('green', 'red');
+            } else if (allCorrect && selectedAnswers.length === correctAnswers[questionName].length) {
+                circle.classList.add('green');
+                circle.classList.remove('yellow', 'red');
+                totalCorrectCircles++;
+            } else {
+                circle.classList.add('red');
+                circle.classList.remove('yellow', 'green');
+            }
+        }
+    }
+
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${totalQuestions}`;
+}
+</script>
+</body>
+</html>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

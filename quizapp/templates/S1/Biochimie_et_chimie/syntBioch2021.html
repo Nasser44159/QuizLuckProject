@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+        <div class="quiz-title">
+            <h1>Biochimie 2021</h1>
+            <p></p>
+        </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+<form id="quiz-form">
+<input type="hidden" name="file_name" value="Bioch2021">
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Parmi les propositions suivantes, concernant les acides aminés, lesquelles sont vraies ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Les acides aminés qui sont des monomères constitutifs des protéines sont au nombre de 20.</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Les acides aminés non essentiels, que l'organisme ne peut pas synthétiser, sont apportés par l'alimentation.</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Tous les acides aminés ont un rôle énergétique.</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- L'acide aspartique et l'acide glutamique sont des acides aminés non essentiels.</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Certains acides aminés possèdent une fonction acide carboxylique et une fonction amine, ce qui leur confère le caractère amphotère.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Concernant la classification des acides aminés, une seule proposition est fausse, laquelle ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Les acides aminés sont classés selon la structure et la polarité de la chaîne latérale.</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- La glycine et la valine sont des acides aminés aliphatiques à chaîne hydrocarbonée.</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- La méthionine comporte du soufre.</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- L'histidine est un acide aminé à fonction acide donc il est polaire ionisable.</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Les acides aminés non polaires contractent des liaisons hydrophobes.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Parmi les propositions suivantes, concernant les propriétés des acides aminés, lesquelles sont vraies ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Tous les acides aminés naturels appartiennent à la série D.</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Les acides aminés ne peuvent jamais être sous la forme ionisée.</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Le point isoélectrique correspond au pH auquel le nombre de charges positives est égal au nombre de charges négatives apportées par les groupes ionisables d'une molécule.</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- À pH neutre, un acide aminé a une charge totale nette nulle.</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Le comportement des acides aminés en électrophorèse est le même.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Parmi les propositions suivantes, concernant la liaison peptidique et les protéines, laquelle (ou lesquelles) est (sont) juste (s) ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Les peptides résultent de l'union d'acides aminés liés entre eux par une liaison peptidique qui est une liaison rigide.</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Un polypeptide est constitué d'un nombre d'acides aminés inférieur à 100, présentant deux extrémités distinctes N-terminale et C-terminale.</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- La structure primaire des protéines est caractérisée par la nature et l'ordre des acides carboxyliques.</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- L'hélice α est une structure secondaire stabilisée par des liaisons covalentes.</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Les hétéroprotéines sont composées d'une partie protéique et d'une partie non protéique, appelée groupement prosthétique.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Concernant les enzymes, quelles sont les propositions qui sont exactes ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Les enzymes sont des catalyseurs des réactions biochimiques, ils accélèrent la vitesse des réactions.</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- L'énergie d'activation est l'énergie maximale nécessaire pour initier une réaction chimique.</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Les hydrolases sont des enzymes qui catalysent l'hydrolyse de diverses liaisons par introduction de deux hydrogènes H₂O.</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- L'activité enzymatique est influencée par la température et le pH.</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Les enzymes allostériques comportent 2 sites, un site actif et un site où se fixe un effecteur soit un inhibiteur soit un activateur.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Parmi les propositions suivantes, concernant les coenzymes, une seule proposition est fausse, laquelle ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- La plupart des coenzymes proviennent des vitamines, sont des composés organiques.</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Les coenzymes sont soit libres ou associés à l'enzyme.</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Le coenzyme appelé groupement prosthétique, est lié à l'apoenzyme par une liaison covalente.</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Le NAD est un coenzyme d'oxydoréduction, il transfère 2 hydrogènes.</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Le coenzyme A est un coenzyme de transfert d'un groupement pluricarboné.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Le glucose est un :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Aldose.</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Cétose.</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Monosaccharide.</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Disaccharide.</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Oligosaccharide.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Concernant le lactose, indiquez la ou les proposition (s) exacte (s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- L'intolérance au lactose est due à un déficit en lactase.</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Le lactose est un oligosaccharide.</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Le lactase est composé de 3 molécules de glucose.</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Le lactase est composé d'1 molécule de glucose et d'1 molécule de galactose.</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Le lactase est composé d'1 molécule de fructose et d'1 molécule de glucose.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Concernant les glucides, indiquez la ou les proposition (s) exacte (s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Le glycogène est un polymère de glucose.</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Un anomère alpha est un glucide dont la fonction alcool du carbone 1 (C1) ou anomérique est orientée vers le bas.</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Le peptidoglycane est un hétéropolysaccharide.</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Le passage d'un glucide à chaîne ouverte à un glucide cyclique ou à chaîne fermée est appelé hémicétalisation interne.</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- La transformation du glucose en fructose est appelée interconversion.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Parmi les propositions suivantes, indiquez les lipides qui sont strictement hydrophobes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Cérides.</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Triglycérides.</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Cholestérol.</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Phospholipides.</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Sphingolipides.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Parmi les propositions suivantes, indiquez les composés dont le cholestérol est un précurseur :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Hormones stéroïdes.</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Vitamine D.</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Sels biliaires.</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Insuline.</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Sphingolipides.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) En se basant sur le schéma ci-dessous, indiquez de quel oméga s'agit-il :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Oméga 3.</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Oméga 6.</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Oméga 7.</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Oméga 9.</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Oméga 12.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) La glycolyse proprement dite cochez la ou les réponse (s) juste (s) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Comprend 10 réactions réversibles.</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Débute par une réaction de phosphorylation.</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Se termine par une réaction de phosphorylation.</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- A lieu chez les microorganismes.</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Représente la seule source d'énergie au niveau des globules rouges.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) La bêta-oxydation a lieu dans (cochez la réponse juste) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- La matrice mitochondriale.</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- La lumière du réticulum endoplasmique.</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Le cytoplasme.</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Le noyau.</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Toutes les propositions précédentes sont fausses.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Parmi les propositions suivantes concernant la réaction catalysée par la pyruvate déshydrogénase (PDH), une seule réponse est juste, laquelle ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- C’est un complexe multi-enzymatique constitué de 6 enzymes différentes.</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- L’enzyme est cytoplasmique.</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Elle utilise le NADPH, H+ comme coenzyme.</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- La réaction est réversible.</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Le produit de son action est l’acétyl-CoA.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Un tour de cycle de Krebs (après oxydation de tous les coenzymes réduits au niveau de la chaîne respiratoire) aboutit à la formation de :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- 12 molécules d’ATP.</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- 30 molécules d’ATP.</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- 11 molécules d’ATP.</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- 20 molécules d’ATP.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Concernant le cycle de Krebs :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Le cycle de Krebs peut fonctionner en absence d’oxygène.</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Le cycle de Krebs est une succession de 10 réactions réversibles.</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Le cycle de Krebs est irréversible.</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Le cycle de Krebs comporte 3 réactions irréversibles.</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Le cycle de Krebs permet la production de 3NADH, H+, 1FADH2 et 1GTP par tour de cycle.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Une maladie connue sous le nom de « Favisme » s’accompagne d’une série de caractéristiques, parmi toutes celles qui sont citées ci-dessous, indiquez les réponses justes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Il s’agit d’une maladie métabolique fréquente.</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- C’est une maladie génétique.</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Elle s’accompagne d’une augmentation de la production de NADPH, H+.</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Elle s’accompagne d’une anémie hémolytique.</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Cette maladie est due à un déficit en glucose-6-phosphate déshydrogénase.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) La synthèse du glucose peut se faire à partir des composés non glucidiques suivant, sauf un seul lequel :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Lactate.</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Glycérol.</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Pyruvate.</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Acétyl-CoA.</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Alanine.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Quelle(s) est (sont) la (les) proposition(s) exacte(s) concernant la cétogenèse ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Elle est cytoplasmique.</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Elle est mitochondriale.</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- L’acéto-acétate est un corps cétonique.</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- HMG-CoA est un corps cétonique.</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- L’acétone est un corps cétonique.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) La bêta-oxydation complète de l’acide stéarique (C18 : 0) produit :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- 90 molécules d’ATP.</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- 120 molécules d’ATP.</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- 122 molécules d’ATP.</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- 240 molécules d’ATP.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Concernant l’anabolisme des acides gras :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- La synthèse des acides gras ne nécessite pas la consommation d’ATP.</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- La synthèse des acides gras nécessite la consommation d’une molécule d’ATP.</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- L’acétyl-CoA carboxylase catalyse la formation du malonyl-CoA.</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- L’acétyl-CoA carboxylase nécessite la biotine comme coenzyme.</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- L’acide gras synthase catalyse les 4 réactions d’un tour de l’hélice de Wakil.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Quelle(s) est (sont) la (les) proposition(s) exacte(s) concernant la voie des pentoses phosphate ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Elle se compose de deux phases : une phase oxydative et une phase non oxydative.</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- La phase oxydative permet la synthèse du NADPH, H+.</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Elle fournit un produit nécessaire à la dégradation des acides gras.</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Elle fournit un produit nécessaire à la synthèse des acides nucléiques.</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Elle est essentielle dans la détoxification de l’organisme.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Lors d’une période de jeûne prolongé, le ou les principal (aux) métabolite(s) utilisé(s) par les muscles est (sont) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Le glycogène.</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Le glucose.</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Les acides aminés glucoformateurs.</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Les corps cétoniques.</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Les acides gras.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Le rendement énergétique (en équivalent d’ATP) pour l’hydrolyse complète d’une molécule de glucose en CO2 et H2O est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- 30 ATP selon la navette Glycérol-3-phosphate.</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- 64 ATP selon la navette Malate/Aspartate.</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- 32 ATP selon la navette Malate/Aspartate.</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- 38 ATP selon les deux navettes.</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Toutes les propositions précédentes sont fausses.</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+         
+
+        
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S1" "Biochimie_et_chimie" "Bioch2021" %}';">Réessayer tout le Quiz</button>
+</div>
+
+       
+    
+    
+    
+</div>
+</div>
+
+<div id="details-section" class="details-section" style="display: none;">
+    <h3>Tableau des questions</h3>
+    <div class="question-links" id="question-links"></div>
+</div>
+
+
+
+
+<!-- Section pour afficher le tableau avec les numéros encerclés -->
+<div id="details-section" style="display:none;">
+    <h2>Questions :</h2>
+    <div id="question-links" class="question-links">
+        <!-- Le tableau de numéros va être généré ici -->
+    </div>
+</div>
+
+<script>
+const correctAnswers = {
+        q1: ['A', 'C', 'D'],
+        q2: ['B', 'C', 'A', 'E'],
+        q3: ['C', 'D'],
+        q4: ['B', 'A', 'E'],
+        q5: ['A', 'D'],
+        q6: ['B', 'C', 'D', 'A'],
+        q7: ['C', 'A'],
+        q8: ['A', 'D'],
+        q9: ['D', 'B'],
+        q10: ['A', 'B'],
+        q11: ['A', 'C'],
+        q12: ['A'],
+        q13: ['B', 'D', 'E'],
+        q14: ['A'],
+        q15: ['E'],
+        q16: ['C'],
+        q17: ['D', 'C'],
+        q18: ['D', 'E'],
+        q19: ['D'],
+        q20: ['A', 'E'],
+        q21: ['B'],
+        q22: ['B', 'D'], 
+        q23: ['A', 'D', 'E'],
+        q24: ['D', 'A'],
+        q25: ['A', 'C'],
+            };
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersBioch2021'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+<script src="{% static 'java/question-stats.js' %}" defer></script>

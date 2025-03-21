@@ -1,0 +1,1489 @@
+
+<!DOCTYPE html>
+{% load static %}
+
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'css/stylequiz.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+
+</head>
+<body>
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+
+    <div id="content">
+
+            <div class="quiz-title">
+                <h1>QCM Urologie</h1>
+            </div>
+            <form id="quiz-form">
+                <input type="hidden" id='exam_name' name="exam_name" value="URO2023">
+    {% csrf_token %}
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) En dehors du cancer de la prostate, quels sont les circonstances qui peuvent donner une augmentation du taux du PSA?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Adénome de la prostate</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Prostatite aigue</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Orchite ourlienne</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Rétention aigue d’urine</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Biopsie prostatique</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q1')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q1')">Réessayer</button>
+                <button class="favorite-button" data-question="1">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_1" onclick="toggleCommentSection('URO2023_1', event)"> 💬 <span class="badge" data-comment-id="URO2023_1">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) L’IRM pré-biopsique de la prostate :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Augmente la possibilité de détecter le cancer de la prostate</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Aide à guider la biopsie prostatique</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Est toujours optionnel dans le bilan d’extension du cancer de la prostate</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Permet de préciser le volume tumoral</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Détecte l’envahissement capsulaire en cas de cancer de la prostate</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q2')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q2')">Réessayer</button>
+                <button class="favorite-button" data-question="2">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_2" onclick="toggleCommentSection('URO2023_2', event)"> 💬 <span class="badge" data-comment-id="URO2023_2">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Le cancer de la prostate est dit à faible risque de D’AMICO si :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- PSA < à 10 ng/ml ou score de Gleason ≤ 6 ou stade clinique T1c ou T2a</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- PSA < à 10 ng/ml et score de Gleason ≤ 6 et stade clinique T1c ou T2a</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- PSA entre 10 et 20 ng/ml, ou score de Gleason = 7 ou stade clinique T2b</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- PSA entre 10 et 20 ng/ml, ou score de Gleason = 7 ou stade clinique T2b</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- PSA > 20 ng/ml ou score de Gleason de 8 à 10 ou stade clinique T2c</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q3')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q3')">Réessayer</button>
+                <button class="favorite-button" data-question="3">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_3" onclick="toggleCommentSection('URO2023_3', event)"> 💬 <span class="badge" data-comment-id="URO2023_3">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Quels sont les facteurs de gravité de la colique néphrétique nécessitant une hospitalisation en urgence ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Une insuffisance rénale aigue obstructive</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Une hématurie macroscopique</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Une colique néphrétique fébrile</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Une colique néphrétique ne répondant pas au traitement médical bien conduit</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- En cas de signes digestifs associés</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q4')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q4')">Réessayer</button>
+                <button class="favorite-button" data-question="4">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_4" onclick="toggleCommentSection('URO2023_4', event)"> 💬 <span class="badge" data-comment-id="URO2023_4">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Dans le suivi des malades traités pour calculs urinaires :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- La surveillance est assurée uniquement par des examens d'imagerie irradiants</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Le scanner est indispensable</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Le couple AUSP-échographie doit être effectué après chaque traitement urologique</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Le bilan métabolique n’est pas nécessaire pour le suivi</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- La surveillance biologique et radiologique est nécessaire, même en cas d’émission spontanée d’un calcul urétéral</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q5')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q5')">Réessayer</button>
+                <button class="favorite-button" data-question="5">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_5" onclick="toggleCommentSection('URO2023_5', event)"> 💬 <span class="badge" data-comment-id="URO2023_5">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Parmi les facteurs suivants, quels sont ceux à risque du cancer du rein :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- L'obésité</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Le sexe féminin</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- L'hypertension artérielle</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Hémodialysé chronique</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- La maladie de Von Hippel-Lindau</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q6')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q6')">Réessayer</button>
+                <button class="favorite-button" data-question="6">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_6" onclick="toggleCommentSection('URO2023_6', event)"> 💬 <span class="badge" data-comment-id="URO2023_6">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Les examens biologiques de première intention à demander devant une dysfonction érectile :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Glycémie à jeun</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Dosage du PSA</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Bilan lipidique</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Fonction rénale</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Dosage de la Testostérone totale</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q7')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q7')">Réessayer</button>
+                <button class="favorite-button" data-question="7">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_7" onclick="toggleCommentSection('URO2023_7', event)"> 💬 <span class="badge" data-comment-id="URO2023_7">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Au cours du bilan de l’andropause :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Une testostéronémie basse et LH/FSH élevé correspondent à un hypogonadisme testiculaire</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Une testostéronémie basse et LH/FSH normal ou bas correspondent à un hypogonadisme testiculaire</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Une testostéronémie basse et LH/FSH normal ou bas correspondent à un hypogonadisme hypogonadotrope</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Une élévation de la testostéronémie avec prolactinémie élevée peut être en rapport avec un adénome hypophysaire à prolactine</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Dosage de la testostérone totale doit être réalisé en première intention</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q8')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q8')">Réessayer</button>
+                <button class="favorite-button" data-question="8">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_8" onclick="toggleCommentSection('URO2023_8', event)"> 💬 <span class="badge" data-comment-id="URO2023_8">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Le type histologique le plus fréquent dans les cancers du rein :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Carcinome urothélial</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Adénocarcinome</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Lymphome</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Carcinome à cellules claires</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Carcinome chromophobe</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q9')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q9')">Réessayer</button>
+                <button class="favorite-button" data-question="9">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_9" onclick="toggleCommentSection('URO2023_9', event)"> 💬 <span class="badge" data-comment-id="URO2023_9">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Les deux mécanismes physiopathologiques les plus importants de l’incontinence urinaire d’effort chez la femme sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Une réduction de la capacité vésicale</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Une hypermobilité urétrale</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Un obstacle urétral</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Une atonie du détrusor</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Une insuffisance sphinctérienne</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q10')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q10')">Réessayer</button>
+                <button class="favorite-button" data-question="10">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_10" onclick="toggleCommentSection('URO2023_10', event)"> 💬 <span class="badge" data-comment-id="URO2023_10">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Les facteurs aggravants l’incontinence urinaire d’effort sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- La constipation</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Le tabac</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- La bronchite chronique</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Les cystites récidivantes</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Une activité sportive intense</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q11')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q11')">Réessayer</button>
+                <button class="favorite-button" data-question="11">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_11" onclick="toggleCommentSection('URO2023_11', event)"> 💬 <span class="badge" data-comment-id="URO2023_11">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Le syndrome de jonction pyélo-urétérale est une distension pyélocalicielle qui peut être due à :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Une fibrose de la jonction pyélo-urétérale</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Une anomalie fonctionnelle de la jonction urétéro-vésicale</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Une sténose de la jonction pyélo-urétérale</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Un croisement de l’artère polaire inférieure avec la jonction pyélo-urétérale</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Un reflux vésico-urétéral</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q12')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q12')">Réessayer</button>
+                <button class="favorite-button" data-question="12">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_12" onclick="toggleCommentSection('URO2023_12', event)"> 💬 <span class="badge" data-comment-id="URO2023_12">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Dans le reflux vésico-urétéral, l’examen complémentaire clé pour le diagnostic et la classification de cette malformation est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- L’uroscanner</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- La cystoscopie</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- L’urographie intraveineuse</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- L’échographie urinaire</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- L’urétro-cystographie rétrograde</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q13')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q13')">Réessayer</button>
+                <button class="favorite-button" data-question="13">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_13" onclick="toggleCommentSection('URO2023_13', event)"> 💬 <span class="badge" data-comment-id="URO2023_13">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Au cours des tumeurs kystiques du rein et selon la classification de bosniack :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Le type 1 est un kyste simple et ne nécessite aucun suivi radiologique</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Le type 2 est un kyste atypique et ne nécessite aucun suivi radiologique</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Le type 3 est un kyste atypique et nécessite une exploration chirurgicale</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Le type 4 est un cancer kystique nécessitant une exérèse chirurgicale</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q14')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q14')">Réessayer</button>
+                <button class="favorite-button" data-question="14">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_14" onclick="toggleCommentSection('URO2023_14', event)"> 💬 <span class="badge" data-comment-id="URO2023_14">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Devant une masse kystique à l’imagerie, quels sont les diagnostics à évoquer ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Un abcès rénal</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Un kyste rénal simple</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Un kyste hydatique du rein</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Un cancer kystique</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Un syndrome de jonction pyélo-urétéral</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q15')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q15')">Réessayer</button>
+                <button class="favorite-button" data-question="15">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_15" onclick="toggleCommentSection('URO2023_15', event)"> 💬 <span class="badge" data-comment-id="URO2023_15">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) La torsion du cordon spermatique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Est une urgence chirurgicale</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Nécessite une echo-doppler testiculaire pour confirmer le diagnostic avant l’exploration chirurgicale</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- L’examen clinique est suffisant pour poser le diagnostic</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Le pic d’âge se situe entre 40 et 50 ans</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Peut se compliquer d’infertilité</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q16')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q16')">Réessayer</button>
+                <button class="favorite-button" data-question="16">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_16" onclick="toggleCommentSection('URO2023_16', event)"> 💬 <span class="badge" data-comment-id="URO2023_16">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Un patient âgé de 62 ans, tabagique chronique (40 paquet année), présente des signes du bas appareil depuis 2 mois à type de dysurie, pollakiurie nocturne et impériosité mictionnelle, et se présente aux urgences pour hématurie totale depuis 3 jours. Quels sont les deux diagnostics les plus probables ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Tumeur rénale</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Lithiase rénale</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Tumeur de vessie</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Lithiase de vessie</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Adénome de la prostate</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q17')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q17')">Réessayer</button>
+                <button class="favorite-button" data-question="17">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_17" onclick="toggleCommentSection('URO2023_17', event)"> 💬 <span class="badge" data-comment-id="URO2023_17">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Quel est l’examen paraclinique indispensable à demander pour faire le diagnostic ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Échographie de l’appareil urinaire</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Cystoscopie</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Dosage du PSA</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Uroscanner</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Urétéroscopie</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q18')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q18')">Réessayer</button>
+                <button class="favorite-button" data-question="18">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_18" onclick="toggleCommentSection('URO2023_18', event)"> 💬 <span class="badge" data-comment-id="URO2023_18">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Quels sont les complications de cette pathologie (hypertrophie prostatique) ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Cancérisation de la prostate</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Lithiase urinaire</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Infection urinaire</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Rétention aiguë d’urine</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Sténose de l’urètre</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q19')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q19')">Réessayer</button>
+                <button class="favorite-button" data-question="19">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_19" onclick="toggleCommentSection('URO2023_19', event)"> 💬 <span class="badge" data-comment-id="URO2023_19">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Quels sont les indications du traitement chirurgical de l’hypertrophie bénigne de la prostate ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Pollakiurie nocturne qui dépasse 3 levées par nuits</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Débit urinaire maximal (Qmax) inférieur à 15 ml par seconde</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Insuffisance rénale aiguë obstructive</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Résidu post mictionnel supérieur à 100 ml</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Lithiase de vessie</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q20')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q20')">Réessayer</button>
+                <button class="favorite-button" data-question="20">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_20" onclick="toggleCommentSection('URO2023_20', event)"> 💬 <span class="badge" data-comment-id="URO2023_20">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Le patient a reçu un traitement médical à base d’alphabloquant. Quels sont les deux principaux éléments de surveillance post-thérapeutique parmi les propositions suivantes ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- L’échographie rénale et vésico-prostatique</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- La fonction rénale : urée créatininémie</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- L’évaluation de l’efficacité du traitement par l’interrogatoire (score IPSS)</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- L’examen cytobactériologique des urines (ECBU)</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- L’évaluation des effets secondaires du traitement par l’interrogatoire</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q21')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q21')">Réessayer</button>
+                <button class="favorite-button" data-question="21">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_21" onclick="toggleCommentSection('URO2023_21', event)"> 💬 <span class="badge" data-comment-id="URO2023_21">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Un patient âgé de 41 ans victime d’une chute d’un lieu élevé il y a 3 mois avec point d’impact périnéal, présente une dysurie depuis un mois compliqué d’une rétention aiguë d’urine. L’examen clinique montre un globe vésical douloureux. Devant ce tableau, quel est le diagnostic le plus probable ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Vessie neurologique</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Hypertrophie bénigne de la prostate</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Sclérose du col vésical</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Sténose de l’urètre</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Prostatite aiguë</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q22')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q22')">Réessayer</button>
+                <button class="favorite-button" data-question="22">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_22" onclick="toggleCommentSection('URO2023_22', event)"> 💬 <span class="badge" data-comment-id="URO2023_22">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Quel est votre conduite en urgence ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Faire un examen clinique complet</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Faire un drainage urinaire par une sonde vésicale</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Faire un drainage suspubien (cystostomie)</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Faire une néphrostomie échoguidée</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Demander une échographie rénale et vésico-prostatique</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q23')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q23')">Réessayer</button>
+                <button class="favorite-button" data-question="23">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_23" onclick="toggleCommentSection('URO2023_23', event)"> 💬 <span class="badge" data-comment-id="URO2023_23">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Par la suite, quel est l’examen radiologique à demander pour confirmer le diagnostic ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Échographie vésicale</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Arbre urinaire sans préparation (AUSP)</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- IRM pelvienne</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Urétro-cystographie rétrograde (UCR)</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Scanner pelvien</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q24')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q24')">Réessayer</button>
+                <button class="favorite-button" data-question="24">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_24" onclick="toggleCommentSection('URO2023_24', event)"> 💬 <span class="badge" data-comment-id="URO2023_24">
+0
+</span> </button>
+            </div>
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Le patient a reçu un traitement chirurgical pour sa pathologie. La surveillance se fait par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- L’examen clinique seul</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Une débitmétrie</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Mesure du résidu post mictionnel (RPM) à l’échographie</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Une UCR ou urétrocystoscopie en cas de diminution du débit urinaire</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Une UCR en cas d’augmentation du RPM</li>
+            
+                </ul>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="correct-button" onclick="correctQuestion('q25')">Corriger</button>
+                <button type="button" class="reset-button" onclick="resetQuestion('q25')">Réessayer</button>
+                <button class="favorite-button" data-question="25">&#10084;</button>
+                <button class="comment-button" data-question-id="URO2023_25" onclick="toggleCommentSection('URO2023_25', event)"> 💬 <span class="badge" data-comment-id="URO2023_25">
+0
+</span> </button>
+            </div>
+        </div>
+        
+<div class="button-container">
+               <button class="submit-quiz-button" onclick="submitQuiz()" type="button"> Soumettre tout le Quiz </button>
+               <button class="favorite-button" id="voir-favoris-btn" onclick="voirFavoris()"> Voir Favoris </button>
+               <!-- Nouveau bouton -->
+            </div>
+            <div class="blur-background" id="blur-background"> </div>
+            <div class="result-popup" id="result-popup">
+               <h3>
+Résultat du Quiz
+</h3>
+               <div id="result"> </div>
+               <button class="close-button" id="close-result" onclick="closeResult(event)"> Fermer </button>
+               <button class="detail-button" id="voir-detail-btn" onclick="afficherDetails(event)" style="display: none;"> Voir Détail </button>
+               <button class="reset-quiz-button" onclick="resetAll()" type="button"> Réessayer tout le Quiz </button>
+            </div>
+            <div class="details-section" id="details-section" style="display: none;">
+               <h3>
+Tableau des questions
+</h3>
+               <div class="question-links" id="question-links"> </div>
+            </div>
+            <div id="timer-container"> <span id="timer">
+60:00
+</span> </div>
+            <div id="details-section" style="display:none;">
+               <h2>
+Questions :
+</h2>
+               <div class="question-links" id="question-links"> </div>
+            </div>
+<div class="comments-section" id="comments-section">
+    <h3>Commentaires</h3>
+    <textarea id="new-comment" placeholder="Écrire un commentaire..."></textarea>
+    <button type="button" onclick="addComment(event)">Ajouter</button>
+    <div id="comment-alert" class="alert" style="display: none;"></div>
+    <div id="comments-list"></div>
+</div>
+
+<!-- Boutons flottants -->
+<div id="floating-buttons" class="floating-buttons" style="position: fixed; bottom: 50px; right: 50px; z-index: 1000;">
+    <!-- Bouton pour afficher le cours -->
+    <button id="show-course-btn" class="floating-btn" type="button" 
+            onclick="window.open('https://drive.google.com/drive/folders/1Xd_FaJbPk4FJv3G5-96L7G0UlQnUZuSf', '_blank');">📚</button>
+    <!-- Bouton pour afficher le contact -->
+<button id="open-contact-modal" class="floating-btn" type="button">
+    ✉️
+</button>
+
+</div>
+
+
+
+
+
+<div class="message-container" id="message-container" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#f9f9f9; padding:40px; box-shadow:0 4px 12px rgba(0,0,0,0.15); border-radius:12px; z-index:1001; width:600px; max-width:90%; font-family:Arial, sans-serif;">
+    <div style="text-align:center; margin-bottom:30px;">
+        <h2 style="margin:0; font-size:24px; font-weight:bold; color:#333;">Posez vos observations <span>📝</span></h2>
+        <p style="margin:10px 0 0; font-size:16px; color:#666;">Nous sommes à votre écoute</p>
+    </div>
+    <div class="mb-3" style="margin-bottom:30px;">
+        <p style="font-size:16px; color:#333; margin:0;">En tant Que :</p>
+        <div style="margin-top:10px;">
+            <input type="radio" id="username" name="mode" value="username" style="margin-right:8px;">
+            <label for="username" style="font-size:16px; color:#333; cursor:pointer;">{{ user_full_name}}</label>
+            <br>
+            <input type="radio" id="anonymous" name="mode" value="anonymous" checked style="margin-right:8px; margin-top:10px;">
+            <label for="anonymous" style="font-size:16px; color:#333; cursor:pointer;">Anonyme</label>
+        </div>
+    </div>
+    <div class="mb-3">
+        <label for="message" class="form-label" style="font-size:18px; font-weight:bold; color:#333; margin-bottom:10px; display:block;">Votre message :</label>
+        <textarea class="form-control" id="message" rows="6" placeholder="Precisez l'examen si c'est en rapport avec une question..." style="width:100%; font-size:16px; padding:15px; border:1px solid #ccc; border-radius:8px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.1); background:#fff;"></textarea>
+    </div>
+<span class="close-btn" id="close-btn" style="cursor:pointer; position:absolute; top:15px; right:15px; font-size:51px; color:#ff0000; font-weight:bold;">&times;</span>
+<!-- Bouton Envoyer stylé -->
+<div style="text-align:center; margin-top:30px;">
+    <button type="button" class="btn btn-primary" id="send-message" style="background-color:#007bff; color:white; border:none; padding:12px 30px; border-radius:8px; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 4px 8px rgba(0, 0, 0, 0.2); transition:all 0.3s ease;">
+        Envoyer
+    </button>
+</div>
+</div>
+
+
+
+
+<div id="blur-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;"></div>
+
+
+
+<script src="{% static 'java/contact.js' %}"></script>
+    
+            <script>
+                // Réponses correctes pour les questions
+                const correctAnswers = {
+    q1: ['A', 'B', 'D', 'E'],
+    q2: ['A', 'B', 'D', 'E'],
+    q3: ['B'],
+    q4: ['A', 'C', 'D'],
+    q5: ['C', 'E'],
+    q6: ['A', 'C', 'D', 'E'],
+    q7: ['A', 'C', 'E'],
+    q8: ['A', 'C', 'E'],
+    q9: ['D'],
+    q10: ['B', 'E'],
+    q11: ['A', 'B', 'C', 'E'],
+    q12: ['A', 'C', 'D'],
+    q13: ['A', 'C', 'D'],
+    q14: ['E'],
+    q15: ['A', 'B', 'D', 'E'],
+    q16: ['A', 'B', 'C', 'D'],
+    q17: ['A', 'C', 'E'],
+    q18: ['C', 'E'],
+    q19: ['B'],
+    q20: ['B', 'C', 'D'],
+    q21: ['C', 'D', 'E'],
+    q22: ['C', 'E'],
+    q23: ['D'],
+    q24: ['C'],
+    q25: ['D'],
+    q26: ['B', 'C', 'D', 'E'],
+};
+
+
+                // Contenu du fichier JavaScript
+                 // Variable globale pour stocker l'intervalle du timer
+            let timerInterval;
+            const userAnswers = {}; // Object pour stocker les réponses de l'utilisateur
+            // Fonction pour démarrer le timer
+            function startTimer(duration, display) {
+               let timer = duration,
+                  minutes, seconds;
+               timerInterval = setInterval(() => {
+                  minutes = parseInt(timer / 60, 10);
+                  seconds = parseInt(timer % 60, 10);
+                  minutes = minutes < 10 ? "0" + minutes : minutes;
+                  seconds = seconds < 10 ? "0" + seconds : seconds;
+                  display.textContent = minutes + ":" + seconds;
+                  // Vérifie si le temps est écoulé
+                  if (--timer < 0) {
+                     clearInterval(timerInterval);
+                     showEndMessage();
+                  }
+               }, 1000);
+            }
+            // Fonction pour afficher le message de fin de test
+            function showEndMessage() {
+               const blurBackground = document.createElement('div');
+               blurBackground.id = 'test-end-blur';
+               blurBackground.style.position = 'fixed';
+               blurBackground.style.top = '0';
+               blurBackground.style.left = '0';
+               blurBackground.style.width = '100%';
+               blurBackground.style.height = '100%';
+               blurBackground.style.background = 'rgba(0, 0, 0, 0.5)';
+               blurBackground.style.zIndex = '100';
+               blurBackground.style.display = 'flex';
+               blurBackground.style.alignItems = 'center';
+               blurBackground.style.justifyContent = 'center';
+               const endMessage = document.createElement('div');
+               endMessage.id = 'test-end-message';
+               endMessage.style.padding = '40px';
+               endMessage.style.background = '#ffffff';
+               endMessage.style.borderRadius = '8px';
+               endMessage.style.textAlign = 'center';
+               endMessage.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+               endMessage.innerHTML = '<h2>Test terminé</h2><p>Le temps imparti est écoulé.</p><button onclick="location.reload()">Recommencer</button>';
+               blurBackground.appendChild(endMessage);
+               document.body.appendChild(blurBackground);
+               // Optionnel : masquer le conteneur de timer
+               const timerContainer = document.getElementById('timer-container');
+               timerContainer.classList.add('hide');
+            }
+ // Fonction pour réinitialiser une seule question
+            function resetQuestion(questionName) {
+               const form = document.getElementById('quiz-form');
+               const questionDiv = document.querySelector(`input[name="${questionName}"]`).closest('.question-container');
+               // Décocher toutes les cases de cette question
+               const inputs = Array.from(form.elements[questionName]);
+               inputs.forEach(input => {
+                  input.checked = false;
+               });
+               // Supprimer les styles correct/incorrect et remettre les couleurs par défaut
+               questionDiv.classList.remove('correct', 'incorrect');
+               questionDiv.querySelectorAll('li').forEach(li => {
+                  li.style.color = ''; // Réinitialiser la couleur
+                  li.style.fontWeight = ''; // Réinitialiser le texte en gras
+                  li.style.textShadow = ''; // Réinitialiser l'ombre du texte
+                  li.style.backgroundColor = ''; // Réinitialiser le fond
+                  li.style.border = ''; // Réinitialiser la bordure
+               });
+               // Supprimer les informations enregistrées sur la réponse de cette question
+               delete userAnswers[questionName];
+            }
+            // Fonction pour soumettre le quiz et afficher le résultat
+            
+// Fonction pour soumettre le quiz et afficher le résultat
+async function submitQuiz() {
+    console.log("Début de la soumission du quiz.");
+
+    const form = document.getElementById('quiz-form');
+    if (!form) {
+        console.error("Erreur : Formulaire introuvable.");
+        alert("Formulaire introuvable. Veuillez réessayer.");
+        return;
+    }
+
+    let score = 0;
+
+    // Évaluer les réponses utilisateur
+    for (const question of Object.keys(correctAnswers)) {
+        correctQuestion(question); // Fonction pour corriger chaque question
+        const userAnswer = userAnswers[question]?.isCorrect;
+        if (userAnswer) {
+            score++;
+        }
+    }
+
+    console.log("Score brut calculé (frontend) :", score);
+    console.log("Réponses utilisateur envoyées :", userAnswers);
+
+    // Lancer les confettis et afficher le message de félicitations si le score est parfait (50 sur 50)
+    lancerConfettisEtMessage(score);
+
+    // Mise à jour du résultat dans la boîte de dialogue
+    const resultDiv = document.getElementById('result'); // Assure-toi que tu as un div avec l'id 'result' dans ton HTML
+
+if (score === 0) { resultDiv.innerHTML = `<p>Vous avez aucune réponse juste, bozo !</p>`; } else if  (score === 50) { 25) {
+        // Liste des messages de félicitations
+        const messages = [
+"Félicitations ! Votre maîtrise des techniques d'imagerie médicale est remarquable !",
+"Bravo ! Vous excellez dans l'interprétation des images radiologiques.",
+"Incroyable ! Votre compréhension des principes de la radiologie est impressionnante.",
+"Parfait ! Vous êtes sur le chemin pour devenir un(e) expert(e) en diagnostic par imagerie.",
+"Votre précision dans l'analyse des radiographies est admirable.",
+"Impressionnant ! Vous appliquez les concepts d'imagerie médicale avec rigueur.",
+"Bravo ! Votre aptitude à identifier les anomalies radiologiques est exceptionnelle.",
+"Extraordinaire ! Vous utilisez les outils d'imagerie avec une grande maîtrise.",
+"Félicitations ! Vous êtes prêt(e) à contribuer à des diagnostics précis et rapides.",
+"Votre capacité à relier les images radiologiques aux conditions cliniques est impressionnante.",
+"Impressionnant ! Vous démontrez une compréhension approfondie des techniques avancées de radiologie.",
+"Bravo ! Votre passion pour l'imagerie médicale est évidente.",
+"Votre expertise en interprétation d'IRM et de scanner est un véritable atout.",
+"Parfait ! Vous démontrez une aptitude exceptionnelle pour la radiologie interventionnelle.",
+"Félicitations ! Vous êtes sur le chemin pour devenir un(e) pionnier(ère) en imagerie médicale.",
+"Votre précision dans l'utilisation des technologies de pointe est exemplaire.",
+"Bravo ! Vous appliquez les connaissances radiologiques avec rigueur et précision.",
+"Incroyable ! Vous interprétez les images complexes avec une facilité admirable.",
+"Félicitations ! Votre curiosité pour les technologies d'imagerie est une source d'inspiration.",
+"Votre capacité à interpréter les résultats radiologiques est impressionnante.",
+
+        ];
+        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+        resultDiv.innerHTML = `<p>${randomMessage}</p>`;
+    } else {
+        resultDiv.innerHTML = `Vous avez obtenu ${score} bonnes réponses sur ${Object.keys(correctAnswers).length}.`;
+    }
+
+    // Afficher la boîte de résultat avec animation
+    const resultPopup = document.getElementById('result-popup');
+    const blurBackground = document.getElementById('blur-background');
+
+    blurBackground.style.display = 'block';
+    resultPopup.style.display = 'block';
+
+    setTimeout(() => {
+        blurBackground.classList.add('show'); // Ajoute l'animation de fondu sur le fond flouté
+        resultPopup.classList.add('show'); // Ajoute l'animation de zoom sur la boîte de résultat
+    }, 100); // Légère pause pour plus de fluidité
+
+    document.getElementById('voir-detail-btn').style.display = 'inline-block';
+
+    // Envoi des données au backend
+    try {
+        console.log("Préparation de l'enregistrement au backend...");
+
+        const response = await fetch("/soumettre-quiz/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}" // Inclure le token CSRF
+            },
+            body: JSON.stringify({
+                exam_name: "URO2023", // Remplacez par le nom réel de l'examen
+                score: score,
+                userAnswers: userAnswers
+            })
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+            console.log("Score enregistré avec succès :", result);
+        } else {
+            console.error("Erreur du serveur :", result.message);
+            alert(`Erreur : ${result.message}`);
+        }
+    } catch (error) {
+        console.error("Erreur lors de l'envoi des données :", error);
+        alert("Une erreur s'est produite lors de la soumission. Veuillez réessayer.");
+    }
+}
+
+            function resetAll() {
+               const form = document.getElementById('quiz-form');
+               // Réinitialiser toutes les questions
+               for (const question of Object.keys(correctAnswers)) {
+                  const questionDiv = document.querySelector(`input[name="${question}"]`).closest('.question-container');
+                  form.elements[question].forEach(input => {
+                     input.checked = false; // Décocher toutes les cases
+                  });
+                  // Supprimer les styles correct/incorrect sans toucher au style des bonnes réponses
+                  questionDiv.classList.remove('correct', 'incorrect');
+                  questionDiv.querySelectorAll('li').forEach(li => {
+                     li.style.color = ''; // Réinitialiser la couleur du texte
+                     li.style.fontWeight = ''; // Supprimer les styles ajoutés
+                     li.style.textShadow = ''; // Réinitialiser l'ombre du texte
+                     li.style.backgroundColor = ''; // Remettre le fond par défaut
+                     li.style.border = ''; // Réinitialiser la bordure
+                  });
+               }
+               // Réinitialiser l'affichage du timer
+               const timerDuration = 60 * 60; // Remettre à 60 minutes (ou 10 secondes pour le test)
+               const display = document.querySelector('#timer');
+               startTimer(timerDuration, display); // Redémarrer le timer
+               // Masquer la boîte de résultat
+               const resultPopup = document.getElementById('result-popup');
+               const blurBackground = document.getElementById('blur-background');
+               resultPopup.classList.remove('show');
+               blurBackground.classList.remove('show');
+               setTimeout(() => {
+                  resultPopup.style.display = 'none';
+                  blurBackground.style.display = 'none';
+               }, 500);
+               // Remonter en haut de la page
+               window.scrollTo({
+                  top: 0,
+                  behavior: 'smooth'
+               });
+               document.getElementById('voir-detail-btn').style.display = 'none'; // Masquer le bouton "Voir Détail"
+            }
+            // Fonction pour fermer la popup et garder les couleurs des bonnes/mauvaises réponses
+            function closeResult(event) {
+               event.preventDefault(); // Empêche le comportement par défaut du bouton
+               const resultPopup = document.getElementById('result-popup');
+               const blurBackground = document.getElementById('blur-background');
+               // Masquer la boîte de résultat
+               resultPopup.classList.remove('show');
+               blurBackground.classList.remove('show');
+               setTimeout(() => {
+                  resultPopup.style.display = 'none';
+                  blurBackground.style.display = 'none';
+               }, 500);
+               // Décocher toutes les cases sans changer la couleur des bonnes/mauvaises réponses
+               const form = document.getElementById('quiz-form');
+               for (const question of Object.keys(correctAnswers)) {
+                  form.elements[question].forEach(input => {
+                     input.checked = false; // Décocher toutes les cases
+                  });
+               }
+            }
+            // Fonction pour afficher les détails et rediriger vers SyntURO2023
+            function afficherDetails(event) {
+               event.preventDefault(); // Empêche le comportement par défaut du bouton
+               saveUserAnswers(); // Enregistrer les réponses avant de quitter la page
+               window.location.href = '{% url 'dynamic_view' 'S5' 'Radiologie' 'syntURO2023' %}'; // Redirection vers SyntURO2023
+            }
+            // Fonction pour défiler jusqu'à la question
+            function scrollToQuestion(questionNumber) {
+               const questionDiv = document.querySelector(`.question-container:nth-of-type(${questionNumber})`);
+               if (questionDiv) {
+                  questionDiv.scrollIntoView({
+                     behavior: 'smooth'
+                  });
+               }
+            }
+
+            function saveUserAnswers() {
+               // Change la clé pour la version 2019
+               localStorage.setItem('userAnswersURO2023', JSON.stringify(userAnswers));
+            }
+            // Fonction pour afficher les confettis et ajouter le message de félicitations dans la popup de résultats
+            function lancerConfettisEtMessage(score) {
+    if (score === 25) {
+                  // Lancer les confettis
+                  confetti({
+                     particleCount: 200,
+                     spread: 70,
+                     origin: {
+                        y: 0.6
+                     },
+                     colors: ['#bb0000', '#ffffff'], // Couleurs de confettis
+                  });
+                  // Ajouter un message de félicitations à la boîte de résultat
+                  const resultDiv = document.getElementById('result');
+                  const felicitationMessage = `<p>Félicitations! Vous avez obtenu ${score} bonnes réponses. Vous serez un grand médecin !</p>`;
+                  // Ajouter le message à la fin du résultat
+                  resultDiv.innerHTML += felicitationMessage;
+               }
+            }
+            // Partie favori pour Anatomie2020
+            // Tableau pour stocker les questions favorites, récupéré depuis le localStorage (Anatomie2019)
+            let favoriteQuestionsURO2023 = JSON.parse(localStorage.getItem('favoriteQuestionsURO2023')) || [];
+            console.log('Favorite questions loaded from localStorage:', favoriteQuestionsURO2023);
+
+            function toggleFavorite(event, questionNumber) {
+               event.preventDefault(); // Empêche le rafraîchissement de la page
+               const button = document.querySelector(`.favorite-button[data-question="${questionNumber}"]`);
+               const questionContent = document.querySelector(`#question-${questionNumber}`).innerHTML; // Récupère le contenu HTML de la question
+               // Vérifie si la question est déjà dans les favoris
+               const isFavorited = favoriteQuestionsURO2023.includes(questionNumber);
+               if (isFavorited) {
+                  // Si elle est déjà favorisée, on la retire des favoris
+                  favoriteQuestionsURO2023 = favoriteQuestionsURO2023.filter(q => q !== questionNumber);
+                  button.classList.remove('favorited'); // Retire la classe favori
+                  localStorage.removeItem(`favoriteContent2019-${questionNumber}`); // Supprime le contenu de la question
+               } else {
+                  // Si elle n'est pas favorisée, on l'ajoute
+                  favoriteQuestionsURO2023.push(questionNumber);
+                  button.classList.add('favorited'); // Ajoute la classe favori
+                  localStorage.setItem(`favoriteContent2019-${questionNumber}`, questionContent); // Stocke le contenu de la question dans le localStorage
+               }
+               // Sauvegarde uniquement les favoris
+               saveFavoriteState2019(); // <== Remplacez par saveFavoriteState2019
+               // Mise à jour du bouton "Voir Favori" sans rafraîchir la page
+               showFavoriteButton();
+            }
+
+            function saveFavoriteState2019() {
+               localStorage.setItem('favoriteQuestionsURO2023', JSON.stringify(favoriteQuestionsURO2023)); // Sauvegarde les questions favorites
+            }
+
+            function initializeFavoriteButtons() {
+               const allFavoriteButtons = document.querySelectorAll('.favorite-button');
+               allFavoriteButtons.forEach(button => {
+                  const questionNumber = parseInt(button.getAttribute('data-question'), 10);
+                  // Vérifie si cette question est dans les favoris et applique la classe
+                  if (favoriteQuestionsURO2023.includes(questionNumber)) {
+                     button.classList.add('favorited'); // Ajoute l'état favori
+                  } else {
+                     button.classList.remove('favorited'); // Retire l'état favori
+                  }
+                  // Ajoute un événement de clic pour chaque bouton et empêche le rafraîchissement
+                  button.addEventListener('click', (event) => toggleFavorite(event, questionNumber));
+               });
+            }
+
+            function showFavoriteButton() {
+               const voirFavorisBtn = document.getElementById('voir-favoris-btn');
+               if (favoriteQuestionsURO2023.length > 0) {
+                  voirFavorisBtn.style.display = 'inline-block'; // Affiche le bouton si des questions sont favorisées
+               } else {
+                  voirFavorisBtn.style.display = 'none'; // Cache le bouton si aucun favori
+               }
+            }
+            // Appelle cette fonction après avoir ajouté ou retiré des favoris
+            window.onload = function() {
+               console.log('Page loaded, initializing favorite buttons for 2019.');
+               initializeFavoriteButtons(); // Charger les boutons de favoris
+               showFavoriteButton(); // Afficher le bouton "Voir Favori" si des favoris existent
+               const timerDuration = 60 * 60; // 60 minutes
+               const display = document.querySelector('#timer');
+               startTimer(timerDuration, display);
+               // Récupère toutes les listes (li) qui contiennent des propositions
+               const propositions = document.querySelectorAll('li');
+               propositions.forEach(function(proposition) {
+                  // Trouve la checkbox dans chaque liste
+                  const checkbox = proposition.querySelector('input[type="checkbox"]');
+                  if (checkbox) {
+                     // Créer un label
+                     const label = document.createElement('label');
+                     // Donner un id à la checkbox si elle n'en a pas
+                     if (!checkbox.id) {
+                        checkbox.id = checkbox.name + '-' + checkbox.value; // Ex: q1-A
+                     }
+                     // Déplacer le texte de la proposition dans le label
+                     label.htmlFor = checkbox.id; // Le 'for' du label correspond à l'id de la checkbox
+                     label.appendChild(checkbox); // Déplacer la checkbox dans le label
+                     label.appendChild(document.createTextNode(proposition.textContent.trim())); // Ajouter le texte de la proposition
+                     // Remplacer le contenu original par le nouveau label
+                     proposition.innerHTML = ''; // Vider le contenu de l'élément <li>
+                     proposition.appendChild(label); // Ajouter le label modifié
+                  }
+               });
+            };
+            try {
+               localStorage.setItem('testKey', 'testValue');
+               const testValue = localStorage.getItem('testKey');
+               if (testValue !== 'testValue') {
+                  console.error('localStorage is not functioning as expected.');
+               }
+            } catch (error) {
+               console.error('localStorage error:', error);
+            }
+
+            function voirFavoris() {
+    // Définir dynamiquement le favori correspondant
+    const currentFavorite = 'favori9'; // Vous pouvez ajuster cette logique en fonction de la page actuelle
+    
+    // Rediriger vers la page du favori correspondant
+    console.log('Redirection vers le favori :', currentFavorite); // Pour debug
+    window.location.href = `/favoris/${currentFavorite}/`;
+}
+
+
+
+            </script>
+            <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js">
+
+
+            </script>
+         </form>
+      </div>
+      
+   </body>
+
+</html>      <script>
+// Fonction pour corriger une question
+function correctQuestion(questionName) {
+    const form = document.getElementById('quiz-form');
+    const questionDiv = document.querySelector(`input[name="${questionName}"]`).closest('.question-container');
+    const selected = Array.from(form.elements[questionName]).filter(input => input.checked).map(input => input.value);
+
+    // Calculer si la réponse est correcte
+    const isCorrect = JSON.stringify(correctAnswers[questionName].sort()) === JSON.stringify(selected.sort());
+
+    // Enregistre si la réponse est correcte ou incorrecte
+    userAnswers[questionName] = {
+        selected: selected,
+        isCorrect: isCorrect
+    };
+
+    // Supprimer les styles précédents
+    questionDiv.classList.remove('correct', 'incorrect');
+    questionDiv.querySelectorAll('li').forEach(li => li.style.color = '');
+
+    // Applique les couleurs selon la validité des réponses
+    questionDiv.querySelectorAll('li').forEach(li => {
+        const isChoiceCorrect = correctAnswers[questionName].includes(li.querySelector('input').value);
+        const isSelected = selected.includes(li.querySelector('input').value);
+
+        if (isChoiceCorrect) {
+            // Appliquer le style vert aux bonnes réponses
+            li.style.color = 'green';
+            li.style.fontWeight = 'bold';
+            li.style.textShadow = '1px 1px 2px rgba(0, 128, 0, 0.7)';
+        }
+
+        if (isSelected && !isChoiceCorrect) {
+            // Appliquer le style rouge pour les mauvaises réponses sélectionnées
+            li.style.color = 'red';
+        }
+    });
+
+    console.log(`Début de la correction pour la question ${questionName}`);
+    console.log(`Réponses sélectionnées pour ${questionName}: ${selected.join(', ')}`);
+    console.log(`Résultat pour ${questionName}: ${isCorrect ? 'Correct' : 'Incorrect'}`);
+
+    // Déterminer le nom de l'examen et l'ID complet de la question
+    const examNameElement = document.getElementById('exam_name');
+    const examName = examNameElement.value; // Nom de l'examen (par exemple, Anatomie2023)
+    const fullChoiceIds = selected.map(choice => `${examName}_${questionName.substring(1)}_${choice.toLowerCase()}`);
+    console.log(`IDs complets générés pour les choix : ${fullChoiceIds.join(', ')}`);
+
+    // Envoyer les données au serveur
+    fetch('/track_attempts/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            question_name: questionName,
+            full_choice_ids: fullChoiceIds
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log(`Données reçues du serveur : ${JSON.stringify(data)}`);
+            handleAlert(data.alert, questionDiv);
+            updateStatisticalAlerts(data, questionDiv);
+        })
+        .catch(error => console.error('Erreur lors de l’envoi des données:', error));
+}
+
+// Fonction pour gérer les alertes
+function handleAlert(alertData, questionDiv) {
+    const existingAlert = questionDiv.querySelector('.alert-indicator');
+    if (existingAlert) {
+        existingAlert.remove();
+    }
+
+    if (alertData) {
+        const alertIndicator = document.createElement('div');
+        alertIndicator.className = 'alert-indicator';
+        alertIndicator.style.backgroundColor = alertData.color || '#f8d7da';
+        alertIndicator.style.padding = '10px';
+        alertIndicator.style.marginTop = '10px';
+        alertIndicator.style.borderRadius = '5px';
+        alertIndicator.style.fontWeight = 'bold';
+        alertIndicator.style.color = '#721c24';
+        alertIndicator.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.1)';
+        alertIndicator.textContent = alertData.message;
+
+        questionDiv.appendChild(alertIndicator);
+        saveAlertToLocalStorage(questionDiv.getAttribute('data-question-id'), alertData);
+    } else {
+        removeAlertFromLocalStorage(questionDiv.getAttribute('data-question-id'));
+    }
+}
+
+// Charger les alertes persistantes
+function loadAlertsFromLocalStorage() {
+    const storedAlerts = JSON.parse(localStorage.getItem('alerts')) || {};
+    Object.keys(storedAlerts).forEach(questionId => {
+        const questionDiv = document.querySelector(`.question-container[data-question-id="${questionId}"]`);
+        if (questionDiv) {
+            handleAlert(storedAlerts[questionId], questionDiv);
+        }
+    });
+}
+
+// Sauvegarder les alertes dans localStorage
+function saveAlertToLocalStorage(questionId, alertData) {
+    const storedAlerts = JSON.parse(localStorage.getItem('alerts')) || {};
+    storedAlerts[questionId] = alertData;
+    localStorage.setItem('alerts', JSON.stringify(storedAlerts));
+}
+
+// Supprimer une alerte de localStorage
+function removeAlertFromLocalStorage(questionId) {
+    const storedAlerts = JSON.parse(localStorage.getItem('alerts')) || {};
+    delete storedAlerts[questionId];
+    localStorage.setItem('alerts', JSON.stringify(storedAlerts));
+}
+
+// Mise à jour des alertes statistiques
+function updateStatisticalAlerts(data, questionDiv) {
+    const existingStatisticalAlerts = questionDiv.querySelectorAll('.statistical-alert');
+    existingStatisticalAlerts.forEach(alert => alert.remove());
+
+    if (data.failure_rate > 0.6) {
+        const failureRateAlert = document.createElement('div');
+        failureRateAlert.className = 'statistical-alert';
+        failureRateAlert.style.backgroundColor = '#add8e6';
+        failureRateAlert.style.padding = '10px';
+        failureRateAlert.style.marginTop = '10px';
+        failureRateAlert.style.borderRadius = '5px';
+        failureRateAlert.style.fontWeight = 'bold';
+        failureRateAlert.style.color = '#004085';
+        failureRateAlert.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.1)';
+        failureRateAlert.textContent = `🔵 Votre taux d'échec est de ${(data.failure_rate * 100).toFixed(0)}%. Revoir cette question est conseillé.`;
+
+        questionDiv.appendChild(failureRateAlert);
+    }
+}
+
+// Charger les alertes au démarrage
+document.addEventListener('DOMContentLoaded', () => {
+    loadAlertsFromLocalStorage();
+});
+
+</script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
+    <script src="{% static 'java/comment.js' %}"></script>
+        </body>
+    </html>
+    

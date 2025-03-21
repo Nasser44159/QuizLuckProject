@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="Rd2020">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) L'imagerie par résonance magnétique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A-  Est l'examen de choix dans l'exploration des tumeurs cérébrales</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B-  Est contre indiquée en cas de pathologie biliaire</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C-  Évalue l'interaction de l'organisme avec une source à rayons X</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D-  Est contre-indiquée en cas de port d'une pompe à insuline</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E-  Est contre-indiquée en cas de grossesse</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) La radiographie standard :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A-  Utilise les rayons X</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B-  Peut être réalisée sans précaution chez la femme enceinte</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C-  Produit une image de sommation</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D-  Permet une bonne caractérisation tissulaire des lésions</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E-  Est une imagerie en coupes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Les 3 principes de radioprotection pour le patient en cas d'examen à base de rayons X sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A-  L'optimisation des doses</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B-  Le respect de la distance patient-source</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C-  La justification de l'examen réalisé</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D-  La limitation des doses</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E-  Le port de blouses protectrices</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) L'échographie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A-  Est contre-indiquée en cas de grossesse</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B-  Est un examen irradiant</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C-  Peut être améliorée par l'utilisation de produits de contraste dédiés</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D-  Utilise les ultrasons comme source</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E-  Est contre-indiquée en cas de traumatisme abdominal</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Les critères de réussite d'une radiographie thoracique de face :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A-  Les apex pulmonaires dégagés</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B-  Les culs de sac costo-diaphragmatiques pris</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C-  Cliché pris en expiration profonde</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D-  Les omoplates dégagées</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E-  La non visualisation des vertèbres rétro-cardiaques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) Une masse médiastinale antérieure peut être d'origine :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A-  Thymique</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B-  Oesophagienne</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C-  Trachéale</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D-  Thyroïdienne</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E-  Ganglionnaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) L'échographie thoracique est indiquée dans les situations suivantes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A-  Diagnostic d'une pleurésie de faible abondance chez un patient de réanimation</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B-  Repérage en vue de ponction d'une pleurésie cloisonnée</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C-  Diagnostic étiologique d'une opacité alvéolaire</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D-  Guidage d'une biopsie d'une masse médiastinale antérieure</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E-  Diagnostic de dilatations de bronches</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) L'origine pleurale d'une opacité thoracique est évoquée en cas d'opacité :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A-  Complètement entourée par le parenchyme pulmonaire</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B-  Périphérique associée à une lyse costale</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C-  De contours spiculés</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D-  Associée à une ligne bordante axillaire</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E-  Siège d'une excavation</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Une opacité excavée pulmonaire, fait soulever les étiologies suivantes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A-  Un kyste hydatique fissuré</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B-  Un abcès de poumon</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C-  Une miliaire tuberculeuse</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D-  Un collapsus passif</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E-  Un anévrysme de l'artère pulmonaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Une opacité pariétale a les caractères suivants :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A-  Réalise une opacité périphérique à limite nette</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B-  Pose un problème de diagnostic différentiel avec une pleurésie enkystée</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C-  Contient une excavation</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D-  Réalise des opacités confluentes</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E-  Peut être explorée par échographie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Un épaississement pleural diffus et nodulaire fait évoquer :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A-  Une tuberculose pleurale</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B-  Une coiffe pleurale</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C-  Une atteinte pleurale métastatique</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D-  Un mésothéliome pleural</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E-  Des adénopathies</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) En TDM cérébral, un AVC ischémique constitué à la phase subaiguë se traduit par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A-  Une hyperdensité spontanée d'une artère cérébrale moyenne</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B-  Une hyposignal systématisée à un territoire vasculaire</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C-  Un élargissement des sillons corticaux</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D-  Une formation intra-parenchymateuse de densité liquidienne</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E-  Une dilatation des ventricules latéraux</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) L'hématome extra dural :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A-  Est la conséquence d'une plaie de l'artère méningée moyenne</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B-  Peut être associé à une fracture du crâne</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C-  Peut entraîner un engagement cérébral</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D-  Se traduit en TDM par une collection spontanément hyperdense en croissant biconvexe</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E-  Siège fréquemment au niveau cérébelleux</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Les lésions axonales diffuses :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A-  Résultent de la section d'axones</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B-  Sont souvent méconnues par la TDM</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C-  Doivent faire rechercher une malformation vasculaire</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D-  Se traduisent par la diminution de la taille des ventricules</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E-  Sont souvent d'origine traumatique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) L'accident vasculaire cérébral hémorragique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A-  Correspond à la rupture d'une artère cérébrale</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B-  Impose la réalisation urgente d'une IRM cérébrale</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C-  Se traduit en TDM par une hyperdensité spontanée intra-parenchymateuse</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D-  Est secondaire à une fracture du crâne</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E-  Peut être secondaire à une malformation vasculaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Devant une HTIC, la TDM cérébrale :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A-  Est supérieure à l'IRM cérébrale pour l'orientation étiologique</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B-  Recherche un processus expansif intracrânien</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C-  Recherche les signes de gravité</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D-  Recherche un effet de masse sur les structures adjacentes au processus</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E-  Recherche une hydrocéphalie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) L'engagement temporal :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A-  Est suspecté devant le comblement des citernes péri-pédonculaires</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B-  Expose au risque de compression du tronc cérébral</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C-  Est un signe de gravité</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D-  Est une complication des tumeurs cérébrales</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E-  Peut être analysé sur une radio du crâne de profil</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Sur une incidence de profil du rachis lombaire normal :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A-  Les corps vertébraux sont radio-transparents</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B-  Leurs bords postérieurs constituent le mur postérieur</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C-  Les disques intervertébraux sont d'épaisseur croissante de haut en bas</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D-  Les trous de conjugaison sont bien analysés</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E-  Le bord externe du psoas est visible de D12 à la crête iliaque</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Une hyperdensité spontanée des citernes et des sillons corticaux en TDM évoque :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A-  Une méningite</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B-  Une hémorragie méningée</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C-  Une hémorragie intra ventriculaire</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D-  Un œdème cérébral</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E-  Une encéphalite</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) L'origine pleurale d'une opacité thoracique est évoquée en cas d'opacité :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A-  Complètement entourée par le parenchyme pulmonaire</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B-  Périphérique associée à une lyse costale</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C-  De contours spiculés</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D-  Associée à une ligne bordante axillaire</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E-  Siège d'une excavation</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Les signes évoquant un syndrome de masse pelvienne bénigne en imagerie sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A-  Absence d'extension vers les structures adjacentes</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B-  Contours bien délimités</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C-  Absence de signes de nécrose</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D-  Contours spiculés</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E-  Présence d'une coque</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Une hyperdensité spontanée de l'angle ponto-cérébelleux prenant de façon intense le PDC évoque :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A-  Un glioblastome</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B-  Un neurinome de l'acoustique</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C-  Un médulloblastome</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D-  Un méningiome</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E-  Un abcès</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) En oncologie digestive, les principaux moyens de radiologie interventionnelle à visée diagnostique sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A-  La ponction biopsie trans-pariétale</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B-  L'ablation par radiofréquence</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C-  L'ablation par alcoolisation</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D-  La chimio embolisation</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E-  La biopsie chirurgicale sous anesthésie générale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Dans l'exploration d'un appendicite aiguë :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A-  L'ASP n'est pas utile</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B-  La corrélation avec les données cliniques, échographiques et biologiques est importante</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C-  Une appendice non vu à l'échographie élimine le diagnostic</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D-  La radiologie n'a pas de place, le diagnostic est clinique</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E-  La TDM sera réservée aux formes douteuses ou compliquées</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Concernant la colique néphrétique aiguë :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A-  L'Uro-IRM est l'examen de première intention</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B-  L'étiologie la plus fréquente est la tumeur vésicale</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C-  L'UIV est indiquée au cours de la crise</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D-  Le couple AUSP-écho est souvent suffisant au diagnostic étiologique</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E-  La lithiase est visible en scanner</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Devant la suspicion d'une origine prostatique d'un syndrome obstructif bas :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A-  Une échographie sus pubienne précise le volume prostatique</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B-  Une échographie sus pubienne permet d'évaluer le retentissement sur la vessie et le haut appareil</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C-  Une IRM permet d'orienter une biopsie prostatique</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D-  Le scanner est l'examen de choix pour faire le bilan d'extension loco-régional</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E-  L'IRM est l'examen de choix pour faire le bilan d'extension loco-régional</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) Devant un syndrome de masse rénale :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A-  L'échographie est l'examen de première intention</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B-  L'uroscanner constitue l'examen de référence</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C-  L'uroscanner permet de faire le bilan d'extension loco-régional et à distance d'une tumeur maligne</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D-  L'uro scanner est réalisé sans injection de produit de contraste</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E-  L'uro IRM est réalisée en cas de contre-indications au scanner</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) Devant une boiterie de l'enfant :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A-  L'ostéochondrite primitive de hanche est diagnostiquée sur la radiographie du bassin de face</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B-  L'épiphysiolyse fémorale supérieure est la cause la plus fréquente de boiterie de l'adolescent</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C-  Les radiographies du bassin de face et des hanches de profil permettent de mesurer l'angle de déplacement dans l'épiphysiolyse</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D-  Une boiterie douloureuse peut être d'origine tumorale</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E-  Une ostéomyélite ou arthrite peut être à l'origine d'une boiterie fébrile</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) Devant un épaississement pleural diffus et nodulaire, il est nécessaire d'évoquer :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A-  Une tuberculose pleurale</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B-  Une coiffe pleurale</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C-  Une atteinte pleurale métastatique</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D-  Un mésothéliome pleural</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E-  Des adénopathies</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) Les signes IRM en faveur d'un myélome multiple sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A-  Hyposignal T1 plus marqué que le disque</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B-  Hypersignal T2 persistant sur la séquence STIR</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C-  Collection des parties molles périvertébrales</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D-  Protrusion discale circonférentielle</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E-  Rehaussement homogène important après injection</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) Les critères sémiologiques d'un cancer du sein :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A-  La présence d'une opacité cernée par un liseré clair de sécurité sur la mammographie</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B-  La présence d'un nodule avec un grand axe parallèle à la peau à l'échographie</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C-  La présence d'un nodule de contours spiculés, avec interruption des travées conjonctives et atténuation postérieure en échographie</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D-  La présence de micro-calcifications poussiéreuses nombreuses et amorphes</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E-  La présence toujours d'un épaississement cutané</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) La surveillance radiologique répétée des maladies inflammatoires intestinales chroniques est au mieux réalisée par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A-  L'ASP</li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B-  L'entéroTDM</li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C-  La bili IRM</li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D-  L'entéro IRM</li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E-  L'angioscanner</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) Dans l'exploration de l'appendicite aiguë :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A-  L'ASP n'est pas utile</li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B-  La corrélation aux données cliniques, échographiques et biologiques est importante</li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C-  Une appendice non vu à l'échographie élimine le diagnostic</li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D-  La radiologie n'a pas de place, le diagnostic est clinique</li>
+            
+                    <li><input type="checkbox" id="q33e" name="q33" value="E"> E-  La TDM sera réservée aux formes douteuses ou compliquées</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) Les signes évocateurs d'une origine bénigne d'une masse kystique ovarienne :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A-  Taille de 7 cm</li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B-  Paroi fine</li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C-  Cloisons rares et fines</li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D-  Bourgeon tissulaire</li>
+            
+                    <li><input type="checkbox" id="q34e" name="q34" value="E"> E-  Végétations pariétales</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) Devant une suspicion d'abcès du foie, l'examen de première intention est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A-  La TDM</li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B-  L'ASP debout</li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C-  L'échographie</li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D-  L'IRM</li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E-  L'écho-endoscopie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-36" class="question-container">
+            <div class="question">
+                <p>36.) Concernant le kyste hydatique du foie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q36a" name="q36" value="A"> A-  Le Type I peut faire discuter un éventuel kyste biliaire banal</li>
+            
+                    <li><input type="checkbox" id="q36b" name="q36" value="B"> B-  Le Type IV peut faire discuter un éventuel processus tumoral</li>
+            
+                    <li><input type="checkbox" id="q36c" name="q36" value="C"> C-  Le scanner est l'examen de première intention</li>
+            
+                    <li><input type="checkbox" id="q36d" name="q36" value="D"> D-  Le type II repose sur la biopsie écho-guidée pour un diagnostic de certitude</li>
+            
+                    <li><input type="checkbox" id="q36e" name="q36" value="E"> E-  L'échographie suffit dans les formes compliquées</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-37" class="question-container">
+            <div class="question">
+                <p>37.) Quelle est la principale indication actuelle de l'angiographie coelio-mésentérique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q37a" name="q37" value="A"> A-  La maladie de Crohn</li>
+            
+                    <li><input type="checkbox" id="q37b" name="q37" value="B"> B-  Les thromboses portales</li>
+            
+                    <li><input type="checkbox" id="q37c" name="q37" value="C"> C-  Les occlusions digestives</li>
+            
+                    <li><input type="checkbox" id="q37d" name="q37" value="D"> D-  L'hémorragie digestive abondante en vue d'un geste interventionnel</li>
+            
+                    <li><input type="checkbox" id="q37e" name="q37" value="E"> E-  Les tumeurs du grêle pour l'étude de leur vascularisation</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-38" class="question-container">
+            <div class="question">
+                <p>38.) Quel est l'examen radiologique à prescrire en premier chez un patient suspect de perforation par perforation d'ulcère ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q38a" name="q38" value="A"> A-  Un transit oesogastrique au produit de contraste hydrosoluble</li>
+            
+                    <li><input type="checkbox" id="q38b" name="q38" value="B"> B-  Radiographie de l'abdomen sans préparation de face couchée</li>
+            
+                    <li><input type="checkbox" id="q38c" name="q38" value="C"> C-  Radiographie thoracique de face en décubitus dorsal rayon vertical</li>
+            
+                    <li><input type="checkbox" id="q38d" name="q38" value="D"> D-  Lavement baryté</li>
+            
+                    <li><input type="checkbox" id="q38e" name="q38" value="E"> E-  TDM abdomino pelvienne</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-39" class="question-container">
+            <div class="question">
+                <p>39.) Concernant les cholécystites aiguës lithiasiques :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q39a" name="q39" value="A"> A-  L'épaississement de la paroi vésiculaire est recherché en premier par TDM</li>
+            
+                    <li><input type="checkbox" id="q39b" name="q39" value="B"> B-  La vésicule est de contenu transonore</li>
+            
+                    <li><input type="checkbox" id="q39c" name="q39" value="C"> C-  La recherche des lithiases vésiculaires se fait en échographie</li>
+            
+                    <li><input type="checkbox" id="q39d" name="q39" value="D"> D-  La stéatose hépatique est un signe évocateur du diagnostic</li>
+            
+                    <li><input type="checkbox" id="q39e" name="q39" value="E"> E-  On trouve en échographie une douleur au passage de la sonde</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-40" class="question-container">
+            <div class="question">
+                <p>40.) Dans les pancréatites aiguës, la TDM permet :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q40a" name="q40" value="A"> A-  De préciser la gravité</li>
+            
+                    <li><input type="checkbox" id="q40b" name="q40" value="B"> B-  Une bonne cartographie biliaire pour rechercher des microlithiases</li>
+            
+                    <li><input type="checkbox" id="q40c" name="q40" value="C"> C-  Le diagnostic précoce même 2 heures après le début des symptômes</li>
+            
+                    <li><input type="checkbox" id="q40d" name="q40" value="D"> D-  De détecter d'éventuelles complications</li>
+            
+                    <li><input type="checkbox" id="q40e" name="q40" value="E"> E-  De guider d'éventuels gestes interventionnels (ponction d'abcès ...)</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-41" class="question-container">
+            <div class="question">
+                <p>41.) Q.R.O. 1 : Citer les composants du trinôme radiologique pour l'obtention d'une imag</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q41a" name="q41" value="A"> A- f</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-42" class="question-container">
+            <div class="question">
+                <p>42.) Q.R.O. 2 : Citer les signes en faveur d'une opacité médiastinale sur une radiographie thoracique de fac</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q42a" name="q42" value="A"> A- f</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-43" class="question-container">
+            <div class="question">
+                <p>43.) Q.R.O. 3 : Citer trois signes décrivant une pleurésie de moyenne abondance sur une radiographie thoracique de face en position debout.</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q43a" name="q43" value="A"> A- f</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-44" class="question-container">
+            <div class="question">
+                <p>44.) Q.R.O. 4 : Comment se traduit un hématome sous dural aigu avec engagement sous tentoriel au Scanner ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q44a" name="q44" value="A"> A- f</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-45" class="question-container">
+            <div class="question">
+                <p>45.) Q.R.O. 5 : Citer trois signes au scanner TDM d'une hernie discale lombaire conflictuell</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q45a" name="q45" value="A"> A- f</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-46" class="question-container">
+            <div class="question">
+                <p>46.) Q.R.O. 6 : Citer trois signes en faveur d'une masse ovarienne maligne en échographi</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q46a" name="q46" value="A"> A- f</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-47" class="question-container">
+            <div class="question">
+                <p>47.) Q.R.O. 7 : Citer trois signes d'un nodule du sein malin en mammographi</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q47a" name="q47" value="A"> A- f</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-48" class="question-container">
+            <div class="question">
+                <p>48.) Q.R.O. 8 : Citer deux critères échographiques pouvant faire bloquer l'obtention d'un programme de chirurgie bariatriqu</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q48a" name="q48" value="A"> A- f</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-49" class="question-container">
+            <div class="question">
+                <p>49.) Q.R.O. 9 : Citer deux indications fréquentes de la radiologie interventionnelle thérapeutique en oncologi</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q49a" name="q49" value="A"> A- f</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-50" class="question-container">
+            <div class="question">
+                <p>50.) Q.R.O. 10 : Un enfant de 6 ans, qui présente après un traumatisme, une douleur intense infréquentielle et segmentaire de son genou droit, avec une fièvr La radiographie est normal Quel est le diagnostic le plus probable ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q50a" name="q50" value="A"> A- f</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S5" "Radiologie" "Rd2020" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+
+            <div id="details-section" style="display:none;">
+                <h2>Questions :</h2>
+                <div id="question-links" class="question-links"></div>
+            </div>
+
+            <script>
+const correctAnswers = {
+    q1: ['A', 'D'],
+    q2: ['A', 'C'],
+    q3: ['A', 'C', 'D'],
+    q4: ['C', 'D'],
+    q5: ['A', 'B', 'D'],
+    q6: ['A', 'D', 'E'],
+    q7: ['A', 'B', 'D'],
+    q8: ['D'],
+    q9: ['A', 'B', 'D'],
+    q10: ['A', 'B', 'E'],
+    q11: ['C', 'D'],
+    q12: ['A', 'B'],
+    q13: ['A', 'B', 'C'],
+    q14: ['A', 'B'],
+    q15: ['A', 'B', 'C', 'E'],
+    q16: ['B', 'C', 'D', 'E'],
+    q17: ['A', 'C'],
+    q18: ['B', 'C', 'D'],
+    q19: ['B', 'C', 'E'],
+    q20: ['A', 'B', 'D'],
+    q21: ['A', 'B', 'E'],
+    q22: ['B', 'D', 'E'],
+    q23: ['B', 'D', 'E'],
+    q24: ['A', 'B', 'C'],
+    q25: ['A', 'B', 'C', 'E'],
+    q26: ['A', 'C', 'D', 'E'],
+    q27: ['B', 'D'],
+    q28: ['C', 'E'],
+    q29: ['A', 'B', 'C'],
+    q30: ['A', 'C', 'D'],
+    q31: ['B', 'C', 'E'],
+    q32: ['A', 'C', 'D'],
+    q33: ['B'],
+    q34: ['A', 'B', 'E'],
+    q35: ['C'],
+    q36: ['B'],
+    q37: ['D'],
+    q38: ['E'],
+    q39: ['C', 'E'],
+    q40: ['A', 'D', 'E']
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersRd2020'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="AP2018">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) Une patiente de 36 ans se présente à la consultation de gynécologie pour masse du sein droit. L'échographie montre qu'il s'agit d'une lésion kystique à contenu liquidien. Le ou les examen(s) plus approprié(s) pour explorer cette masse est (sont) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Une pyramidectomie</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Une cytoponction</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Une biopsie sous harpon</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Une biopsie au Tru-cut</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- Un examen extemporané</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Une femme de 38 ans présente un foyer de micro-calcifications au niveau du quadrant supéro-externe du sein gauche. Quel est le moyen d'étude le plus approprié pour explorer ce foyer :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Un examen extemporané</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Une quadrantectomie</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Une biopsie sous harpon</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Une mastectomie</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Une biopsie au Tru-cut</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Le prélèvement réalisé montre, microscopiquement, un foyer d'hyperplasie épithéliale atypique. Quel est le ou les risque chez cette patiente ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Survenue d’un sarcome mammaire</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- Aucun risque</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- Développement d'un carcinome mammaire</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Fistulisation à la peau</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Apparition de métastases ganglionnaires</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Le compte-rendu d'une mastectomie pour néo du sein mentionne : 'carcinome mammaire infiltrant de type non spécifique, grade SBR II, avec limites d'exérèse saines et surexpression de HER2 à 3+'. Par ailleurs, présence de métastases ganglionnaires.' Les éléments pronostiques manquants sur ce compte-rendu sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- La composante intracanalaire</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Le pourcentage de fibrose</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Le nombre de vaisseaux présents</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Le statut des récepteurs hormonaux</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- La taille tumorale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Chez cette patiente, le statut HER2 en immunohistochimie est positif et montre une surexpression à 3+. Qu'est-ce que cela implique sur le plan pronostique et thérapeutique chez cette patiente ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- La patiente ne doit recevoir aucune chimiothérapie</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- La patiente est éligible au traitement par trastuzumab</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Le cancer chez cette femme est obligatoirement d'origine génétique</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Le pronostic est généralement moins bon que si elle avait été HER2-négative</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- La radiothérapie sur le sein controlatéral est indiquée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) La mastopathie fibrokystique correspond à :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Une lésion tumorale</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Un remodelage des unités terminales ducto-lobulaires</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- Un trouble circulatoire sanguin de la glande mammaire</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Une nécrose ischémique</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- Une atrophie des constituants mammaires</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Quels sont les facteurs de risque de récidive d'un carcinome canalaire in situ du sein ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Haut grade nucléaire</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Présence de comédonécrose</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Présence d’apoptose en grand nombre</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Grande taille lésionnelle</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Exérèse complète</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Le ganglion sentinelle, dans le cancer du sein, correspond :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Au relais ganglionnaire le plus distal par rapport à la tumeur</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Au plus gros ganglion retrouvé sur une pièce de curage ganglionnaire axillaire</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Au premier ganglion métastatique controlatéral</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Au premier relais ganglionnaire drainant la tumeur</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Au ganglion qui empêche la dissémination métastatique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) En matière de pathologie de l'endomètre, quels sont les modes de prélèvements les plus rentables ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Le liquide de lavage endométrial</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Le frottis endométrial</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Le curetage biopsie de l'endomètre</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- La pièce d'hystérectomie</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- La ponction aspirante</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Les tumeurs mésodermiques mixtes de l'endomètre associent :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Une composante épithéliale et une composante mésenchymateuse</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Une composante épithéliale et une composante mélanomesque</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Une composante épithéliale et une composante lymphoïde</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Une composante épithéliale et une composante nerveuse</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Une composante épithéliale et une composante glandulaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) L'endométriose se définit comme :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Le dépôt d'une substance amyloïde au niveau de l'endomètre</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- La présence de tissu endométrial ectopique, situé à distance de l'endomètre</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- La formation de dépôts calciques abondants au niveau de l'endomètre</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- L'extériorisation de la muqueuse endométriale à l'orifice cervical externe</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- La survenue de multiples foyers d'adénocarcinome de l'endomètre</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Les tumeurs ovariennes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Sont le plus souvent fonctionnelles</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Constituent un processus prolifératif</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Sont nécessairement malignes</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Peuvent être d’aspect kystique, solide ou végétant</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Sont dues à un dysfonctionnement hormonal</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Les tumeurs séreuses épithéliales de l'ovaire peuvent être :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Bénignes</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Malignes</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Kystiques</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- À la limite de la malignité</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Spontanément résorptives</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Une tumeur épithéliale mucineuse ovarienne kystique maligne s'appelle :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Adénome mucineux</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Cystadénocarcinome mucineux</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Cystadénome séreux</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Cystadénome mucineux à la limite de la malignité</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- Sarcome phyllode</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) À propos de la néoplasie cervicale intraépithéliale (CIN), les propositions justes sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Ce sont les lésions qui permettent de passer d’un épithélium normal à un cancer invasif</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- C'est un processus pathologique unique et continu</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Les lésions glandulaires sont incluses dans le processus</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Les lésions de CIN sont parfois appelées « dysplasies »</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Le point de départ est souvent une infection à HPV</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) Les possibilités évolutives d'une dysplasie sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Stabilisation</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Progression vers carcinome in situ</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Progression vers un plus haut grade</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Régression</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Métaplasie glandulaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Les renseignements cliniques à fournir obligatoirement pour un frottis cervico-vaginal sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Les traitements antérieurs</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Les données de l’échographie mammaire</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- La recherche d’une mutation du gène BRCA1</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Les antécédents personnels de lésion cervicale</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- L'âge</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) La réalisation du frottis cervico-vaginal doit se faire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Avant tout toucher vaginal</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Au moment des règles</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- En dehors de tout épisode infectieux</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Après traitement d’une curiethérapie pour cancer du col</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Après traitement trophique chez la femme ménopausée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Quelles sont les complications de l’œsophage de reflux ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Carcinome épidermoïde</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Endobrachyoesophage</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Adénocarcinome</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Dysplasie</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Sténose</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Quels sont les aspects anatomo-pathologiques qui caractérisent la maladie de Ménétrier ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Hypersécrétion du mucus</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Hypertrophie de la sous-muqueuse</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Hypertrophie cérébriforme des plis gastriques</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Hyperplasie des cryptes</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Hyperplasie des cellules neuroendocrines</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Quelle est la forme macroscopique caractéristique de la linite gastrique ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Ulcéro-végétante et infiltrante</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Bourgeonnante</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Papillomateuse</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- Ulcériforme</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Infiltrante</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Quelles sont les lésions retrouvées dans la rectocolite ulcéro-hémorragique et dans les colites infectieuses ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Nodules lymphoïdes</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Distorsion des cryptes</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- Microabcès cryptiques</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Polynucléaires neutrophiles dans le chorion</li>
+            
+                    <li><input type="checkbox" id="q22e" name="q22" value="E"> E- Perte de mucosécrétion</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) Quel est le diagnostic différentiel histologique d’une gastrite lymphocytaire ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Maladie de Ménétrier</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Lymphome de MALT</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Gastrite auto-immune</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Adénocarcinome</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Adénome</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Quelles sont les propositions qui s’appliquent à la maladie de Crohn ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Présence de granulomes</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Infiltrat lymphocytaire</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Inflammation de la muqueuse sans la dépasser</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Présence de fistules</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Présence d’ulcérations fissuraires</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Quelles sont les caractéristiques des ulcérations décrites dans la tuberculose intestinale ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Uniques</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Aphthoïdes</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Annulaires</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Multiples</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Longues supérieures à 3 cm</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) La cirrhose hépatique est définie histologiquement par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- Un processus focal</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- Une fibrose mutilante</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- La dysplasie</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- Une architecture nodulaire</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- Une vascularisation anarchique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) Quelles sont les caractéristiques du cholangiocarcinome ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- Tumeur macroscopiquement molle</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- Il a une couleur blanchâtre</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Il a un stroma fibreux</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Absence de mucosécrétion</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- Agencé en tubes et travées</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) Les anomalies génétiques au cours du syndrome de Lynch concernent :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- Le gène APC</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- Le gène RAS</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- Les gènes contrôlant la réparation des erreurs de réplication de l’ADN</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- Le gène ALK</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- Le gène KIT</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) Quelle est l’origine cellulaire du carcinome à petites cellules du poumon ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- Cellule neuroendocrine</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- Cellule de Clara</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- Cellule basale malpighienne</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- Pneumocyte I</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- Pneumocyte II</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) Parmi les tumeurs pulmonaires suivantes, quelles sont celles qui appartiennent au groupe des tumeurs neuroendocrines ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- Carcinome à petites cellules</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- Tumeur carcinoïde</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- Tumeur carcinoïde atypique</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- Carcinome épidermoïde</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- Adénocarcinome</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) Quels sont les deux marqueurs positifs dans un adénocarcinome pulmonaire primitif ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- TTF-1</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- CD 3</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- Cytokératine 20</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- Chromogranine A</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- Cytokératine 7</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) Quelle est la pneumopathie qui se caractérise par la formation de nodules fibro-hyalins ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A- L’anthracose</li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B- L’asbestose</li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C- La silicose</li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D- Le syndrome de Goodpasture</li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E- La maladie de Wegener</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) Quelle est la lésion initiale des pneumopathies interstitielles diffuses ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A- Destruction du parenchyme</li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B- Bronchite</li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C- Aspect en rayon de miel</li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D- Alvéolite</li>
+            
+                    <li><input type="checkbox" id="q33e" name="q33" value="E"> E- Kystes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) L’ostéosarcome conventionnel présente les caractéristiques histologiques suivantes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A- Prolifération ostéoblastique sarcomateuse</li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B- Production d’os</li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C- Atypies cytonucléaires</li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D- Prolifération plasmocytaire</li>
+            
+                    <li><input type="checkbox" id="q34e" name="q34" value="E"> E- Prolifération lymphocytaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) Parmi les cancers suivants, on reconnaît comme cancers ostéophiles :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A- Le cancer du poumon</li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B- Le cancer de la peau</li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C- Le cancer du rein</li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D- Le cancer de la thyroïde</li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E- Le cancer du sein</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-36" class="question-container">
+            <div class="question">
+                <p>36.) Des polyadénopathies chez un sujet HIV positif doivent faire craindre la ou les affections suivantes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q36a" name="q36" value="A"> A- Une mycose profonde</li>
+            
+                    <li><input type="checkbox" id="q36b" name="q36" value="B"> B- Une tuberculose</li>
+            
+                    <li><input type="checkbox" id="q36c" name="q36" value="C"> C- Un carcinome</li>
+            
+                    <li><input type="checkbox" id="q36d" name="q36" value="D"> D- Un sarcome de Kaposi</li>
+            
+                    <li><input type="checkbox" id="q36e" name="q36" value="E"> E- Un lymphome non hodgkinien</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-37" class="question-container">
+            <div class="question">
+                <p>37.) Quels sont les lymphomes les plus fréquents chez l’enfant ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q37a" name="q37" value="A"> A- La leucémie lymphoïde chronique</li>
+            
+                    <li><input type="checkbox" id="q37b" name="q37" value="B"> B- Le lymphome lymphoblastique</li>
+            
+                    <li><input type="checkbox" id="q37c" name="q37" value="C"> C- Le mycosis fongoïde</li>
+            
+                    <li><input type="checkbox" id="q37d" name="q37" value="D"> D- Le lymphome de Burkitt</li>
+            
+                    <li><input type="checkbox" id="q37e" name="q37" value="E"> E- Le lymphome folliculaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-38" class="question-container">
+            <div class="question">
+                <p>38.) Les lymphomes de l’immunodéprimé répondent aux caractéristiques suivantes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q38a" name="q38" value="A"> A- Souvent des lymphomes T</li>
+            
+                    <li><input type="checkbox" id="q38b" name="q38" value="B"> B- Souvent des lymphomes B</li>
+            
+                    <li><input type="checkbox" id="q38c" name="q38" value="C"> C- Lymphome extra-ganglionnaire</li>
+            
+                    <li><input type="checkbox" id="q38d" name="q38" value="D"> D- Lymphome indolent</li>
+            
+                    <li><input type="checkbox" id="q38e" name="q38" value="E"> E- Relation avec l’EBV</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-39" class="question-container">
+            <div class="question">
+                <p>39.) Un garçon de 15 ans présente des adénopathies cervicales persistantes volumineuses isolées. À l'interrogatoire, on retrouve la notion d'angine bien traitée trois mois auparavant, sans perte de poids ni fièvre. Quels diagnostics évoquez-vous en premier ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q39a" name="q39" value="A"> A- Tuberculose</li>
+            
+                    <li><input type="checkbox" id="q39b" name="q39" value="B"> B- Mononucléose infectieuse</li>
+            
+                    <li><input type="checkbox" id="q39c" name="q39" value="C"> C- Des ganglions du bon répondeur immunologique</li>
+            
+                    <li><input type="checkbox" id="q39d" name="q39" value="D"> D- Adénite aiguë</li>
+            
+                    <li><input type="checkbox" id="q39e" name="q39" value="E"> E- Maladie des griffes du chat</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-40" class="question-container">
+            <div class="question">
+                <p>40.) Chez ce même patient, quel examen pratiquerez-vous en premier ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q40a" name="q40" value="A"> A- Radiographie thoracique</li>
+            
+                    <li><input type="checkbox" id="q40b" name="q40" value="B"> B- Numération formule sanguine</li>
+            
+                    <li><input type="checkbox" id="q40c" name="q40" value="C"> C- Biopsie ganglionnaire</li>
+            
+                    <li><input type="checkbox" id="q40d" name="q40" value="D"> D- Échographie abdominale</li>
+            
+                    <li><input type="checkbox" id="q40e" name="q40" value="E"> E- Ponction lombaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-41" class="question-container">
+            <div class="question">
+                <p>41.) Un patient de 55 ans tabagique présente des hématuries récidivantes, la cystoscopie montre la présence de lésions végétantes étendues sur toute la face postérieure avec une paroi épaisse et fixe. Quel examen proposez-vous à ce patient ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q41a" name="q41" value="A"> A- Cytologie urinaire</li>
+            
+                    <li><input type="checkbox" id="q41b" name="q41" value="B"> B- Biopsie profonde</li>
+            
+                    <li><input type="checkbox" id="q41c" name="q41" value="C"> C- Résection endoscopique</li>
+            
+                    <li><input type="checkbox" id="q41d" name="q41" value="D"> D- Cystectomie partielle</li>
+            
+                    <li><input type="checkbox" id="q41e" name="q41" value="E"> E- Résection biopsie trans-urétrale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-42" class="question-container">
+            <div class="question">
+                <p>42.) L'examen anatomopathologique retrouve une prolifération papillaire urothéliale avec des atypies cyto-nucléaires modérées et invasion de la musculeuse, vous retenez le diagnostic suivant :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q42a" name="q42" value="A"> A- Papillome urinaire</li>
+            
+                    <li><input type="checkbox" id="q42b" name="q42" value="B"> B- Carcinome in situ</li>
+            
+                    <li><input type="checkbox" id="q42c" name="q42" value="C"> C- Carcinome urothélial invasif, de haut grade</li>
+            
+                    <li><input type="checkbox" id="q42d" name="q42" value="D"> D- Carcinome papillaire non infiltrant, de haut grade</li>
+            
+                    <li><input type="checkbox" id="q42e" name="q42" value="E"> E- Tumeur urothéliale papillaire de potentiel indéterminé</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-43" class="question-container">
+            <div class="question">
+                <p>43.) Quelles sont les facteurs pronostiques d'un carcinome rénal ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q43a" name="q43" value="A"> A- Taille tumorale</li>
+            
+                    <li><input type="checkbox" id="q43b" name="q43" value="B"> B- Invasion de la veine rénale</li>
+            
+                    <li><input type="checkbox" id="q43c" name="q43" value="C"> C- Présence de foyers sarcomatoïdes</li>
+            
+                    <li><input type="checkbox" id="q43d" name="q43" value="D"> D- Nombre de mitoses</li>
+            
+                    <li><input type="checkbox" id="q43e" name="q43" value="E"> E- Présence de foyers kystiques</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-44" class="question-container">
+            <div class="question">
+                <p>44.) Devant la suspicion d'un cancer prostatique l'examen anatomopathologique recommandé est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q44a" name="q44" value="A"> A- Cytoponction prostatique</li>
+            
+                    <li><input type="checkbox" id="q44b" name="q44" value="B"> B- Biopsie prostatique endorectale</li>
+            
+                    <li><input type="checkbox" id="q44c" name="q44" value="C"> C- Résection trans-urétrale</li>
+            
+                    <li><input type="checkbox" id="q44d" name="q44" value="D"> D- Prostatectomie diagnostique</li>
+            
+                    <li><input type="checkbox" id="q44e" name="q44" value="E"> E- Cytologie urinaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-45" class="question-container">
+            <div class="question">
+                <p>45.) Une femme de 45 ans présente un nodule thyroïdien. La cytoponction montre les éléments suivants : étalement moyennement cellulaire, renfermant des cellules thyroïdiennes se disposant en follicules. Quel diagnostic proposez-vous ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q45a" name="q45" value="A"> A- Carcinome papillaire</li>
+            
+                    <li><input type="checkbox" id="q45b" name="q45" value="B"> B- Néoplasme folliculaire</li>
+            
+                    <li><input type="checkbox" id="q45c" name="q45" value="C"> C- Atypies de signification indéterminée</li>
+            
+                    <li><input type="checkbox" id="q45d" name="q45" value="D"> D- Carcinome vésiculaire</li>
+            
+                    <li><input type="checkbox" id="q45e" name="q45" value="E"> E- Lésion de thyroïdite</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-46" class="question-container">
+            <div class="question">
+                <p>46.) La femme est opérée. L'examen de la pièce opératoire montre une lésion constituée de vésicules thyroïdiennes tapissées par des cellules folliculaires thyroïdiennes avec la présence d'un foyer d'effraction capsulaire. Quel est le diagnostic final ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q46a" name="q46" value="A"> A- Carcinome papillaire</li>
+            
+                    <li><input type="checkbox" id="q46b" name="q46" value="B"> B- Néoplasme folliculaire</li>
+            
+                    <li><input type="checkbox" id="q46c" name="q46" value="C"> C- Atypies de signification indéterminée</li>
+            
+                    <li><input type="checkbox" id="q46d" name="q46" value="D"> D- Carcinome vésiculaire</li>
+            
+                    <li><input type="checkbox" id="q46e" name="q46" value="E"> E- Lésion de thyroïdite</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-47" class="question-container">
+            <div class="question">
+                <p>47.) Une femme de 65 ans présente une tuméfaction cervicale dure et augmentant progressivement de volume. Quel(s) diagnostic(s) évoquez-vous ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q47a" name="q47" value="A"> A- Carcinome papillaire</li>
+            
+                    <li><input type="checkbox" id="q47b" name="q47" value="B"> B- Thyroïdite de Riedel</li>
+            
+                    <li><input type="checkbox" id="q47c" name="q47" value="C"> C- Goitre non différencié</li>
+            
+                    <li><input type="checkbox" id="q47d" name="q47" value="D"> D- Thyroïdite de Hashimoto</li>
+            
+                    <li><input type="checkbox" id="q47e" name="q47" value="E"> E- Carcinome anaplasique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-48" class="question-container">
+            <div class="question">
+                <p>48.) Chez une patiente souffrant d'hyperparathyroïdie, les chirurgiens décident de réaliser un examen extemporané sur la glande parathyroïde supérieure droite. Elle mesure 1 cm et pèse 67 gr. L'examen des coupes congelées montre une glande hypercellulaire. Quels diagnostics évoquez-vous ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q48a" name="q48" value="A"> A- Adénome parathyroïdien</li>
+            
+                    <li><input type="checkbox" id="q48b" name="q48" value="B"> B- Lymphome</li>
+            
+                    <li><input type="checkbox" id="q48c" name="q48" value="C"> C- Carcinome neuroendocrine à petites cellules</li>
+            
+                    <li><input type="checkbox" id="q48d" name="q48" value="D"> D- Hyperplasie parathyroïdienne</li>
+            
+                    <li><input type="checkbox" id="q48e" name="q48" value="E"> E- Dystrophie parathyroïdienne</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-49" class="question-container">
+            <div class="question">
+                <p>49.) Le chirurgien envoie, ensuite, la parathyroïde supérieure gauche. Elle mesure 4 mm de grand axe et pèse 35 gr. L'examen des coupes congelées montre un tissu parathyroïdien sans anomalie. Quel diagnostic évoquez-vous ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q49a" name="q49" value="A"> A- Adénome parathyroïdien</li>
+            
+                    <li><input type="checkbox" id="q49b" name="q49" value="B"> B- Lymphome</li>
+            
+                    <li><input type="checkbox" id="q49c" name="q49" value="C"> C- Carcinome neuroendocrine à petites cellules</li>
+            
+                    <li><input type="checkbox" id="q49d" name="q49" value="D"> D- Hyperplasie parathyroïdienne</li>
+            
+                    <li><input type="checkbox" id="q49e" name="q49" value="E"> E- Dystrophie parathyroïdienne</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-50" class="question-container">
+            <div class="question">
+                <p>50.) L'étiologie la plus fréquente des insuffisances surrénaliennes chroniques est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q50a" name="q50" value="A"> A- Tuberculose</li>
+            
+                    <li><input type="checkbox" id="q50b" name="q50" value="B"> B- Corticossurrénalome</li>
+            
+                    <li><input type="checkbox" id="q50c" name="q50" value="C"> C- Hyperplasie congénitale des surrénales</li>
+            
+                    <li><input type="checkbox" id="q50d" name="q50" value="D"> D- Surrénalite auto-immune</li>
+            
+                    <li><input type="checkbox" id="q50e" name="q50" value="E"> E- Hyperplasie surrénalienne</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S5" "Anatomie_Pathologique_generale" "AP2018" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['B'],
+    q2: ['C'],
+    q3: ['C'],
+    q4: ['A', 'D', 'E'],
+    q5: ['B', 'D'],
+    q6: ['B'],
+    q7: ['A', 'B', 'D'],
+    q8: ['D'],
+    q9: ['C', 'D'],
+    q10: ['A'],
+    q11: ['B'],
+    q12: ['B', 'D'],
+    q13: ['A', 'B', 'C', 'D'],
+    q14: ['B'],
+    q15: ['A', 'B', 'D', 'E'],
+    q16: ['A', 'B', 'C', 'D'],
+    q17: ['A', 'D', 'E'],
+    q18: ['A', 'C', 'E'],
+    q19: ['C', 'B', 'D', 'E'],
+    q20: ['A', 'C', 'D'],
+    q21: ['E'],
+    q22: ['C', 'D', 'E'],
+    q23: ['B'],
+    q24: ['A', 'B', 'D', 'E'],
+    q25: ['C', 'D'],
+    q26: ['B', 'D', 'E'],
+    q27: ['B', 'C', 'E'],
+    q28: ['C'],
+    q29: ['A'],
+    q30: ['A', 'B', 'C'],
+    q31: ['A', 'E'],
+    q32: ['C'],
+    q33: ['E'],
+    q34: ['A', 'B', 'C'],
+    q35: ['A', 'D', 'C', 'E'],
+    q36: ['A', 'B', 'D', 'E'],
+    q37: ['B', 'D'],
+    q38: ['B', 'C', 'E'],
+    q39: ['B', 'C'],
+    q40: ['B', 'E'],
+    q41: ['B'],
+    q42: ['C'],
+    q43: ['A', 'B', 'C'],
+    q44: ['B'],
+    q45: ['B'],
+    q46: ['D'],
+    q47: ['B', 'E'],
+    q48: ['A', 'D'],
+    q49: ['A'],
+    q50: ['D'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersAP2018'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>

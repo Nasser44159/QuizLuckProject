@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Luck - Syntanatomie 2022</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/stylesynt.css' %}">
+    <link rel="stylesheet" href="{% static 'css/stylenavbar1.css' %}">
+
+
+</head>
+<body>
+
+
+
+
+
+<div class="navbar">
+    <span class="logo">QuizLuck</span>
+    <!-- Bouton pour ouvrir complètement la barre latérale -->
+<div class="hamburger-menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+    <div class="user-menu">
+        <div class="user-profile" onclick="toggleMenu()">
+            <span class="profile-icon">👤</span>
+            <span class="user-name">Bonjour, {{ user_full_name}} !</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <ul class="dropdown-menu" id="dropdown-menu">
+            <li><a href="#" onclick="openAccountModal()">Mon Compte</a></li>
+            <li>
+                <a href="{% url 'login' %}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Pop-up Modifier Mon Compte -->
+<div id="account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Modifier Mon compte</h3>
+            <span class="close-btn" onclick="closeAccountModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="account-form">
+                {% csrf_token %}
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" value="{{ user_full_name}}" required>
+<!-- Champ caché contenant la date de naissance -->
+<input type="hidden" id="profile-dob" value="{{ request.user.profile.birth_date|date:'Y-m-d' }}">
+
+                <label for="dob">Date de naissance :</label>
+                <input type="date" id="dob" name="dob" value="{{ user.dob|date:'Y-m-d' }}">
+
+                <label for="password">Nouveau mot de passe :</label>
+                <input type="password" id="password" name="password" placeholder="Nouveau mot de passe">
+
+                <label for="confirm-password">Répéter le mot de passe :</label>
+                <input type="password" id="confirm-password" name="confirm_password" placeholder="Répéter le mot de passe">
+
+                <button type="button" id="submit-form" class="btn-primary">Modifier</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pop-up Message -->
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <p id="popup-message"></p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+
+<div class="sidebar open" id="sidebar">
+
+    <!-- Section Accueil -->
+    <h3><i class="fas fa-home"></i> Accueil</h3>
+    <ul>
+        <li><a href="{% url 'home' %}"><i class="fas fa-arrow-circle-left"></i> Retourner à l'accueil</a></li>
+    </ul>
+
+    <!-- Section Modes -->
+    <h3><i class="fas fa-gamepad"></i> Modes</h3>
+    <ul>
+        <li><a href="{% url 'start_challenge' %}"><i class="fas fa-bolt"></i> Mode Challenge</a></li>
+	<li><a href="{% url 'revision' %}"><i class="fas fa-book"></i> Mode Révision</a></li>
+        <li><a href="{% url 'resultats' %}"><i class="fas fa-chart-line"></i> Vos Résultats</a></li>
+    </ul>
+
+<!-- Section Vos Modules -->
+<h3><i class="fas fa-folder"></i> Vos Modules</h3>
+<div id="sidebar-semesters">
+    <ul>
+        {% for semester, modules in data.items %}
+            <li>
+                <span class="semester-title">
+                    <i class="fas fa-graduation-cap"></i> {{ semester }}
+                    <span class="toggle-arrow">▶</span> <!-- Flèche pour masquer/afficher -->
+                </span>
+                <ul class="modules-list hidden"> <!-- Liste masquée par défaut -->
+                    {% for module in modules %}
+                        <li>
+                            <!-- Affiche uniquement la description -->
+                            <a href="/{{ semester }}/{{ module.name }}/">
+                                <i class="fas fa-book"></i> {{ module.description }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+
+
+    <!-- Bouton Déconnexion -->
+    <div class="logout-icon">
+        <a href="{% url 'login' %}">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</div>
+
+
+    <div id="content">
+
+<div id="score-container" class="score-container">
+    <h3>Note : <span id="score">0 / <span id="total-questions"</span></h3>
+</div>
+
+
+        <div class="quiz-title">
+            <h1>Resultats detail</h1>
+    </div>
+
+         <!-- Conteneur des cercles -->
+    <div class="circle-container" id="circle-container">
+        <!-- Les cercles seront générés ici par JavaScript -->
+    </div>
+
+            <div class="quiz-title">
+                <h1>QCM Anatomie 1</h1>
+            </div>
+            <form id="quiz-form">
+<input type="hidden" name="file_name" value="HMT2019">
+    
+        <div id="question-1" class="question-container">
+            <div class="question">
+                <p>1.) La coagulation intravasculaire disséminée a comme conséquence(s) de l’activation de l’hémostase :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q1a" name="q1" value="A"> A- Une diminution, par consommation, de certains facteurs de la coagulation</li>
+            
+                    <li><input type="checkbox" id="q1b" name="q1" value="B"> B- Une diminution, par consommation, des thrombocytes</li>
+            
+                    <li><input type="checkbox" id="q1c" name="q1" value="C"> C- Une activation de la fibrinolyse avec augmentation du fibrinogène</li>
+            
+                    <li><input type="checkbox" id="q1d" name="q1" value="D"> D- Une diminution, par consommation, d’inhibiteurs de la coagulation (antithrombine, protéine C)</li>
+            
+                    <li><input type="checkbox" id="q1e" name="q1" value="E"> E- La formation de produits de dégradation de la fibrine (D-Dimères)</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-2" class="question-container">
+            <div class="question">
+                <p>2.) Parmi les éléments suivants, lequel (lesquels) permet(tent) de différencier une CIVD d’une insuffisance hépatocellulaire :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q2a" name="q2" value="A"> A- Dosage des facteurs vitamine-K dépendants</li>
+            
+                    <li><input type="checkbox" id="q2b" name="q2" value="B"> B- Temps de Quick(TQ)</li>
+            
+                    <li><input type="checkbox" id="q2c" name="q2" value="C"> C- Le dosage du facteur V</li>
+            
+                    <li><input type="checkbox" id="q2d" name="q2" value="D"> D- Dosage du fibrinogène</li>
+            
+                    <li><input type="checkbox" id="q2e" name="q2" value="E"> E- Le dosage du facteur VIII</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-3" class="question-container">
+            <div class="question">
+                <p>3.) Dans la descendance d’un homme atteint d’hémophilie :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q3a" name="q3" value="A"> A- Tous les garçons sont malades</li>
+            
+                    <li><input type="checkbox" id="q3b" name="q3" value="B"> B- La moitié des filles est conductrice</li>
+            
+                    <li><input type="checkbox" id="q3c" name="q3" value="C"> C- La moitié des filles est malade</li>
+            
+                    <li><input type="checkbox" id="q3d" name="q3" value="D"> D- Toutes les filles sont conductrices</li>
+            
+                    <li><input type="checkbox" id="q3e" name="q3" value="E"> E- Tous les garçons sont indemnes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-4" class="question-container">
+            <div class="question">
+                <p>4.) Une hémophilie A se traduit par :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q4a" name="q4" value="A"> A- Un allongement du temps de céphaline avec activateur</li>
+            
+                    <li><input type="checkbox" id="q4b" name="q4" value="B"> B- Une thrombopénie</li>
+            
+                    <li><input type="checkbox" id="q4c" name="q4" value="C"> C- Un allongement du taux de prothrombine</li>
+            
+                    <li><input type="checkbox" id="q4d" name="q4" value="D"> D- Un allongement du temps de Quick</li>
+            
+                    <li><input type="checkbox" id="q4e" name="q4" value="E"> E- Un déficit en fibrinogène</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-5" class="question-container">
+            <div class="question">
+                <p>5.) Parmi les moyens thérapeutiques suivants, Citez ceux qui sont indiqués chez un hémophile :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q5a" name="q5" value="A"> A- Le concentré de Facteur VIII</li>
+            
+                    <li><input type="checkbox" id="q5b" name="q5" value="B"> B- Le plasma frais congelé</li>
+            
+                    <li><input type="checkbox" id="q5c" name="q5" value="C"> C- Les plaquettes</li>
+            
+                    <li><input type="checkbox" id="q5d" name="q5" value="D"> D- Le concentré de Facteur IX</li>
+            
+                    <li><input type="checkbox" id="q5e" name="q5" value="E"> E- Le culot globulaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-6" class="question-container">
+            <div class="question">
+                <p>6.) La maladie de Willebrand :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q6a" name="q6" value="A"> A- Touche uniquement les sujets de sexe masculin</li>
+            
+                    <li><input type="checkbox" id="q6b" name="q6" value="B"> B- Une des plus fréquentes anomalies constitutionnelles de l’hémostase</li>
+            
+                    <li><input type="checkbox" id="q6c" name="q6" value="C"> C- L’allongement du temps de saignement reste un critère diagnostique important</li>
+            
+                    <li><input type="checkbox" id="q6d" name="q6" value="D"> D- Est liée à une anomalie qualitative ou quantitative du facteur Willebrand</li>
+            
+                    <li><input type="checkbox" id="q6e" name="q6" value="E"> E- La symptomatologie hémorragique reflète principalement l’anomalie de l’hémostase primaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-7" class="question-container">
+            <div class="question">
+                <p>7.) Garçon de 3 ans, souffrant d’infections ORL à répétition, mais en bonne santé par ailleurs, doit subir une adénoïdectomie. Le bilan d’hémostase préopératoire retrouve : TQ = 12 secondes (témoin 11 secondes), TPP = 98%, TCA = 62 secondes (témoin 27 secondes), Fibrinogène = 3,3 g/L. Parmi les diagnostics suivants, lesquels sont compatibles avec le tableau clinique et biologique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q7a" name="q7" value="A"> A- Thrombopathie</li>
+            
+                    <li><input type="checkbox" id="q7b" name="q7" value="B"> B- Maladie de Willebrand sévère</li>
+            
+                    <li><input type="checkbox" id="q7c" name="q7" value="C"> C- Hémophilie A</li>
+            
+                    <li><input type="checkbox" id="q7d" name="q7" value="D"> D- Hémophilie B</li>
+            
+                    <li><input type="checkbox" id="q7e" name="q7" value="E"> E- Déficit de facteur V</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-8" class="question-container">
+            <div class="question">
+                <p>8.) Pour confirmer votre diagnostic vous demandez :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q8a" name="q8" value="A"> A- Dosage des facteurs anti-hémophiliques</li>
+            
+                    <li><input type="checkbox" id="q8b" name="q8" value="B"> B- Bilan hépatique</li>
+            
+                    <li><input type="checkbox" id="q8c" name="q8" value="C"> C- Dosage du facteur V</li>
+            
+                    <li><input type="checkbox" id="q8d" name="q8" value="D"> D- Dosage des D-dimères</li>
+            
+                    <li><input type="checkbox" id="q8e" name="q8" value="E"> E- Test d’agrégation plaquettaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-9" class="question-container">
+            <div class="question">
+                <p>9.) Femme de 38 ans, mère de 3 enfants, assistante de direction, avait consulté pour asthénie avec notion de chute des cheveux. L’examen retrouvait pâleur avec conjonctives décolorées, ongles striés et langue dépapillée. L’hémogramme montrait : Hb 6,3 g/dl, VGM 68 fl, CCMH 29%. Globules blancs 3260 éléments/mm3, Pq. neutrophiles 45%, éosinophiles 3%, monocytes 8%, lymphocytes 39%. Plaquettes à 480 000/mm3. Ferritinémie = 3 ng/mL. Votre conduite à tenir ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q9a" name="q9" value="A"> A- Faire doser les réticulocytes et fer sérique</li>
+            
+                    <li><input type="checkbox" id="q9b" name="q9" value="B"> B- Transfuser en urgence</li>
+            
+                    <li><input type="checkbox" id="q9c" name="q9" value="C"> C- Débuter le diagnostic de l’anémie par carence martiale</li>
+            
+                    <li><input type="checkbox" id="q9d" name="q9" value="D"> D- Faire une vitesse de sédimentation</li>
+            
+                    <li><input type="checkbox" id="q9e" name="q9" value="E"> E- Prévoir une consultation en dermatologie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-10" class="question-container">
+            <div class="question">
+                <p>10.) Adolescente de 12 ans étant prise en charge pour une maladie de Willebrand depuis l’âge de 12 ans. Elle est mise sous traitement fer pour carence en fer avec un taux d’hémoglobine à 5 g/L après des règles abondantes. Que conseillez-vous ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q10a" name="q10" value="A"> A- Transfuser sur un bilan étiologique</li>
+            
+                    <li><input type="checkbox" id="q10b" name="q10" value="B"> B- Transfuser uniquement en urgence</li>
+            
+                    <li><input type="checkbox" id="q10c" name="q10" value="C"> C- Augmenter la dose de fer</li>
+            
+                    <li><input type="checkbox" id="q10d" name="q10" value="D"> D- Débuter une cure avec globules rouges</li>
+            
+                    <li><input type="checkbox" id="q10e" name="q10" value="E"> E- Transfuser si l’anémie est mal tolérée</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-11" class="question-container">
+            <div class="question">
+                <p>11.) Le traitement curatif par Mme Brahim est très mal toléré (nausées, douleurs abdominales, constipation). Que lui conseillez-vous ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q11a" name="q11" value="A"> A- Arrêter le traitement</li>
+            
+                    <li><input type="checkbox" id="q11b" name="q11" value="B"> B- Réduire la dose quotidienne</li>
+            
+                    <li><input type="checkbox" id="q11c" name="q11" value="C"> C- Espacer le traitement d’une semaine puis le reprendre</li>
+            
+                    <li><input type="checkbox" id="q11d" name="q11" value="D"> D- Continuer le traitement tel quel</li>
+            
+                    <li><input type="checkbox" id="q11e" name="q11" value="E"> E- Changer le médicament</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-12" class="question-container">
+            <div class="question">
+                <p>12.) Patiente de 60 ans, sans antécédents particuliers, consulte pour asthénie, sensation de lourdeur, épidermies et lenteurs de cicatrisation en pleine été. L’hémogramme montre : GR : 2 M/mm3 Hb : 7 g/dl VGM : 105fl CCMH 33%, Réticulocytes 45000/mm3, GB : 9500 éléments/mm3, PNN : 6%, Lymphocytes : 55%, Monocytes : 10%, Éosinophiles : 10%, Basophiles : 0%. Quelle est votre interprétation de cet hémogramme ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q12a" name="q12" value="A"> A- Anémie macrocytaire régénérative</li>
+            
+                    <li><input type="checkbox" id="q12b" name="q12" value="B"> B- Anémie macrocytaire hyporégénérative</li>
+            
+                    <li><input type="checkbox" id="q12c" name="q12" value="C"> C- Hyperlymphocytose</li>
+            
+                    <li><input type="checkbox" id="q12d" name="q12" value="D"> D- Thrombopénie</li>
+            
+                    <li><input type="checkbox" id="q12e" name="q12" value="E"> E- Éosinophiles diminués</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-13" class="question-container">
+            <div class="question">
+                <p>13.) Le diagnostic de maladie de Biermer est confirmé chez cette patiente. Quel traitement allez-vous lui prescrire ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q13a" name="q13" value="A"> A- Acide folique : 1 cp de 5 mg/jour pendant un mois</li>
+            
+                    <li><input type="checkbox" id="q13b" name="q13" value="B"> B- Hydroxocobalamine 1000 gamma/jour par voie intra-veineuse pour corriger taux d'Hb</li>
+            
+                    <li><input type="checkbox" id="q13c" name="q13" value="C"> C- Hydroxocobalamine 1000 gamma/jour per os</li>
+            
+                    <li><input type="checkbox" id="q13d" name="q13" value="D"> D- Transfusion de concentrés de globules rouges</li>
+            
+                    <li><input type="checkbox" id="q13e" name="q13" value="E"> E- Hydroxocobalamine chaque mois à vie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-14" class="question-container">
+            <div class="question">
+                <p>14.) Quelle surveillance à long terme pour cette patiente ? (Suite de la question N° 13)</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q14a" name="q14" value="A"> A- Refaire myélogramme chaque année</li>
+            
+                    <li><input type="checkbox" id="q14b" name="q14" value="B"> B- Fibroscopie oeso-gastro-duodénale/année</li>
+            
+                    <li><input type="checkbox" id="q14c" name="q14" value="C"> C- Fibroscopie oeso-gastro-duodénale avec biopsies gastriques/année</li>
+            
+                    <li><input type="checkbox" id="q14d" name="q14" value="D"> D- Coloscopie avec biopsies coliques/année</li>
+            
+                    <li><input type="checkbox" id="q14e" name="q14" value="E"> E- TOGD/année</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-15" class="question-container">
+            <div class="question">
+                <p>15.) Petite fille de 7 ans, hospitalisée pour altération de l'état général, fièvre à 40°C, pâleur impressionnante, dyspnée, tâches ecchymotiques. A l'examen, pétéchies et ecchymoses diffuses, adénopathies cervicales et axillaires de 2-3 cm et splénomégalie de 5 cm de débord costal. Quelle(s) est (sont) votre (vos) hypothèse(s) diagnostique(s) ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q15a" name="q15" value="A"> A- Aplasie médullaire</li>
+            
+                    <li><input type="checkbox" id="q15b" name="q15" value="B"> B- Leucémie aiguë myéloblastique</li>
+            
+                    <li><input type="checkbox" id="q15c" name="q15" value="C"> C- Mononucléose infectieuse</li>
+            
+                    <li><input type="checkbox" id="q15d" name="q15" value="D"> D- Lymphome hodgkinien</li>
+            
+                    <li><input type="checkbox" id="q15e" name="q15" value="E"> E- Leucémie aiguë lymphoblastique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-16" class="question-container">
+            <div class="question">
+                <p>16.) L’hémogramme réalisée chez cette enfant montrait : GR = 2,10 M/mm3, Hb = 5,6 g/100ml, Ht = 17%, VMC = 90 fl, CCMH = 32%, GB = 1 600/mm3, P. neutrophiles = 18%, lymphocytes = 82%, Plaquettes = 12 000/mm3. (Suite de la question N° 15) Quel sera votre bilan diagnostique ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q16a" name="q16" value="A"> A- Taux de réticulocytes</li>
+            
+                    <li><input type="checkbox" id="q16b" name="q16" value="B"> B- Myélogramme</li>
+            
+                    <li><input type="checkbox" id="q16c" name="q16" value="C"> C- Biopsie ostéo-médullaire</li>
+            
+                    <li><input type="checkbox" id="q16d" name="q16" value="D"> D- Immunophénotypage</li>
+            
+                    <li><input type="checkbox" id="q16e" name="q16" value="E"> E- Ionogramme sanguin</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-17" class="question-container">
+            <div class="question">
+                <p>17.) Homme de 38 ans consulte pour asthénie, amaigrissement et pesanteur de l’hypochondre gauche, l’examen physique retrouvait une splénomégalie isolée de 15 cm de débord. Votre ou vos hypothèses diagnostiques ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q17a" name="q17" value="A"> A- Leucémie lymphoïde chronique</li>
+            
+                    <li><input type="checkbox" id="q17b" name="q17" value="B"> B- Lymphome hodgkinien</li>
+            
+                    <li><input type="checkbox" id="q17c" name="q17" value="C"> C- Lymphome de Burkitt</li>
+            
+                    <li><input type="checkbox" id="q17d" name="q17" value="D"> D- Leucémie myéloïde chronique</li>
+            
+                    <li><input type="checkbox" id="q17e" name="q17" value="E"> E- Leucémie aiguë lymphoblastique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-18" class="question-container">
+            <div class="question">
+                <p>18.) Ce patient avait un hémogramme qui montrait : GB : 345000/mm3, P. neutrophiles 26%, P. basophiles 4%, P. éosinophiles 5%, myélocyte 27%, métamyélocytes 35%, promyélocytes 3%, monocytes 1%, lymphocytes 3%. Hb 11,5 g/dl, Pq : 700000/mm3. (Suite de la question N° 17) Pour confirmer le diagnostic, quel bilan réaliser chez ce patient ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q18a" name="q18" value="A"> A- Dosage acide urique</li>
+            
+                    <li><input type="checkbox" id="q18b" name="q18" value="B"> B- Myélogramme</li>
+            
+                    <li><input type="checkbox" id="q18c" name="q18" value="C"> C- Caryotype</li>
+            
+                    <li><input type="checkbox" id="q18d" name="q18" value="D"> D- Immunophénotypage</li>
+            
+                    <li><input type="checkbox" id="q18e" name="q18" value="E"> E- Recherche de la mutation Jak2</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-19" class="question-container">
+            <div class="question">
+                <p>19.) Homme de 57 ans, employé, consulte pour asthénie, dyspnée à l’effort de marche avec douleurs osseuses rebelles aux antalgiques. Cette symptomatologie évolue depuis 7 mois. L'examen physique ne retrouve qu’une pâleur cutanéo-muqueuse. Quel est votre diagnostic le plus probable ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q19a" name="q19" value="A"> A- Leucémie aiguë</li>
+            
+                    <li><input type="checkbox" id="q19b" name="q19" value="B"> B- Myélome multiple</li>
+            
+                    <li><input type="checkbox" id="q19c" name="q19" value="C"> C- Arthrose</li>
+            
+                    <li><input type="checkbox" id="q19d" name="q19" value="D"> D- Leucémie aiguë lymphoblastique</li>
+            
+                    <li><input type="checkbox" id="q19e" name="q19" value="E"> E- Sarcome d’Ewing</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-20" class="question-container">
+            <div class="question">
+                <p>20.) Pour confirmer votre ou vos hypothèses diagnostiques, quel bilan demanderiez-vous ? (Suite de la question N° 19)</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q20a" name="q20" value="A"> A- Biopsie osseuse</li>
+            
+                    <li><input type="checkbox" id="q20b" name="q20" value="B"> B- Myélogramme</li>
+            
+                    <li><input type="checkbox" id="q20c" name="q20" value="C"> C- Bilan radiologique</li>
+            
+                    <li><input type="checkbox" id="q20d" name="q20" value="D"> D- Electrophorèse et immuno-électrophorèse des protéines plasmatiques</li>
+            
+                    <li><input type="checkbox" id="q20e" name="q20" value="E"> E- Biopsie ostéo-médullaire</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-21" class="question-container">
+            <div class="question">
+                <p>21.) Patient de 67 ans, pris en charge depuis plus d’une année par un syndrome anémique d’installation progressive. Son hémogramme : Hb : 9,7 g/dl, VGM : 66 fl, CCMH : 30 %, GB : 2900 éléments/mm3, PNN : 1700 éléments/mm3, lympho : 1200 éléments/mm3. Plaquettes : 145000. Mis sous fer pendant 3 mois sans aucune amélioration. Votre ou vos hypothèses diagnostiques les plus probables ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q21a" name="q21" value="A"> A- Anémie inflammatoire</li>
+            
+                    <li><input type="checkbox" id="q21b" name="q21" value="B"> B- Syndrome myélodysplasique</li>
+            
+                    <li><input type="checkbox" id="q21c" name="q21" value="C"> C- Anémie sidéroblastique</li>
+            
+                    <li><input type="checkbox" id="q21d" name="q21" value="D"> D- Beta-thalassémie homozygote</li>
+            
+                    <li><input type="checkbox" id="q21e" name="q21" value="E"> E- Anémie par carence en fer</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-22" class="question-container">
+            <div class="question">
+                <p>22.) Quel bilan allez-vous demander pour confirmer le diagnostic ? (Suite de la question N° 21)</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q22a" name="q22" value="A"> A- Frottis sanguin</li>
+            
+                    <li><input type="checkbox" id="q22b" name="q22" value="B"> B- Myélogramme</li>
+            
+                    <li><input type="checkbox" id="q22c" name="q22" value="C"> C- CRP</li>
+            
+                    <li><input type="checkbox" id="q22d" name="q22" value="D"> D- Myélogramme + coloration de perls</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-23" class="question-container">
+            <div class="question">
+                <p>23.) On reconnait comme cause(s) d’aplasie médullaire ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q23a" name="q23" value="A"> A- Traitement par le Chloramphénicol</li>
+            
+                    <li><input type="checkbox" id="q23b" name="q23" value="B"> B- Exposition professionnelle aux organophosphorés</li>
+            
+                    <li><input type="checkbox" id="q23c" name="q23" value="C"> C- Insuffisance rénale chronique</li>
+            
+                    <li><input type="checkbox" id="q23d" name="q23" value="D"> D- Cancer métastatique à la moelle</li>
+            
+                    <li><input type="checkbox" id="q23e" name="q23" value="E"> E- Hépatite virale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-24" class="question-container">
+            <div class="question">
+                <p>24.) Dans l’aplasie médullaire on retrouve, un(e) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q24a" name="q24" value="A"> A- Moelle riche avec présence de fibrose</li>
+            
+                    <li><input type="checkbox" id="q24b" name="q24" value="B"> B- Pancytopénie à moelle pauvre</li>
+            
+                    <li><input type="checkbox" id="q24c" name="q24" value="C"> C- Insuffisance quantitative de l’hématopoïèse</li>
+            
+                    <li><input type="checkbox" id="q24d" name="q24" value="D"> D- Origine constitutionnelle ou acquise</li>
+            
+                    <li><input type="checkbox" id="q24e" name="q24" value="E"> E- Syndrome d’insuffisance médullaire avec un syndrome tumoral</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-25" class="question-container">
+            <div class="question">
+                <p>25.) Une aplasie médullaire est dite sévère si les :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q25a" name="q25" value="A"> A- Globules blancs sont inférieurs à 2 000/mm3</li>
+            
+                    <li><input type="checkbox" id="q25b" name="q25" value="B"> B- Polynucléaires neutrophiles sont inférieurs à 500/mm3</li>
+            
+                    <li><input type="checkbox" id="q25c" name="q25" value="C"> C- Hémoglobine est inférieure à 7 g/dl</li>
+            
+                    <li><input type="checkbox" id="q25d" name="q25" value="D"> D- Réticulocytes sont inférieurs à 20 000/mm3</li>
+            
+                    <li><input type="checkbox" id="q25e" name="q25" value="E"> E- Plaquettes sont inférieures à 20 000/mm3</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-26" class="question-container">
+            <div class="question">
+                <p>26.) Au cours d’une thrombopénie immunologique idiopathique, les signes de gravité sont :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q26a" name="q26" value="A"> A- Un chiffre de plaquettes à 30 000/mm3</li>
+            
+                    <li><input type="checkbox" id="q26b" name="q26" value="B"> B- Un purpura localisé aux membres inférieurs</li>
+            
+                    <li><input type="checkbox" id="q26c" name="q26" value="C"> C- Une hémorragie au fond de l'œil</li>
+            
+                    <li><input type="checkbox" id="q26d" name="q26" value="D"> D- Des bulles hémorragiques buccales</li>
+            
+                    <li><input type="checkbox" id="q26e" name="q26" value="E"> E- Une hémorragie viscérale</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-27" class="question-container">
+            <div class="question">
+                <p>27.) Parmi les critères suivants, indiquez lequel ne fait pas partie du tableau habituel d’une thrombopénie immunologique idiopathique :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q27a" name="q27" value="A"> A- Thrombopénie</li>
+            
+                    <li><input type="checkbox" id="q27b" name="q27" value="B"> B- Présence d'une splénomégalie</li>
+            
+                    <li><input type="checkbox" id="q27c" name="q27" value="C"> C- Augmentation du nombre des mégacaryocytes médullaires</li>
+            
+                    <li><input type="checkbox" id="q27d" name="q27" value="D"> D- Diminution de la durée de vie des plaquettes</li>
+            
+                    <li><input type="checkbox" id="q27e" name="q27" value="E"> E- Présence d'un taux augmenté d’IgG à la surface des plaquettes</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-28" class="question-container">
+            <div class="question">
+                <p>28.) Une jeune femme de 25 ans est hospitalisée pour une thrombopénie immunologique idiopathique sévère. Il existe des pétéchies et quelques ecchymoses. Le taux de plaquettes est de 15 000/mm3. Vous envisagez :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q28a" name="q28" value="A"> A- Une transfusion en plaquettes</li>
+            
+                    <li><input type="checkbox" id="q28b" name="q28" value="B"> B- Un traitement par sérum anti-lymphocytaire</li>
+            
+                    <li><input type="checkbox" id="q28c" name="q28" value="C"> C- La mise en route d’une corticothérapie</li>
+            
+                    <li><input type="checkbox" id="q28d" name="q28" value="D"> D- Une transfusion en culot globulaire</li>
+            
+                    <li><input type="checkbox" id="q28e" name="q28" value="E"> E- Une échange plasmatique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-29" class="question-container">
+            <div class="question">
+                <p>29.) Dans les règles de la transfusion, on peut transfuser une personne :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q29a" name="q29" value="A"> A- A+ par un culot globulaire O+</li>
+            
+                    <li><input type="checkbox" id="q29b" name="q29" value="B"> B- AB+ par un culot globulaire B+</li>
+            
+                    <li><input type="checkbox" id="q29c" name="q29" value="C"> C- O+ par un culot globulaire AB-</li>
+            
+                    <li><input type="checkbox" id="q29d" name="q29" value="D"> D- AB par un PFC O</li>
+            
+                    <li><input type="checkbox" id="q29e" name="q29" value="E"> E- A par un PFC AB</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-30" class="question-container">
+            <div class="question">
+                <p>30.) L’hémolyse transfusionnelle par incompatibilité ABO est l’accident à redouter car le plus fréquent et le plus grave. Le moyen le plus efficace pour l’éviter est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q30a" name="q30" value="A"> A- Le groupage correct du receveur</li>
+            
+                    <li><input type="checkbox" id="q30b" name="q30" value="B"> B- La recherche d’anticorps irréguliers systématique chez le receveur</li>
+            
+                    <li><input type="checkbox" id="q30c" name="q30" value="C"> C- La transfusion de sang du Groupe O</li>
+            
+                    <li><input type="checkbox" id="q30d" name="q30" value="D"> D- L’épreuve de concordance de groupe au lit du malade</li>
+            
+                    <li><input type="checkbox" id="q30e" name="q30" value="E"> E- Éviter les donneurs universels dangereux</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-31" class="question-container">
+            <div class="question">
+                <p>31.) La transfusion en plaquettes :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q31a" name="q31" value="A"> A- Se fait à partir d’un concentré plaquettaire poolé seulement</li>
+            
+                    <li><input type="checkbox" id="q31b" name="q31" value="B"> B- Peut se faire à partir d’un don de cytaphérèse d’un seul donneur</li>
+            
+                    <li><input type="checkbox" id="q31c" name="q31" value="C"> C- Est indiquée en cas de thrombopénie sévère</li>
+            
+                    <li><input type="checkbox" id="q31d" name="q31" value="D"> D- Nécessite une conservation de base à -4°C</li>
+            
+                    <li><input type="checkbox" id="q31e" name="q31" value="E"> E- Nécessite un contrôle ultime au lit du patient</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-32" class="question-container">
+            <div class="question">
+                <p>32.) La découverte d’une anémie hémolytique avec test de Coombs direct positif doit faire rechercher :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q32a" name="q32" value="A"> A- Une leucémie lymphoïde chronique</li>
+            
+                    <li><input type="checkbox" id="q32b" name="q32" value="B"> B- Une maladie de Fanconi</li>
+            
+                    <li><input type="checkbox" id="q32c" name="q32" value="C"> C- Un lupus érythémateux disséminé</li>
+            
+                    <li><input type="checkbox" id="q32d" name="q32" value="D"> D- Une prise médicamenteuse d’Alpha Méthyl Dopa</li>
+            
+                    <li><input type="checkbox" id="q32e" name="q32" value="E"> E- Une leucémie myéloïde chronique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-33" class="question-container">
+            <div class="question">
+                <p>33.) Un homme de 40 ans, sans antécédent, consulte devant la découverte d’un syndrome anémique et d’une splénomégalie à 4 cm sous le rebord costal. A l’hémogramme, Hb à 10,5 g/dl, VGM à 103 fl, CCMH 32% le reste est normal. Son taux de réticulocytes est à 260 000/mm3. Quelle est votre première hypothèse diagnostique ?</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q33a" name="q33" value="A"> A- Inflammation chronique</li>
+            
+                    <li><input type="checkbox" id="q33b" name="q33" value="B"> B- Hypertension liée à une cirrhose</li>
+            
+                    <li><input type="checkbox" id="q33c" name="q33" value="C"> C- Leucémie myéloïde chronique</li>
+            
+                    <li><input type="checkbox" id="q33d" name="q33" value="D"> D- Anémie hémolytique</li>
+            
+                    <li><input type="checkbox" id="q33e" name="q33" value="E"> E- Maladie de Biermer</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-34" class="question-container">
+            <div class="question">
+                <p>34.) Une femme de 45 ans, mère de 3 enfants, sans antécédent pathologique particulier, consulte pour une asthénie marquée évoluant depuis plusieurs mois. L’examen clinique est négatif en dehors d’une pâleur cutanéo-muqueuse et d’un subictère conjonctival. L’hémogramme montre : Hémoglobine : 9,5 g/dl, VGM : 105 fl, CCMH = 33 %, Leucocytes : 4500 éléments/mm3, Polynucléaires neutrophiles : 60 %, Polynucléaires éosinophiles : 2 %, Lymphocytes : 33 %, Monocytes : 5 %, Plaquettes : 160.000 éléments/mm3. Réticulocytes : 300.000 éléments/mm3. Parmi les examens suivants, lequel est celui qui vous paraît à ce stade le plus utile pour préciser le diagnostic :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q34a" name="q34" value="A"> A- Dosage des phosphatases alcalines</li>
+            
+                    <li><input type="checkbox" id="q34b" name="q34" value="B"> B- Dosage de la bilirubine totale et libre</li>
+            
+                    <li><input type="checkbox" id="q34c" name="q34" value="C"> C- Myélogramme</li>
+            
+                    <li><input type="checkbox" id="q34d" name="q34" value="D"> D- Dosage de la Ferritinémie</li>
+            
+                    <li><input type="checkbox" id="q34e" name="q34" value="E"> E- Bilan d’hémostase (TP, TCA, Fibrinogène)</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-35" class="question-container">
+            <div class="question">
+                <p>35.) Le test de Coombs direct est positif (de type IgG + complément). Parmi les diagnostics suivants, quels sont chez cette malade les deux les plus probables :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q35a" name="q35" value="A"> A- Anémie de Biermer</li>
+            
+                    <li><input type="checkbox" id="q35b" name="q35" value="B"> B- Anémie hémolytique</li>
+            
+                    <li><input type="checkbox" id="q35c" name="q35" value="C"> C- Lupus érythémateux disséminé</li>
+            
+                    <li><input type="checkbox" id="q35d" name="q35" value="D"> D- Micro-angiopathie thrombotique</li>
+            
+                    <li><input type="checkbox" id="q35e" name="q35" value="E"> E- Anémie hémolytique auto-immune idiopathique</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-36" class="question-container">
+            <div class="question">
+                <p>36.) Le traitement à proposer en première intention est :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q36a" name="q36" value="A"> A- Injection de Vitamine B12</li>
+            
+                    <li><input type="checkbox" id="q36b" name="q36" value="B"> B- Splénectomie</li>
+            
+                    <li><input type="checkbox" id="q36c" name="q36" value="C"> C- Prednisone per os</li>
+            
+                    <li><input type="checkbox" id="q36d" name="q36" value="D"> D- Acide folinique en intramusculaire</li>
+            
+                    <li><input type="checkbox" id="q36e" name="q36" value="E"> E- Transfusions de concentrés érythrocytaires</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-37" class="question-container">
+            <div class="question">
+                <p>37.) Au cours de la maladie de Minkowski-Chauffard :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q37a" name="q37" value="A"> A- Le diagnostic peut être posé à l’occasion d’un ictère néonatal</li>
+            
+                    <li><input type="checkbox" id="q37b" name="q37" value="B"> B- L’hémolyse est déclenchée par une prise médicamenteuse</li>
+            
+                    <li><input type="checkbox" id="q37c" name="q37" value="C"> C- La fragilité osmotique des GR aux solutions hypotoniques est augmentée</li>
+            
+                    <li><input type="checkbox" id="q37d" name="q37" value="D"> D- Le taux d’hémoglobine se normalise après splénectomie</li>
+            
+                    <li><input type="checkbox" id="q37e" name="q37" value="E"> E- L’anomalie membranaire disparaît après splénectomie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-38" class="question-container">
+            <div class="question">
+                <p>38.) Une aggravation de l’anémie chez un enfant drépanocytaire peut être liée à :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q38a" name="q38" value="A"> A- Une carence en folates</li>
+            
+                    <li><input type="checkbox" id="q38b" name="q38" value="B"> B- Une carence en vitamine B12</li>
+            
+                    <li><input type="checkbox" id="q38c" name="q38" value="C"> C- Une hyper hémolyse</li>
+            
+                    <li><input type="checkbox" id="q38d" name="q38" value="D"> D- Une séquestration splénique</li>
+            
+                    <li><input type="checkbox" id="q38e" name="q38" value="E"> E- Une érythroblastopénie</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-39" class="question-container">
+            <div class="question">
+                <p>39.) Au cours de la drépanocytose SS :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q39a" name="q39" value="A"> A- Les GR se déforment en faucilles en milieu désoxygéné</li>
+            
+                    <li><input type="checkbox" id="q39b" name="q39" value="B"> B- Les réticulocytes sont très élevés</li>
+            
+                    <li><input type="checkbox" id="q39c" name="q39" value="C"> C- Les frottis montre une microshcytose</li>
+            
+                    <li><input type="checkbox" id="q39d" name="q39" value="D"> D- Le taux de l’Hémoglobine S est de 80-99%</li>
+            
+                    <li><input type="checkbox" id="q39e" name="q39" value="E"> E- Le taux de l’Hémoglobine A est de 1-10%</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-40" class="question-container">
+            <div class="question">
+                <p>40.) Le déficit en glucose 6 phosphate déshydrogénase (G6PD) :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q40a" name="q40" value="A"> A- N’affecte que les garçons de race noire</li>
+            
+                    <li><input type="checkbox" id="q40b" name="q40" value="B"> B- Est l’enzymopathie la plus répandue</li>
+            
+                    <li><input type="checkbox" id="q40c" name="q40" value="C"> C- Se révèle le plus souvent par une hémolyse aiguë intra-vasculaire</li>
+            
+                    <li><input type="checkbox" id="q40d" name="q40" value="D"> D- Est confirmé par le dosage enzymatique effectué au cours de la crise hémolytique</li>
+            
+                    <li><input type="checkbox" id="q40e" name="q40" value="E"> E- Le traitement est préventif et consiste à éviter les facteurs déclenchants</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+        <div id="question-41" class="question-container">
+            <div class="question">
+                <p>41.) La forme majeure de la β thalassémie homozygote :</p>
+                <ul>
+        
+                    <li><input type="checkbox" id="q41a" name="q41" value="A"> A- Est fréquente pour méditerranéen</li>
+            
+                    <li><input type="checkbox" id="q41b" name="q41" value="B"> B- Est due à un déficit de synthèse de la chaîne bêta de l’hémoglobine</li>
+            
+                    <li><input type="checkbox" id="q41c" name="q41" value="C"> C- Se manifeste dès le réveil en période néonatale</li>
+            
+                    <li><input type="checkbox" id="q41d" name="q41" value="D"> D- Est souvent élevée avant une anémie profonde hypochrome microcytaire</li>
+            
+                    <li><input type="checkbox" id="q41e" name="q41" value="E"> E- Est dépendante de la transfusion</li>
+            
+                </ul>
+            </div>
+            
+        </div>
+        
+            
+
+            
+
+            
+                
+                
+                
+            </div>
+<button type="button" class="reset-quiz-button" onclick="window.location.href = '{% url "dynamic_view" "S7" "Cancerologie_Hematologie" "HMT2019" %}';">Réessayer tout le Quiz</button>
+
+            <div id="details-section" class="details-section" style="display: none;">
+                <h3>Tableau des questions</h3>
+                <div class="question-links" id="question-links"></div>
+            </div>
+
+            
+    
+            <script>
+const correctAnswers = {
+    q1: ['A', 'B', 'D', 'E'],
+    q2: ['E'],
+    q3: ['D', 'E'],
+    q4: ['A'],
+    q5: ['A', 'B', 'D'],
+    q6: ['B', 'D', 'E'],
+    q7: ['B', 'C', 'D'],
+    q8: ['A'],
+    q9: ['B', 'C'],
+    q10: ['A'],
+    q11: ['C'],
+    q12: ['C', 'D'],
+    q13: ['B', 'D', 'E'],
+    q14: ['C'],
+    q15: ['E'],
+    q16: ['B', 'D'],
+    q17: ['B', 'D'],
+    q18: ['B', 'C'],
+    q19: ['B'],
+    q20: ['B', 'C', 'D'],
+    q21: ['B', 'C'],
+    q22: ['C', 'E'],
+    q23: ['A', 'B', 'E'],
+    q24: ['B', 'C', 'D'],
+    q25: ['B', 'D', 'E'],
+    q26: ['C', 'D', 'E'],
+    q27: ['B'],
+    q28: ['C'],
+    q29: ['A', 'B', 'E'],
+    q30: ['D'],
+    q31: ['B', 'C'],
+    q32: ['A', 'C', 'D'],
+    q33: ['D'],
+    q34: ['B'],
+    q35: ['C', 'D'],
+    q36: ['C'],
+    q37: ['A', 'C', 'D'],
+    q38: ['A', 'C', 'D', 'E'],
+    q39: ['A', 'B', 'D'],
+    q40: ['B', 'C', 'E'],
+    q41: ['A', 'B', 'D', 'E'],
+};
+
+let userAnswers = {}; // Stocke les réponses de l'utilisateur
+let loadedAnswers = {}; // Stocke les réponses chargées pour l'évaluation
+
+// Charger les réponses utilisateur
+function loadUserAnswersFromChimie() {
+    const savedAnswers = JSON.parse(localStorage.getItem('userAnswersHMT2019'));
+
+    if (savedAnswers) {
+        loadedAnswers = savedAnswers; // Stocker les réponses dans la variable globale
+        for (const [questionName, answerData] of Object.entries(savedAnswers)) {
+            const questionDiv = document.querySelector(`input[name="${questionName}"]`)?.closest('.question-container');
+            if (!questionDiv) continue;
+
+            // Appliquer les styles pour les bonnes réponses
+            correctAnswers[questionName]?.forEach(correctAnswer => {
+                const correctLi = questionDiv.querySelector(`input[value="${correctAnswer}"]`)?.closest('li');
+                if (correctLi) {
+                    correctLi.style.color = 'green';
+                    correctLi.style.fontWeight = 'bold';
+                    correctLi.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                }
+            });
+
+            // Appliquer les styles pour les réponses sélectionnées
+            answerData.selected.forEach(selectedAnswer => {
+                const selectedLi = questionDiv.querySelector(`input[value="${selectedAnswer}"]`)?.closest('li');
+                if (selectedLi) {
+                    selectedLi.style.color = correctAnswers[questionName]?.includes(selectedAnswer) ? 'lightgreen' : 'red';
+                }
+            });
+
+            // Désactiver les cases après chargement
+            questionDiv.querySelectorAll('input').forEach(input => (input.disabled = true));
+        }
+    }
+}
+
+// Générer les cercles pour les questions
+function generateCircles() {
+    const totalQuestions = Object.keys(correctAnswers).length;
+    const circleContainer = document.getElementById('circle-container');
+
+    for (let i = 1; i <= totalQuestions; i++) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle', 'yellow'); // Couleur par défaut : jaune
+        circle.innerText = i;
+
+        circle.onclick = function () {
+            scrollToQuestion(i);
+        };
+
+        circleContainer.appendChild(circle);
+    }
+}
+
+// Mettre à jour les cercles après évaluation
+function updateCircles() {
+    const circles = document.querySelectorAll('.circle');
+    let totalCorrectCircles = 0; // Compteur pour les réponses correctes
+    for (let i = 1; i <= Object.keys(correctAnswers).length; i++) {
+        const selectedAnswers = loadedAnswers[`q${i}`]?.selected || [];
+        const circle = circles[i - 1];
+
+        if (JSON.stringify(correctAnswers[`q${i}`]?.sort()) === JSON.stringify(selectedAnswers.sort())) {
+            circle.classList.add('green');
+            circle.classList.remove('yellow', 'red');
+            totalCorrectCircles++;
+        } else if (selectedAnswers.length > 0) {
+            circle.classList.add('red');
+            circle.classList.remove('yellow', 'green');
+        } else {
+            circle.classList.add('yellow');
+            circle.classList.remove('green', 'red');
+        }
+    }
+
+    // Mettre à jour la note avec le nombre de cercles verts
+    document.getElementById('score').textContent = `${totalCorrectCircles} / ${Object.keys(correctAnswers).length}`;
+}
+
+// Défiler jusqu'à une question spécifique
+function scrollToQuestion(questionNumber) {
+    const questionDiv = document.getElementById(`question-${questionNumber}`);
+    if (questionDiv) {
+        questionDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Charger les réponses et générer les cercles au chargement de la page
+window.onload = function () {
+    document.getElementById('total-questions').textContent = Object.keys(correctAnswers).length; // Nombre total de questions
+    loadUserAnswersFromChimie();
+    generateCircles();
+    updateCircles();
+};
+
+
+
+
+    </script>
+</body>
+</html>
+<script src="{% static 'java/question-stats.js' %}" defer></script>
+<script src="{% static 'java/sidebar.js' %}"></script>
+<script src="{% static 'java/navbar.js' %}"></script>
